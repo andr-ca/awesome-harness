@@ -343,8 +343,13 @@ with open('$TEST_PROJECT/.agentharness-state.json') as f: print(json.load(f)['so
     # Rollback: move the submodule to an ancestor commit by hand (the
     # documented, deliberately-manual way — see "Keeping Projects Updated"
     # in docs/INTEGRATION.md). The skill symlink still resolves because it
-    # points into the submodule's working tree, not a specific blob.
-    rollback_commit=$(git -C "$submodule" rev-parse "${pinned_commit}~3")
+    # points into the submodule's working tree, not a specific blob. Roll
+    # back to the v0.1.0 tag specifically (a real prior release, guaranteed
+    # to carry the 'committing' skill per CHANGELOG.md) rather than an
+    # arbitrary N-commits-back offset — this repo's history is full of
+    # merge commits, so "~N" can land before a skill existed at all
+    # instead of at an actual past release.
+    rollback_commit=$(git -C "$submodule" rev-parse v0.1.0)
     git -C "$submodule" checkout --quiet "$rollback_commit"
     [ -f "$TEST_PROJECT/.claude/skills/committing/SKILL.md" ]
     run bash "$SCRIPT" doctor "$TEST_PROJECT"
