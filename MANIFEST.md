@@ -16,7 +16,8 @@ generator script yet (see ROADMAP.md).
 | Coding guidelines | `.github/CODING_GUIDELINES.md` | guide | Before writing code in any language; naming, comments, testing mandate, definition of done |
 | PR template | `.github/pull_request_template.md` | template | Auto-populated on PR creation |
 | gitignore template | `.github/.gitignore.template` | template | `cp` into a new project as `.gitignore` |
-| prevent-trunk-commit hook | `.github/hooks/prevent-trunk-commit` | git hook | Installed via `git config core.hooksPath .github/hooks` (done in this repo) |
+| prevent-trunk-commit hook | `.github/hooks/prevent-trunk-commit` | git hook | The enforcement logic. Installed via `git config core.hooksPath .github/hooks` (done in this repo) |
+| pre-commit dispatcher | `.github/hooks/pre-commit` | git hook | Required alongside the hook above — `core.hooksPath` only invokes a file literally named `pre-commit`; this execs `prevent-trunk-commit` |
 
 ## Language Conventions
 

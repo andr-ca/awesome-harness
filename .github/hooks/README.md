@@ -22,7 +22,19 @@ chmod +x .git/hooks/pre-commit
 # Option 2: Using Husky (recommended for teams)
 npx husky install
 npx husky add .husky/pre-commit '.github/hooks/prevent-trunk-commit'
+
+# Option 3: git config core.hooksPath (what tools/setup/harness-link.sh
+# --with-hook does, and what this repo uses on itself)
+git config core.hooksPath /path/to/agentharness/.github/hooks
 ```
+
+**Why there's also a `pre-commit` file in this directory:** `core.hooksPath`
+only ever invokes a file named exactly `pre-commit` inside the configured
+directory — it does not run every file there. `.github/hooks/pre-commit`
+is a thin dispatcher that execs `prevent-trunk-commit`; without it, Option 3
+silently installs nothing and commits to trunk succeed uninterrupted. Options
+1 and 2 already target the correct filename themselves, so they don't need
+the dispatcher.
 
 **Testing:**
 

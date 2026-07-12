@@ -1,0 +1,10 @@
+#!/bin/bash
+# Dispatcher required by `git config core.hooksPath .github/hooks`.
+#
+# Git looks for a file named exactly `pre-commit` inside core.hooksPath — a
+# file named `prevent-trunk-commit` in that same directory is never invoked
+# on its own. This delegates to the real script so that setting
+# core.hooksPath (as tools/setup/harness-link.sh --with-hook does) actually
+# enables trunk protection instead of silently doing nothing.
+set -euo pipefail
+exec "$(dirname "${BASH_SOURCE[0]}")/prevent-trunk-commit" "$@"
