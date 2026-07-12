@@ -21,6 +21,12 @@ Standards for git commits that maintain clean history, respect project configura
 
 If an agent says "work is complete" but there's no PR, the work is incomplete.
 
+**When implementing recommendations:**
+- Create a `{recommendations}-status.md` file documenting what was implemented
+- Include timestamp, summary of changes, rationale, and PR link
+- Commit this status report alongside the implementation
+- Push everything in a single coordinated PR or series of PRs
+
 ### Security & Verification
 
 - **Always respect signing configuration** – Do not disable, override, or work around GPG signing

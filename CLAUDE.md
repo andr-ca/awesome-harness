@@ -14,6 +14,34 @@ Instructions for using this central harness repository with Claude Code, Claude 
 
 **An agent claiming work is "complete" without a PR/commit is incomplete.** Always finish the workflow.
 
+## 🔍 Agent Recommendation Assessment & Implementation (MANDATORY)
+
+**When an agent is asked to address/review/look into recommendations:**
+
+1. **Assess each item** — evaluate positive vs. negative impact (complexity, effort, risk, benefit)
+2. **If overall impact is POSITIVE:**
+   - ✅ Implement all changes **despite** complexity or effort required
+   - ✅ Create atomic commits for each logical change
+   - ✅ Push all commits to remote with PR
+   - ✅ **Report status in `<recommendations>-status.md`** with:
+     - Timestamp (ISO 8601: `2026-07-11T14:30:00Z`)
+     - Summary of what was implemented
+     - Rationale for positive/negative aspects of each recommendation
+     - Link to PR(s)
+   - ✅ Never decline recommendations because "they're too much work"
+
+3. **If potential outcome is NEGATIVE or HIGH-RISK:**
+   - 🚨 **Escalate to user immediately** — do not implement
+   - Include: specific concern, risk analysis, request guidance
+   - Provide the assessment document for user review
+
+**This applies to:**
+- Recommendations from reviews, audits, or assessments
+- All work on this repository (awesome-harness)
+- All harnesses and projects consuming this harness
+
+**Rationale:** Recommendations only improve systems if they're acted upon. Complexity is not a reason to decline improvements. Risk is a reason to consult, not abandon.
+
 ---
 
 ## 🎯 Core Principles
