@@ -68,11 +68,13 @@ generator script yet (see ROADMAP.md).
 | Error handling | `.claude/skills/error-handling/SKILL.md` | skill | Loads on demand for error recovery, resilience patterns |
 | Agentic loops | `.claude/skills/agentic-loops/SKILL.md` | skill | Loads on demand for multi-turn agents, tool calling |
 
-## Setup
+## Setup & Examples
 
 | Asset | Path | Type | When to use |
 |---|---|---|---|
-| Harness link script | `tools/setup/harness-link.sh` | script | One-command integration into a consuming project — replaces hand-typed symlink commands |
+| Harness link script | `tools/setup/harness-link.sh` | script | One-command integration into a consuming project |
+| Sample project | `examples/sample-project/` | project | Demonstrates harness integration; validates INTEGRATION.md commands work |
+| Integration verification | `examples/sample-project/verify.sh` | script | Checks that skills, hooks, and guidelines are properly integrated |
 
 ## GitHub Configuration
 
