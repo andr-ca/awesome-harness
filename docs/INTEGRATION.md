@@ -43,12 +43,17 @@ Keep your project in sync with harness updates automatically.
 Automated: `harness-link.sh init ~/my-project --mode link` (the default —
 `--mode` can be omitted).
 
-Manual, what that does under the hood:
+Manual, what that does under the hood (symlinking each skill
+individually, not the whole `skills/` directory as one symlink — that
+way your project can still have its own local skills alongside the
+harness's, and you can pick a subset):
 
 ```bash
 cd ~/my-project
-mkdir -p .claude
-ln -s ~/agentharness/.claude/skills .claude/skills
+mkdir -p .claude/skills
+for skill in ~/agentharness/.claude/skills/*/; do
+  ln -s "$skill" ".claude/skills/$(basename "$skill")"
+done
 ```
 
 **Pros:** Always up-to-date. **Cons:** Requires the harness checked out
@@ -68,19 +73,23 @@ Automated: `harness-link.sh init ~/my-project --mode copy`. Run
 confirming) apply upstream changes — it diffs your copy against the
 current source first, so local edits aren't silently overwritten.
 
-Manual, what that does under the hood:
+Manual, what that does under the hood (`-L` dereferences any bundled-
+resource symlinks inside a skill — e.g. agentic-loops' `agent_loop.py` —
+instead of copying them as symlinks that only resolve inside the harness
+checkout):
 
 ```bash
 cd ~/my-project
 mkdir -p .claude
-cp -r ~/agentharness/.claude/skills .claude/skills
+cp -rL ~/agentharness/.claude/skills .claude/skills
 
 # Record what you copied and from where, so future-you can diff and update
-cat >> CLAUDE.md <<'EOF'
+harness_rev="$(git -C ~/agentharness rev-parse --short HEAD)"
+cat >> CLAUDE.md <<EOF
 
 ## Harness Integration
-Copied from agentharness @ $(git -C ~/agentharness rev-parse --short HEAD)
-- .claude/skills/ (committing, branching, python-conventions)
+Copied from agentharness @ $harness_rev
+- .claude/skills/ ($(ls ~/agentharness/.claude/skills | paste -sd, -))
 EOF
 ```
 
@@ -95,12 +104,16 @@ this harness as a submodule at `~/my-project/.agentharness` (pinned via
 the submodule's own commit, not a mutable external path) and symlinks
 skills from there.
 
-Manual, what that does under the hood:
+Manual, what that does under the hood (per-skill symlinks again, same
+reasoning as Method 1):
 
 ```bash
 cd ~/my-project
-git submodule add git@github.com:andr-ca/agentharness.git .agentharness
-ln -s ../.agentharness/.claude/skills .claude/skills
+git submodule add https://github.com/andr-ca/agentharness.git .agentharness
+mkdir -p .claude/skills
+for skill in .agentharness/.claude/skills/*/; do
+  ln -s "../../$skill" ".claude/skills/$(basename "$skill")"
+done
 
 # Update later:
 git submodule update --remote .agentharness
@@ -115,24 +128,37 @@ operational overhead (contributors need `git submodule update --init`).
 
 ```bash
 mkdir -p .claude/skills
-ln -s ~/agentharness/.claude/skills/committing .claude/skills/committing
-ln -s ~/agentharness/.claude/skills/branching .claude/skills/branching
-ln -s ~/agentharness/.claude/skills/python-conventions .claude/skills/python-conventions
+for skill in ~/agentharness/.claude/skills/*/; do
+  name="$(basename "$skill")"
+  ln -s "$skill" ".claude/skills/$name"
+done
 ```
 
-Verify: skills should appear when you run `/help` or reference them by
-name in Claude Code.
+(Or symlink only the ones you want — see `ls ~/agentharness/.claude/skills/`
+for the current list; `harness-link.sh init --skills name1,name2` does
+this filtering for you.)
+
+Verify: a skill with valid `SKILL.md` frontmatter is picked up
+automatically — no registration step. In a session working in that
+project, Claude Code lists it as an available skill (you'll see it
+mentioned as loadable when its description matches what you're doing, or
+via a system reminder listing available skills); if it doesn't show up,
+run `doctor` (see Troubleshooting below) or check the frontmatter is
+valid YAML with `name` and `description` fields.
 
 ### Language Guidelines
 
-Only Python exists today (`languages/python/`). Reference it directly
-rather than copying — conventions docs are meant to be read, not
-vendored:
+Python, TypeScript, and Go exist today (`languages/{python,typescript,go}/`),
+plus a React framework add-on (`frameworks/react/CONVENTIONS.md`, layered
+on top of the TypeScript guide — see that guide's own "React" section).
+Reference them directly rather than copying — conventions docs are meant
+to be read, not vendored:
 
 ```markdown
 <!-- In your project's CLAUDE.md -->
 ## Language Guide
-Python conventions: see ~/agentharness/languages/python/CONVENTIONS.md
+TypeScript conventions: see ~/agentharness/languages/typescript/CONVENTIONS.md
+React conventions: see ~/agentharness/frameworks/react/CONVENTIONS.md
 ```
 
 ### Testing & Logging Patterns
@@ -231,7 +257,8 @@ you without being asked).
 
 ---
 
-Once `frameworks/`, additional `languages/`, and `tools/` beyond
-`tools/setup/` are built (see [ROADMAP.md](../ROADMAP.md)), this guide
-will grow per-component sections for them. Until then, don't reference
-paths that don't exist — check [MANIFEST.md](../MANIFEST.md) first.
+This guide covers what exists today — `languages/{python,typescript,go}/`,
+`frameworks/react/`, and the `tools/` scripts referenced above. As more
+frameworks and languages are added (see [ROADMAP.md](../ROADMAP.md)), this
+guide will grow matching per-component sections. Don't reference paths
+that don't exist — check [MANIFEST.md](../MANIFEST.md) first.

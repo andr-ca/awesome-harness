@@ -84,6 +84,11 @@ happens if you asked for that mode.
 
 ## What's here today
 
+This tree lists tracked files only (a fresh clone won't have empty
+placeholder directories) — see [MANIFEST.md](MANIFEST.md) for the full,
+current inventory with a one-line purpose per file; treat this as an
+orientation map, not the source of truth.
+
 ```
 agentharness/
 ├── README.md                    # This file
@@ -92,49 +97,79 @@ agentharness/
 ├── ROADMAP.md                   # What's planned but not built yet
 ├── CHANGELOG.md                 # Release history
 ├── SECURITY.md                  # Secrets-in-history procedure
+├── requirements-dev.txt         # Pinned dev/CI toolchain
+├── .markdownlint-cli2.yaml      # Markdown lint rules for CI
 ├── .github/
 │   ├── BRANCHING_STRATEGY.md
 │   ├── COMMITTING_GUIDELINES.md
 │   ├── CODING_GUIDELINES.md
 │   ├── pull_request_template.md
 │   ├── .gitignore.template
-│   ├── workflows/               # CI for this repo
-│   └── hooks/
-│       └── prevent-trunk-commit
+│   ├── CODEOWNERS
+│   ├── dependabot.yml
+│   ├── workflows/               # ci.yml, link-check-scheduled.yml
+│   └── hooks/                   # prevent-trunk-commit, pre-push (+ tests)
 ├── .claude/
-│   └── skills/                  # committing, branching, python-conventions
+│   └── skills/                  # committing, branching, python-conventions,
+│                                 # error-handling, agentic-loops,
+│                                 # audit-review-followup
 ├── languages/
-│   └── python/                  # CONVENTIONS.md, COPILOT_INSTRUCTIONS.md
+│   ├── python/                  # CONVENTIONS.md, COPILOT_INSTRUCTIONS.md
+│   ├── typescript/              # CONVENTIONS.md
+│   └── go/                      # CONVENTIONS.md
+├── frameworks/
+│   └── react/                   # CONVENTIONS.md (add-on to the TS guide)
 ├── patterns/
 │   ├── testing/                 # TDD, coverage, Playwright, completion checklist
-│   └── logging/                 # logging standards + example config
+│   ├── logging/                 # logging standards + example config + loader
+│   ├── error-handling/          # retry, circuit-breaker, structured logging
+│   ├── agentic-loops/           # tested agent-loop reference implementation
+│   └── profiles/                # rigor-tier profiles (prototype/internal/production)
+├── examples/                    # sample-project + python/typescript/go fixtures,
+│                                 # each verified in CI across every install mode
 ├── tools/
-│   └── setup/
-│       └── harness-link.sh      # One-command project integration
+│   ├── setup/harness-link.sh    # Lifecycle CLI: init/plan/status/doctor/audit/update/uninstall
+│   ├── check.sh                 # One local entrypoint for every CI check
+│   ├── verify-manifest.sh       # This file's own accuracy check
+│   ├── verify-content-quality.py
+│   └── tests/                   # bats tests for harness-link.sh
 └── docs/
     ├── ARCHITECTURE.md
-    └── INTEGRATION.md
+    ├── INTEGRATION.md
+    └── operational/              # working notes, review history
 ```
 
-Everything else you might expect (frameworks/, more languages, more
-pattern categories, `.claude/agents/`, `.codex/`) is intentionally not
-here yet — see [ROADMAP.md](ROADMAP.md).
+Everything else you might expect (more `frameworks/`, more `languages/`,
+`.claude/agents/`, `.codex/`) is intentionally not here yet — see
+[ROADMAP.md](ROADMAP.md).
 
 ## Quick Start
 
-```bash
-git clone git@github.com:andr-ca/agentharness.git ~/agentharness
-```
-
-Integrate into a project with the setup script (installs skills, copies
-the gitignore template, and — if you opt in — the branch-protection hook):
+**Prerequisites:** `git`, `bash`, `python3` (used to read/write the
+lifecycle CLI's state file). See "Supported platforms" above.
 
 ```bash
-~/agentharness/tools/setup/harness-link.sh /path/to/your-project
+git clone https://github.com/andr-ca/agentharness.git ~/agentharness
 ```
+
+(Or `git@github.com:andr-ca/agentharness.git` if you have SSH access set
+up and prefer it — HTTPS works with no additional setup, which is why
+it's the default above.)
+
+Integrate into a project with the setup script (installs skills, merges
+the gitignore template, and — if you opt in via `--with-hook` — the
+branch-protection + coverage hooks):
+
+```bash
+~/agentharness/tools/setup/harness-link.sh init /path/to/your-project
+```
+
+Preview what that would do without changing anything: add `--dry-run` (or
+run `plan` instead of `init`). Verify afterward with
+`~/agentharness/tools/setup/harness-link.sh doctor /path/to/your-project`.
 
 Or by hand — see [docs/INTEGRATION.md](docs/INTEGRATION.md) for the
-symlink/copy/submodule tradeoffs.
+symlink/copy/submodule tradeoffs, troubleshooting, and update/uninstall.
 
 ## Contributing
 
