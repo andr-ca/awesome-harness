@@ -1,0 +1,11 @@
+id: go-error-handling
+title: Add explicit error handling to ParsePositiveInt
+language: go
+entry_module: handler.go
+coverage_threshold: 80
+prompt: |
+  `ParsePositiveInt` in `handler.go` currently just returns whatever
+  `strconv.Atoi` gives it. Change it to return a wrapped error (using
+  `%w`) for any input that isn't a positive integer: non-numeric input,
+  zero, and negative numbers must all be rejected. Do not change the
+  function's name or signature.

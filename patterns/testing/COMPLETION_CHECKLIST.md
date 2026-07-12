@@ -10,9 +10,15 @@ languages: all
 
 **🚨 CRITICAL: DO NOT MARK WORK COMPLETE UNTIL ALL ITEMS ARE VERIFIED**
 
+The coverage number below is the Production-tier requirement — see
+`.github/CODING_GUIDELINES.md#rigor-tiers` and `COVERAGE_REQUIREMENTS.md`.
+At Prototype/Internal tier, skip item 2 (or apply whatever coverage floor
+that tier actually has, which may be none); everything else still
+applies — tests passing and lint passing aren't tier-gated.
+
 Work is NOT done until:
 1. ✅ All tests PASS (no exceptions, no skips)
-2. ✅ Coverage is >= 80% (verified, measured)
+2. ✅ Coverage is >= 80% (Production tier — verified, measured)
 3. ✅ ALL lint checks PASS (no exceptions)
 4. ✅ Edge cases are tested
 5. ✅ No failures from other work (even if caused by someone else)
@@ -457,7 +463,7 @@ Work is DONE when:
 - ✅ No visual regressions accepted
 - ✅ Screenshots must match expected appearance
 
-### UI Work Cannot Be Complete Without:
+### UI Work Cannot Be Complete Without
 - [ ] All Playwright tests written
 - [ ] All tests PASS
 - [ ] Coverage >= 80%
@@ -475,7 +481,7 @@ See: `PLAYWRIGHT_UI_TESTING.md` for complete UI testing guide
 
 ---
 
-## Never Claim Work Complete If:
+## Never Claim Work Complete If
 
 ❌ Tests are failing
 ❌ Coverage < 80%

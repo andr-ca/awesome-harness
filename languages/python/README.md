@@ -264,13 +264,15 @@ Projects using Python should:
 3. Combine with general guidelines in `../../.github/CODING_GUIDELINES.md`
 4. Check `../../.github/COMMITTING_GUIDELINES.md` for commit standards
 
-Example project setup:
-```bash
-# Copy Python conventions to project
-cp languages/python/CONVENTIONS.md your-project/docs/
+Reference it directly rather than copying — conventions docs are meant
+to be read, not vendored (see
+[docs/INTEGRATION.md](../../docs/INTEGRATION.md)'s "Language Guidelines"
+section):
 
-# Reference in project's .github/copilot-instructions.md
-# Reference in .claude/CLAUDE.md for AI guidance
+```markdown
+<!-- In your project's CLAUDE.md -->
+## Language Guide
+Python conventions: see ~/agentharness/languages/python/CONVENTIONS.md
 ```
 
 ## 📖 External References

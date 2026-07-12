@@ -1,0 +1,9 @@
+id: python-bugfix-average
+title: Fix a ZeroDivisionError bug in average_price
+language: python
+entry_module: stats.py
+coverage_threshold: 80
+prompt: |
+  `average_price` in `stats.py` raises `ZeroDivisionError` when given an
+  empty list. Fix it so an empty list returns `0.0` instead. Behavior for
+  a non-empty list must not change.

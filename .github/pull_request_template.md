@@ -35,4 +35,4 @@ Relates to #(issue)
 
 ---
 
-**Note:** See [COMMITTING_GUIDELINES.md](.github/COMMITTING_GUIDELINES.md) for commit standards and [CODING_GUIDELINES.md](.github/CODING_GUIDELINES.md) for code quality expectations.
+**Note:** See [COMMITTING_GUIDELINES.md](COMMITTING_GUIDELINES.md) for commit standards and [CODING_GUIDELINES.md](CODING_GUIDELINES.md) for code quality expectations.

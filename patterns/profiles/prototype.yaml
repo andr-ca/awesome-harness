@@ -1,0 +1,17 @@
+# Machine-readable form of the "Prototype / Exploration" column in
+# .github/CODING_GUIDELINES.md#rigor-tiers — that table is the canonical
+# description of what each field means and why; this file is what a
+# project or a script (like the pre-push hook) actually selects.
+profile: prototype
+tests:
+  required: false
+  tdd: false
+  coverage_min: null
+ui_testing:
+  playwright_required: false
+logging:
+  level: print-or-console-log
+error_handling:
+  strictness: let-it-crash
+review:
+  pr_and_checklist_required: false

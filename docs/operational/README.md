@@ -8,6 +8,7 @@ This directory contains temporary, transient, and operational documents that sup
 docs/operational/
 ├── README.md                    # This file
 ├── INDEX.md                     # Current index of active documents
+├── reviews/                     # Repo reviews + their disposition/status docs
 ├── research/                    # Temporary research and exploration
 │   └── {topic}/                 # Organized by topic
 ├── experiments/                 # Tests, trials, and experimentation
@@ -16,9 +17,10 @@ docs/operational/
 └── archives/                    # Older operational docs for reference
 ```
 
-Only `README.md` and `INDEX.md` exist yet — the subdirectories above are
-created on demand, the first time something actually goes in them. Don't
-pre-create empty directories; git doesn't track them anyway.
+`README.md`, `INDEX.md`, and `reviews/` exist today (see `INDEX.md` for
+what's in `reviews/`) — the other subdirectories above are created on
+demand, the first time something actually goes in them. Don't pre-create
+empty directories; git doesn't track them anyway.
 
 ## 🎯 Purpose
 

@@ -1,0 +1,9 @@
+{
+  "name": "typescript-project-fixture",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Trivial placeholder — this fixture exists to verify harness integration against a realistic TypeScript project layout, not to demonstrate application code.",
+  "scripts": {
+    "build": "echo 'no real build — fixture only'"
+  }
+}

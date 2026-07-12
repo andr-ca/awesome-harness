@@ -1,0 +1,45 @@
+{
+  "name": "agentharness",
+  "version": "0.1.0",
+  "description": "Git conventions, coding guidelines, testing standards, and on-demand skills for coding agents (Claude Code, Codex) — written once, referenced everywhere.",
+  "license": "MIT",
+  "author": "Andrey (andr-ca)",
+  "homepage": "https://github.com/andr-ca/agentharness#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/andr-ca/agentharness.git"
+  },
+  "bugs": {
+    "url": "https://github.com/andr-ca/agentharness/issues"
+  },
+  "bin": {
+    "agentharness": "bin/cli.js"
+  },
+  "scripts": {
+    "prepack": "python3 tools/release/materialize-skill-symlinks.py materialize",
+    "postpack": "python3 tools/release/materialize-skill-symlinks.py restore"
+  },
+  "files": [
+    "bin/",
+    ".claude/skills/",
+    "languages/",
+    "patterns/",
+    "frameworks/",
+    "tools/setup/harness-link.sh",
+    ".github/hooks/prevent-trunk-commit",
+    ".github/hooks/pre-commit",
+    ".github/hooks/pre-push",
+    ".github/.gitignore.template",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "MANIFEST.md",
+    "docs/INTEGRATION.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "os": [
+    "linux",
+    "darwin"
+  ]
+}

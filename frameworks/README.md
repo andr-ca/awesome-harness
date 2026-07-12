@@ -4,41 +4,40 @@ Framework-specific configurations, templates, best practices, and patterns.
 
 ## 📁 Framework Directories
 
-- **react/** – React and Next.js harnesses
-- **vue/** – Vue and Nuxt harnesses
-- **angular/** – Angular harnesses
-- **django/** – Django harnesses
-- **express/** – Express.js and Node.js harnesses
-- **go/** – Go/Golang harnesses
+What exists today (see [MANIFEST.md](../MANIFEST.md) for the authoritative
+list):
 
-Add directories for other frameworks as needed.
+- **react/** – `CONVENTIONS.md` only (component naming, props typing — an
+  add-on layered on top of `languages/typescript/CONVENTIONS.md`)
 
-## 📦 What Each Framework Directory Should Contain
+Other frameworks (Vue, Angular, Django, Express, …) aren't built yet —
+see [ROADMAP.md](../ROADMAP.md) before assuming one exists.
+
+## 📦 What a Framework Directory Can Contain
+
+Not a required shape — `react/` today is just `CONVENTIONS.md`. Add the
+others only once there's real content for them:
 
 ```
 frameworks/{framework}/
-├── README.md              # Framework-specific overview
-├── setup/                 # Initial setup templates
-│   └── tsconfig.json     # Or relevant config files
-├── patterns/             # Framework-specific patterns
-├── examples/             # Working examples
-├── tools/                # Framework-specific utilities
-└── CONVENTIONS.md        # Style and naming conventions
+├── README.md              # Framework-specific overview (optional)
+├── CONVENTIONS.md         # Style and naming conventions (the one required file)
+├── setup/                 # Initial setup templates (optional)
+├── patterns/              # Framework-specific patterns (optional)
+├── examples/               # Working examples (optional)
+└── tools/                 # Framework-specific utilities (optional)
 ```
 
-## 🚀 Using a Framework Harness
+## 🚀 Using a Framework Guide
 
-When starting a new project in a framework:
+Reference it directly rather than copying — like the `languages/` guides,
+these are meant to be read, not vendored (see
+[docs/INTEGRATION.md](../docs/INTEGRATION.md)'s "Language Guidelines"
+section):
 
-```bash
-# Copy configuration files
-cp ~/agentharness/frameworks/{framework}/tsconfig.json .
-
-# Review patterns and conventions
-cat ~/agentharness/frameworks/{framework}/README.md
-
-# Use examples as reference
-ls ~/agentharness/frameworks/{framework}/examples/
+```markdown
+<!-- In your project's CLAUDE.md -->
+React conventions: see ~/agentharness/frameworks/react/CONVENTIONS.md
 ```
 
 ## 📝 Adding a New Framework

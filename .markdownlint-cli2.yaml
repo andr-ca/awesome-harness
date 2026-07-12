@@ -1,0 +1,29 @@
+# Content-quality gate (P1-08): catch genuinely broken Markdown — stray
+# HTML, malformed links/images, inconsistent heading nesting — not house
+# style. Deliberately NOT enforcing line-length, mandatory blank lines
+# around headings/lists/fences, "emphasis instead of heading", or table
+# cell padding: those are formatter opinions this repo has never applied
+# retroactively, and turning them on here would fail on ~40 pre-existing
+# docs for zero content-correctness benefit. Tighten later if the project
+# adopts a markdown formatter that keeps these clean automatically.
+config:
+  default: true
+  MD013: false # line-length
+  MD022: false # blanks-around-headings
+  MD024: false # no-duplicate-heading (common across repeated subsections)
+  MD029: false # ol-prefix (historical review docs restart numbering deliberately)
+  MD031: false # blanks-around-fences
+  MD032: false # blanks-around-lists
+  MD034: false # no-bare-urls (historical review docs quote raw URLs verbatim)
+  MD036: false # no-emphasis-as-heading
+  MD040: false # fenced-code-language
+  MD041: false # first-line-heading (not every doc opens with an H1)
+  MD056: false # table-column-count (a historical review doc has a wide freeform table)
+  MD060: false # table-column-style
+  MD010: # no-hard-tabs — real prose tabs are still an error; tabs inside a
+         # fenced code block (Go's gofmt convention, for one) are not.
+    code_blocks: false
+globs:
+  - "**/*.md"
+ignores:
+  - "node_modules/**"

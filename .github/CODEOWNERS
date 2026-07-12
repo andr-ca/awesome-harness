@@ -1,0 +1,19 @@
+# Code ownership and review routing
+# Each pattern here specifies who should review changes to matching files
+
+# Repository maintainer
+* @andr-ca
+
+# Git and workflow guidelines
+.github/BRANCHING_STRATEGY.md @andr-ca
+.github/COMMITTING_GUIDELINES.md @andr-ca
+
+# Testing and quality standards
+patterns/testing/ @andr-ca
+.github/CODING_GUIDELINES.md @andr-ca
+
+# Claude Code skills (require framework owner review)
+.claude/skills/ @andr-ca
+
+# Hooks
+.github/hooks/ @andr-ca

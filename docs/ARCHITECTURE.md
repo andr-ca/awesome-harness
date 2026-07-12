@@ -258,6 +258,8 @@ As the harness grows:
 - Tag releases in git (v0.1.0 onward — see [CHANGELOG.md](../CHANGELOG.md))
 - Keep git history clean
 - Document breaking changes in CHANGELOG
+- See [RELEASING.md](RELEASING.md) for the versioning policy, release
+  checklist, and how a consuming project pins, upgrades, or rolls back
 
 **Project Integration**
 - Option 1 (Symlink): No versioning, always latest

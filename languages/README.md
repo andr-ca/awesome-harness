@@ -4,23 +4,29 @@ Language-specific conventions, idioms, best practices, and style guidelines.
 
 ## 📁 Language Directories
 
-- **typescript/** – TypeScript conventions and best practices
-- **python/** – Python conventions and idioms
-- **go/** – Go/Golang conventions
-- **rust/** – Rust idioms and patterns
+What exists today (see [MANIFEST.md](../MANIFEST.md) for the authoritative
+list):
 
-Add directories for other languages as needed.
+- **typescript/** – `CONVENTIONS.md`
+- **python/** – `README.md`, `CONVENTIONS.md`, `COPILOT_INSTRUCTIONS.md`
+- **go/** – `CONVENTIONS.md`
 
-## 📦 What Each Language Directory Should Contain
+Other languages (Rust, Java, …) aren't built yet — see
+[ROADMAP.md](../ROADMAP.md) before assuming one exists.
+
+## 📦 What a Language Directory Can Contain
+
+Not a required shape — `CONVENTIONS.md` alone is enough to start. Add the
+others only if there's real content for them, not as placeholders:
 
 ```
 languages/{language}/
-├── README.md              # Language overview and philosophy
-├── CONVENTIONS.md         # Naming conventions and style
-├── IDIOMS.md              # Language-specific idioms
-├── TOOLING.md             # Recommended tools and setup
-├── LIBRARIES.md           # Recommended libraries
-└── ANTI_PATTERNS.md       # Common pitfalls to avoid
+├── README.md              # Language overview and philosophy (optional)
+├── CONVENTIONS.md         # Naming conventions and style (the one required file)
+├── IDIOMS.md              # Language-specific idioms (optional)
+├── TOOLING.md             # Recommended tools and setup (optional)
+├── LIBRARIES.md           # Recommended libraries (optional)
+└── ANTI_PATTERNS.md       # Common pitfalls to avoid (optional)
 ```
 
 ## 📝 Convention Categories
@@ -55,7 +61,9 @@ languages/{language}/
 
 Language guidelines are extended with framework-specific details:
 - React-specific TypeScript conventions → `frameworks/react/CONVENTIONS.md`
-- Django-specific Python patterns → `frameworks/django/PATTERNS.md`
+  (exists today)
+- Other frameworks (Django, Vue, …) aren't built yet — see
+  [ROADMAP.md](../ROADMAP.md)
 
 ## 📝 Adding a New Language
 

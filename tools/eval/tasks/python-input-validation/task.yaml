@@ -1,0 +1,13 @@
+id: python-input-validation
+title: Add input validation to a discount calculator
+language: python
+entry_module: discount.py
+coverage_threshold: 80
+prompt: |
+  Implement `calculate_discount(price, discount_rate)` in `discount.py`.
+
+  - Returns `price - (price * discount_rate)`.
+  - Raises `ValueError` if `price` is negative.
+  - Raises `ValueError` if `discount_rate` is not between 0 and 1 inclusive.
+
+  Do not change the function's name or signature.

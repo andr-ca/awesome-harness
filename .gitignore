@@ -4,8 +4,9 @@ __pycache__/
 *.pyc
 *.pyo
 *.egg-info/
-vendor/
-Gemfile.lock
+# vendor/ and Gemfile.lock are NOT ignored here — see .github/.gitignore.template's
+# policy note: lock files are committed for reproducible builds, and Go's
+# vendor/ is project-specific (committed if vendoring, ignored only if not).
 
 # Build artifacts
 dist/
@@ -32,9 +33,12 @@ Thumbs.db
 .DS_Store
 
 # Testing
+.coverage
+.coverage.*
 coverage/
 .nyc_output/
 htmlcov/
+.pytest_cache/
 
 # Temporary files
 *.tmp

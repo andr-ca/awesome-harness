@@ -29,76 +29,27 @@ If you're not sure which tier you're in, ask: "if this breaks at 3am, does
 it page someone who isn't me?" If yes, it's Production tier regardless of
 how small the change looks.
 
+**Selecting a tier, not just reading about it:** see
+[`patterns/profiles/`](../patterns/profiles/README.md) for this table as
+machine-readable YAML, how a project declares its tier via
+`.agentharness-profile`, the precedence order between an explicit
+request/repo-local override/profile/language add-on/generic default, and
+the current state of mechanical enforcement (none yet — advisory only,
+see that file for why and what's planned).
+
 The minimalism principles elsewhere in this doc ("trust internal code,"
 "don't add error handling for scenarios that can't happen," "three
 similar lines don't need an abstraction") apply at every tier — rigor
 tiers control *how much verification* you add, not whether you're allowed
 to over-engineer the solution itself.
 
-## 🚨 CRITICAL: Test-Driven Development & 80% Coverage Requirement (Production tier)
-
-**THESE ARE NON-NEGOTIABLE REQUIREMENTS AT THE PRODUCTION TIER:**
-
-### TDD is Mandatory
-- ✅ Write tests BEFORE code (always Red-Green-Refactor)
-- ✅ Code without tests is incomplete code
-- ✅ All behavior must be verified by tests
-- ✅ Never skip testing because you're "in a hurry"
-
-### 80% Test Coverage is Mandatory
-- ✅ **Minimum 80% coverage required** – NOT optional, NOT negotiable
-- ✅ **All tests must PASS** – No skipped, no broken tests
-- ✅ **Edge cases must be tested** – Empty, null, min/max, error conditions
-- ✅ **Lint must pass** – No errors, no suppressions without justification
-- ✅ **Fix inherited failures** – Even if someone else broke a test, YOU fix it
-
-**At Production tier, code with coverage < 80% WILL NOT MERGE. This is a hard requirement at that tier — see Rigor Tiers above.**
-
-### Definition of "Done"
-Work is NOT done until:
-1. ✅ All tests pass (every single test)
-2. ✅ Coverage >= 80% (verified by report)
-3. ✅ All linting passes (no errors)
-4. ✅ All edge cases tested
-5. ✅ All inherited test failures fixed
-6. ✅ **For Web UI: Playwright tests with screenshot verification completed**
-7. ✅ **All work committed to a feature branch** (never trunk)
-8. ✅ **Branch pushed to remote** with tracking (`git push -u origin branch-name`)
-9. ✅ **Pull request created** with clear title, body, and checklist
-10. ✅ **PR link is provided** — no work is complete without a PR
-
-### Web UI Testing Requirement (MANDATORY)
-
-**ALL WEB UI WORK MUST USE PLAYWRIGHT:**
-- ✅ **Write UI tests BEFORE building UI** (TDD)
-- ✅ **Screenshot verification in every test** (visual regression detection)
-- ✅ **Agent MUST review and approve all screenshots** (no approval = not done)
-- ✅ **Test multiple browsers** (Chrome, Firefox, Safari, mobile)
-- ✅ **Test responsive design** (mobile, tablet, desktop)
-- ✅ **No visual regressions** (screenshots must match expected appearance)
-
-**At Production tier, UI work without Playwright + screenshot verification WILL NOT MERGE. See Rigor Tiers above.**
-
-See: `patterns/testing/PLAYWRIGHT_UI_TESTING.md` for complete Playwright guide
-
-### Logging & Telemetry Requirement (MANDATORY)
-
-**ALL CODE MUST HAVE PROPER LOGGING AND TELEMETRY:**
-- ✅ **Centralized configuration** (logging.yaml or equivalent)
-- ✅ **Structured logging** (JSON, not printf-style)
-- ✅ **Multiple backends** (files, OTEL, console, cloud)
-- ✅ **All critical events logged** (authentication, operations, errors)
-- ✅ **Full error context** (stack traces, user context, request ID)
-- ✅ **Proper rotation & retention** (daily rotation, 30-day retention)
-- ✅ **Telemetry & metrics** (performance, errors, business metrics)
-- ✅ **No sensitive data** (passwords, secrets, PII removed/redacted)
-- ✅ **Accessible for debugging** (logs must enable root cause analysis)
-
-**At Production tier, code without proper logging WILL NOT MERGE. See Rigor Tiers in `.github/CODING_GUIDELINES.md`.**
-
-See: `patterns/logging/` for complete logging framework
-
-**See:** `patterns/testing/` and `patterns/logging/` for complete TDD, coverage, logging, and UI testing guidance
+At the Production tier specifically: TDD and 80% coverage
+(`patterns/testing/TDD.md`, `COVERAGE_REQUIREMENTS.md`), Playwright +
+screenshot verification for web UI (`PLAYWRIGHT_UI_TESTING.md`), and full
+logging/telemetry (`patterns/logging/`) are all non-negotiable — see each
+doc for specifics, and `COMMITTING_GUIDELINES.md` for the commit → push →
+PR workflow completion requirement. This section doesn't restate them;
+one source of truth per rule.
 
 ---
 
@@ -151,7 +102,7 @@ If yes, do that instead. Comments are a code smell pointing to unclear logic.
 - **Avoid `any`** – Use proper types; if you can't type something, the code design needs improvement. `unknown` is not the same problem as `any` — it's TypeScript's type-safe alternative (forces a check/narrow before use) and is the *correct* tool when a value's type genuinely can't be known at the call site (e.g. parsing untrusted JSON). Don't ban it alongside `any`.
 - **Import management** – Never duplicate imports; reuse existing ones if available. Don't leave blank lines where imports were removed.
 - **Use idiomatic patterns** – Before creating new structures, look for existing test patterns and utilities in the codebase.
-- **One behavior per test, one assertion where possible** – When a test's expected outcome is a single composite value (e.g. an object with several fields), assert it in one snapshot-style comparison (`assert.deepStrictEqual`) rather than one `assert` per field — same behavior, one assertion, easier to update. When two checks verify genuinely independent behaviors (e.g. "creation succeeds" vs. "duplicate email is rejected"), that's two tests, not one test with two assertions. See `patterns/testing/TDD.md`'s "Testing Multiple Things at Once" example for the worked case.
+- **One behavior per test, one assertion where possible** – When a test's expected outcome is a single composite value (e.g. an object with several fields), assert it in one snapshot-style comparison (`assert.deepStrictEqual`) rather than one `assert` per field — same behavior, one assertion, easier to update. When two checks verify genuinely independent behaviors (e.g. "creation succeeds" vs. "duplicate email is rejected"), that's two tests, not one test with two assertions. See `patterns/testing/TDD.md`'s "Common mistake: testing multiple things at once" example for the worked case.
 - **Prefer standard async patterns** – Use `async`/`await` over `.then()`/`.catch()` chains in languages that support both.
 
 ## Type Safety
@@ -215,7 +166,7 @@ for (let i = 0; i < n; i++) doSomething();
 - **Don't add tests to wrong suite** – Keep tests organized by the code they test
 - **Look for existing patterns** before creating new test structures
 - **Use `describe`/`test` consistently** with what's already in the codebase
-- **Minimize assertions** – Prefer one comprehensive assertion over many small ones
+- **One behavior, one assertion** – see "Specific Practices" above; not restated here
 - **Make dependencies injectable** – Don't stub globals or use `any` casts to inject fakes
   - Add optional constructor parameter with real default
   - Test passes mock that implements the real interface

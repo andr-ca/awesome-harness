@@ -6,38 +6,111 @@ on:
   pull_request:
     branches: [main]
 
+# Least privilege by default — no job here needs to write to the repo,
+# comment on a PR, or touch releases. Override per-job only if that
+# ever changes, don't widen this default (P1-07).
+permissions:
+  contents: read
+
 jobs:
+  actionlint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Lint workflow files
+        uses: reviewdog/action-actionlint@be0761e4c1bab7cfdfca56cd03d4bb6253e39a4a # v1.72.0
+        with:
+          fail_level: error
+
   shellcheck:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Shellcheck all shell scripts
         run: |
           shopt -s globstar nullglob
-          scripts=(.github/hooks/prevent-trunk-commit tools/**/*.sh)
+          scripts=(.github/hooks/prevent-trunk-commit .github/hooks/pre-commit .github/hooks/pre-push tools/**/*.sh)
           if [ ${#scripts[@]} -eq 0 ]; then
             echo "No shell scripts found."
             exit 0
           fi
-          shellcheck "${scripts[@]}"
+          # -S warning: info-level SC2016 fires on tools/verify-manifest.sh's
+          # intentionally single-quoted backtick patterns (no expansion is
+          # wanted there); real bugs still fail at warning/error severity.
+          shellcheck -S warning "${scripts[@]}"
 
   hook-tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - name: Install bats-core
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.x"
+      - name: Install bats-core (pinned tag, no sudo — installs to a runner-local prefix on PATH)
         run: |
-          git clone --depth 1 https://github.com/bats-core/bats-core.git /tmp/bats-core
-          sudo /tmp/bats-core/install.sh /usr/local
+          set -euo pipefail
+          git clone --depth 1 --branch v1.13.0 https://github.com/bats-core/bats-core.git "$RUNNER_TEMP/bats-core"
+          cd "$RUNNER_TEMP/bats-core"
+          # v1.13.0 is an annotated tag — HEAD after checkout is the commit
+          # it points to (3bca150e...), not the tag object's own SHA
+          # (d6a46f2c..., what `git ls-remote --tags` reports unless you
+          # dereference with ^{}). Verify against the commit, not the tag.
+          test "$(git rev-parse HEAD)" = "3bca150ec86275d6d9d5a4fd7d48ab8b6c6f3d87"
+          ./install.sh "$RUNNER_TEMP/bats"
+          echo "$RUNNER_TEMP/bats/bin" >> "$GITHUB_PATH"
+      - name: Install pytest (pre-push.bats invokes the pre-push hook, which needs it)
+        run: pip install -r requirements-dev.txt
       - name: Run hook tests
         run: bats .github/hooks/tests/
+      - name: Run harness-link tests
+        run: bats tools/tests/harness-link.bats
+      - name: Run harness lifecycle CLI tests
+        run: bats tools/tests/harness-lifecycle.bats
+      - name: Run AGENTS.md generator tests
+        run: bats tools/tests/generate-agents-md.bats
+      - name: Run symlink materializer tests
+        run: bats tools/tests/materialize-skill-symlinks.bats
+
+  python-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.x"
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version: "1.21"
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+      - name: Ruff (lint)
+        run: ruff check patterns/logging/config_loader.py patterns/logging/test_config_loader.py patterns/agentic-loops/agent_loop.py patterns/agentic-loops/test_agent_loop.py tools/eval/score.py tools/eval/run.py
+      - name: mypy (type check the non-test modules)
+        run: mypy patterns/logging/config_loader.py patterns/agentic-loops/agent_loop.py tools/eval/score.py tools/eval/run.py
+      - name: Run config_loader tests (>=80% coverage required)
+        run: |
+          cd patterns/logging
+          pytest test_config_loader.py --cov=config_loader --cov-fail-under=80 -v
+      - name: Run agent_loop tests (>=80% coverage required)
+        run: |
+          cd patterns/agentic-loops
+          pytest test_agent_loop.py --cov=agent_loop --cov-fail-under=80 -v
+      - name: Run eval suite tests (score.py + run.py, >=80% coverage required)
+        run: |
+          cd tools/eval
+          pytest tests/ --cov=score --cov=run --cov-fail-under=80 -v
 
   markdown-links:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Check internal markdown links
-        uses: lycheeverse/lychee-action@v2
+        uses: lycheeverse/lychee-action@a8c4c7cb88f0c7386610c35eb25108e448569cb0 # v2.7.0
         with:
           args: >-
             --no-progress
@@ -45,9 +118,123 @@ jobs:
             '**/*.md'
           fail: true
 
+  # P1-08: catches whitespace errors introduced by a PR, markdown issues
+  # (broken tables, stray hard tabs in prose, unclosed emphasis, etc. — see
+  # .markdownlint-cli2.yaml for exactly which rules are enforced and why
+  # the purely stylistic ones are off), and structural content bugs
+  # (invalid YAML, skill frontmatter drift, syntax errors in the two docs
+  # whose Python examples are maintained as tested reference
+  # implementations). Online external-link validation is intentionally
+  # NOT here — see link-check-scheduled.yml.
+  content-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - name: Whitespace check (git diff --check against the PR base)
+        if: github.event_name == 'pull_request'
+        run: |
+          set -euo pipefail
+          git fetch --quiet origin "$GITHUB_BASE_REF"
+          git diff --check "origin/$GITHUB_BASE_REF...HEAD"
+      - name: Markdown lint
+        uses: DavidAnson/markdownlint-cli2-action@8de2aa07cae85fd17c0b35642db70cf5495f1d25 # v24.0.0
+        with:
+          globs: "**/*.md"
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.x"
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+      - name: YAML validity + skill frontmatter schema + tested-snippet syntax
+        run: python3 tools/verify-content-quality.py
+
   manifest-verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Verify MANIFEST.md against actual files
         run: bash tools/verify-manifest.sh
+
+  sample-project-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Simulate a fresh project consuming the harness via harness-link.sh
+        run: |
+          set -euo pipefail
+          TMP=$(mktemp -d)
+          cp -r examples/sample-project/. "$TMP"/
+          git init --quiet "$TMP"
+          bash tools/setup/harness-link.sh "$TMP" --with-hook
+          (cd "$TMP" && bash verify.sh)
+
+  # P2-03: catches a `files`/prepack regression that `npm pack --dry-run`
+  # alone wouldn't — actually unpacks the tarball and drives the CLI shim
+  # from inside it, the same way `npx agentharness` would for a real user.
+  npm-package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: "20"
+      - name: Pack, unpack, and drive the CLI shim from the unpacked tarball
+        run: |
+          set -euo pipefail
+          npm pack
+          TMP=$(mktemp -d)
+          tar xzf agentharness-*.tgz -C "$TMP"
+          # Symlinks must have been materialized into real files before
+          # packing (tarballs don't preserve symlinks) — not left broken.
+          [ -f "$TMP/package/.claude/skills/agentic-loops/agent_loop.py" ]
+          [ ! -L "$TMP/package/.claude/skills/agentic-loops/agent_loop.py" ]
+          mkdir "$TMP/consumer"
+          node "$TMP/package/bin/cli.js" init "$TMP/consumer" --skills agentic-loops --with-hook
+          [ -f "$TMP/consumer/.claude/skills/agentic-loops/agent_loop.py" ]
+          rm -f agentharness-*.tgz
+      - name: Working tree must be unchanged after prepack/postpack
+        run: git status --short --porcelain | (! grep .)
+
+  # P1-05: exercise every supported mode against every language fixture, not
+  # just the one blank sample-project checked above — install, verify
+  # (fixture-specific policy check), doctor, update, uninstall. Real
+  # consumer projects differ by what's already in the target (an existing
+  # .gitignore, in particular), so each fixture pre-seeds one and verify.sh
+  # checks it survives the merge untouched.
+  fixture-matrix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        fixture: [python-project, typescript-project, go-project]
+        mode: [link, copy, submodule]
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.x"
+      - name: Install, verify, doctor, update, uninstall (${{ matrix.fixture }}, --mode ${{ matrix.mode }})
+        run: |
+          set -euo pipefail
+          TMP=$(mktemp -d)
+          cp -r "examples/${{ matrix.fixture }}/." "$TMP"/
+          git init --quiet "$TMP"
+          git -C "$TMP" -c user.email=ci@example.com -c user.name=ci add -A
+          git -C "$TMP" -c user.email=ci@example.com -c user.name=ci commit --quiet -m init
+
+          bash tools/setup/harness-link.sh init "$TMP" --mode "${{ matrix.mode }}" --with-hook
+          (cd "$TMP" && bash verify.sh)
+          bash tools/setup/harness-link.sh doctor "$TMP"
+          bash tools/setup/harness-link.sh status "$TMP"
+          bash tools/setup/harness-link.sh update "$TMP" --yes
+          bash tools/setup/harness-link.sh uninstall "$TMP" --yes
+          # Uninstall must be complete: no state file, no lingering skills.
+          [ ! -f "$TMP/.agentharness-state.json" ]
+          [ ! -e "$TMP/.claude/skills/committing" ]

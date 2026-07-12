@@ -3,10 +3,20 @@
 # Verify Manifest — Check MANIFEST.md claims against actual files
 # ============================================================================
 #
-# Extracts asset paths from MANIFEST.md's Path column and verifies each
-# one actually exists. Catches regressions where docs reference phantom files.
+# Extracts the Path column (3rd pipe-delimited field) from MANIFEST.md's
+# tables and verifies each path actually exists. Catches regressions
+# where docs reference phantom files. Also checks the reverse direction
+# for .claude/skills/*/SKILL.md: every installed skill must actually be
+# listed in MANIFEST.md, catching a skill that was added without
+# indexing it.
 #
-# Exit codes: 0 = all entries exist, 1 = missing entries
+# Deliberately extracts only field 3 (the Path column) via awk, rather
+# than grepping for any backtick-quoted text in the row — a description
+# cell that itself contains a backtick-quoted code example (e.g. "`git
+# config core.hooksPath .github/hooks`") would otherwise be misread as a
+# second path to check.
+#
+# Exit codes: 0 = all checks pass, 1 = missing or unlisted entries
 #
 # ============================================================================
 
@@ -20,90 +30,81 @@ fi
 echo "Verifying manifest entries..."
 echo ""
 
-# Extract backtick-quoted paths from manifest tables
-# These are typically in format: | Asset Name | `path/to/file` | type | description |
-# Only extract from pipe-delimited lines, skip headers and separators
-grep '|' "$MANIFEST_FILE" | \
-    grep -v '^---' | \
-    grep -v '^ *$' | \
-    grep -v 'Asset\|Path\|Type' | \
-    sed 's/|/\n|/g' | \
-    grep '`' | \
-    grep -o '`[^`]*`' | \
-    sed 's/^`//;s/`$//' | \
-    # Only process paths (contain / or start with .)
-    grep -E '^\.?[^:]*/' | \
-    while read -r fullpath; do
-        # Skip empty entries
-        [ -z "$fullpath" ] && continue
+extract_paths() {
+    awk -F'|' '
+        # Separator rows look like |---|---|---|---|
+        /^\|[-| ]+\|$/ { next }
+        {
+            cell = $3
+            gsub(/^[ \t]+|[ \t]+$/, "", cell)
+            # Skip the header row (Path column literally "Path")
+            if (cell == "Path") next
+            print cell
+        }
+    ' "$MANIFEST_FILE" | \
+        grep -E '^`[^`]*`$' | \
+        sed -E 's/^`(.*)`$/\1/' | \
+        grep -E '^\.?[^:]*/'
+}
 
-        # Strip anchor references (file.md#section → file.md)
-        path="${fullpath%#*}"
+missing_count=0
 
-        # Skip non-filesystem entries
-        [[ "$path" == http* ]] && continue
-        [[ "$path" == \#* ]] && continue
-        [ -z "$path" ] && continue
+extract_paths | sort -u | while read -r fullpath; do
+    [ -z "$fullpath" ] && continue
 
-        # Check if path exists
-        if [ -e "$path" ]; then
-            echo "  ✓ $path"
-        else
-            echo "  ✗ MISSING: $path"
-        fi
-    done
+    # Strip anchor references (file.md#section → file.md)
+    path="${fullpath%#*}"
+
+    # Skip non-filesystem entries
+    [ "${path#http}" != "$path" ] && continue
+    [ "${path#\#}" != "$path" ] && continue
+    [ -z "$path" ] && continue
+
+    if [ -e "$path" ]; then
+        echo "  ✓ $path"
+    else
+        echo "  ✗ MISSING: $path"
+    fi
+done
+
+# Recomputed rather than accumulated in the loop above: that loop runs in
+# a subshell (it's fed by a pipe), so a counter incremented inside it
+# wouldn't be visible out here.
+missing_count=$(extract_paths | sort -u | while read -r fullpath; do
+    [ -z "$fullpath" ] && continue
+    path="${fullpath%#*}"
+    [ "${path#http}" != "$path" ] && continue
+    [ "${path#\#}" != "$path" ] && continue
+    [ -z "$path" ] && continue
+    [ ! -e "$path" ] && echo "$path"
+done | wc -l)
 
 echo ""
 
-# Final count
-found=0
-missing=0
+# ----------------------------------------------------------------------------
+# Reverse check: every installed skill must be listed in MANIFEST.md.
+# Catches a skill added without an index entry (verified prior bug: adding
+# an unlisted skill directory previously returned success).
+# ----------------------------------------------------------------------------
+unlisted_count=0
 
-grep '|' "$MANIFEST_FILE" | \
-    grep -v '^---' | \
-    grep -v '^ *$' | \
-    grep -v 'Asset\|Path\|Type' | \
-    grep -o '`[^`]*`' | \
-    sed 's/^`//;s/`$//' | \
-    sort -u | \
-    while read -r fullpath; do
-        [ -z "$fullpath" ] && continue
-        path="${fullpath%#*}"
-        [[ "$path" == http* ]] && continue
-        [[ "$path" == \#* ]] && continue
-        [ -z "$path" ] && continue
-
-        if [ -e "$path" ]; then
-            ((found++))
-        else
-            ((missing++))
+if [ -d .claude/skills ]; then
+    for skill_file in .claude/skills/*/SKILL.md; do
+        [ -e "$skill_file" ] || continue
+        if ! grep -qF "\`$skill_file\`" "$MANIFEST_FILE"; then
+            echo "  ✗ UNLISTED: $skill_file (exists but not in MANIFEST.md)"
+            unlisted_count=$((unlisted_count + 1))
         fi
     done
+fi
 
-# Count missing entries
-missing_count=$(grep '|' "$MANIFEST_FILE" | \
-    grep -v '^---' | \
-    grep -v '^ *$' | \
-    grep -v 'Asset\|Path\|Type' | \
-    sed 's/|/\n|/g' | \
-    grep '`' | \
-    grep -o '`[^`]*`' | \
-    sed 's/^`//;s/`$//' | \
-    grep -E '^\.?[^:]*/' | \
-    sort -u | \
-    while read -r fullpath; do
-        [ -z "$fullpath" ] && continue
-        path="${fullpath%#*}"
-        [[ "$path" == http* ]] && continue
-        [[ "$path" == \#* ]] && continue
-        [ -z "$path" ] && continue
-        [ ! -e "$path" ] && echo "$path"
-    done | wc -l)
+[ "$unlisted_count" -gt 0 ] && echo ""
 
-if [ "$missing_count" -eq 0 ]; then
-    echo "✅ All manifest entries exist."
+if [ "$missing_count" -eq 0 ] && [ "$unlisted_count" -eq 0 ]; then
+    echo "✅ All manifest entries exist and all skills are listed."
     exit 0
 else
-    echo "❌ $missing_count manifest entries missing."
+    [ "$missing_count" -gt 0 ] && echo "❌ $missing_count manifest entries missing."
+    [ "$unlisted_count" -gt 0 ] && echo "❌ $unlisted_count skill(s) not listed in MANIFEST.md."
     exit 1
 fi

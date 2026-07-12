@@ -16,33 +16,46 @@ Planned-but-not-built: [ROADMAP.md](ROADMAP.md).
 
 **An agent claiming work is "complete" without a PR/commit is incomplete.** Always finish the workflow.
 
-## 🔍 Agent Recommendation Assessment & Implementation (MANDATORY)
+## 🔍 Agent Recommendation Assessment (MANDATORY)
 
 **When an agent is asked to address/review/look into recommendations:**
 
 1. **Assess each item** — evaluate positive vs. negative impact (complexity, effort, risk, benefit)
-2. **If overall impact is POSITIVE:**
-   - ✅ Implement all changes **despite** complexity or effort required
-   - ✅ Create atomic commits for each logical change
-   - ✅ Push all commits to remote with PR
-   - ✅ **Report status in `<recommendations>-status.md`** with:
-     - Timestamp (ISO 8601: `2026-07-11T14:30:00Z`)
-     - Summary of what was implemented
-     - Rationale for positive/negative aspects of each recommendation
-     - Link to PR(s)
-   - ✅ Never decline recommendations because "they're too much work"
-
-3. **If potential outcome is NEGATIVE or HIGH-RISK:**
+2. **Scoped, low-risk fixes** — a bug fix, a correctness/security fix with one
+   clear resolution, closing a gap in something already built:
+   - ✅ Implement directly, regardless of effort. Follow the normal
+     commit/push/PR workflow above. Don't ask permission for these —
+     assessing and then fixing a clear bug *is* the job.
+3. **Anything larger** — a new subsystem, a product-direction decision
+   (target users, supported clients, distribution model), an architecture
+   change, or a recommendation batch that amounts to a roadmap rather than
+   a fix:
+   - 🛑 **Present a scoped summary and get explicit confirmation on scope
+     before implementing.** A review file recommending something is not
+     the same as the user authorizing a multi-session build-out. Once
+     scope is confirmed, that confirmation covers the agreed batch — don't
+     re-ask item-by-item within it, but do re-check before expanding past
+     what was agreed.
+4. **If potential outcome is NEGATIVE or HIGH-RISK regardless of size:**
    - 🚨 **Escalate to user immediately** — do not implement
    - Include: specific concern, risk analysis, request guidance
-   - Provide the assessment document for user review
+5. **Report status in `<recommendations>-status.md`** with:
+   - Timestamp (ISO 8601: `2026-07-11T14:30:00Z`)
+   - Summary of what was implemented (and, for a confirmed larger batch,
+     what scope was agreed)
+   - Rationale for positive/negative aspects of each recommendation
+   - Link to PR(s)
 
 **This applies to:**
 - Recommendations from reviews, audits, or assessments
 - All work on this repository (agentharness)
 - All harnesses and projects consuming this harness
 
-**Rationale:** Recommendations only improve systems if they're acted upon. Complexity is not a reason to decline improvements. Risk is a reason to consult, not abandon.
+**Rationale:** Recommendations only improve systems when they're acted on
+deliberately. Complexity is not a reason to decline a scoped fix — but
+silently treating an unbounded backlog as blanket authorization turns
+"assess recommendations" into unrequested product decisions the user
+never actually signed off on.
 
 ---
 

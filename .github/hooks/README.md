@@ -22,7 +22,19 @@ chmod +x .git/hooks/pre-commit
 # Option 2: Using Husky (recommended for teams)
 npx husky install
 npx husky add .husky/pre-commit '.github/hooks/prevent-trunk-commit'
+
+# Option 3: git config core.hooksPath (what tools/setup/harness-link.sh
+# --with-hook does, and what this repo uses on itself)
+git config core.hooksPath /path/to/agentharness/.github/hooks
 ```
+
+**Why there's also a `pre-commit` file in this directory:** `core.hooksPath`
+only ever invokes a file named exactly `pre-commit` inside the configured
+directory — it does not run every file there. `.github/hooks/pre-commit`
+is a thin dispatcher that execs `prevent-trunk-commit`; without it, Option 3
+silently installs nothing and commits to trunk succeed uninterrupted. Options
+1 and 2 already target the correct filename themselves, so they don't need
+the dispatcher.
 
 **Testing:**
 
@@ -37,6 +49,41 @@ git commit -m "test"  # ✗ Will be blocked
 git checkout -b feature/test
 git add test.txt
 git commit -m "test"  # ✓ Will succeed
+```
+
+### pre-push
+**Purpose:** Run the test suite and enforce >=80% coverage before every push
+
+**What it does:**
+- Runs all bats suites (`.github/hooks/tests/`, `tools/tests/harness-link.bats`)
+- Runs Python unit tests with `pytest-cov`, failing if total coverage for
+  the module under test drops below 80% — this repo's own
+  `patterns/testing/COVERAGE_REQUIREMENTS.md` bar, enforced on itself
+- Blocks the push (nonzero exit) if any suite fails, coverage is below
+  80%, or the required tooling (`bats`, `pytest`) isn't installed —
+  missing tools fail the push rather than silently skipping, since the
+  point is enforcement, not a best-effort reminder
+- New Python test suites should be added to the `PYTHON_SUITES` array
+  near the top of the script as they're created
+
+**Installation:** Git only ever needs a file named exactly `pre-push` in
+the configured hooks directory — no dispatcher required (unlike
+`pre-commit`/`prevent-trunk-commit`, see above). All three installation
+options above wire this up automatically, since `core.hooksPath` and
+`.git/hooks/` both apply per-filename, not per-directory-contents:
+
+```bash
+# Any of these also installs pre-push:
+cp .github/hooks/pre-push .git/hooks/pre-push && chmod +x .git/hooks/pre-push
+npx husky add .husky/pre-push '.github/hooks/pre-push'
+git config core.hooksPath /path/to/agentharness/.github/hooks   # already covers it
+```
+
+**Testing:**
+
+```bash
+# Should pass cleanly against this repo's current state
+bash .github/hooks/pre-push
 ```
 
 ## Setting Up Hooks in Your Project

@@ -1,0 +1,10 @@
+version: 2
+updates:
+  # Check for GitHub Actions updates
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  # Add a "gomod" entry back here if/when a go.mod is added to the repo —
+  # Dependabot fails the whole config if the manifest doesn't exist yet.

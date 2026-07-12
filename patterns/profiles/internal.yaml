@@ -1,0 +1,20 @@
+# Machine-readable form of the "Internal Tool" column in
+# .github/CODING_GUIDELINES.md#rigor-tiers — that table is the canonical
+# description of what each field means and why; this file is what a
+# project or a script (like the pre-push hook) actually selects.
+profile: internal
+tests:
+  required: true
+  tdd: false
+  # No numeric floor — cover the logic that would be expensive to get
+  # wrong, skip pure glue. Not mechanically checkable, so the pre-push
+  # hook runs tests but doesn't fail on a coverage percentage at this tier.
+  coverage_min: null
+ui_testing:
+  playwright_required: false
+logging:
+  level: structured-for-debugging
+error_handling:
+  strictness: handle-errors-at-boundaries-you-hit
+review:
+  pr_and_checklist_required: false

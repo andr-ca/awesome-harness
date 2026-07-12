@@ -1,0 +1,125 @@
+#!/bin/bash
+# ============================================================================
+# Pre-push Hook: Run the test suite and enforce >=80% coverage
+# ============================================================================
+#
+# This hook tests THIS repository (agentharness/awesome-harness) — it is
+# not a generic test runner. It's installed the same way as
+# prevent-trunk-commit (git config core.hooksPath .github/hooks, or
+# tools/setup/harness-link.sh --with-hook), which means a consuming
+# project's core.hooksPath can end up pointing here too. Unlike
+# prevent-trunk-commit (a universal branch-name check, safe for any repo),
+# this hook hardcodes THIS repo's own test files — running it against a
+# consumer's push would test agentharness's code, not theirs, and block
+# their push over tooling/coverage that has nothing to do with their
+# project. See docs/operational/reviews/gpt-5.6-review-status.md, finding
+# 1, for the exact reproduction of that regression.
+#
+# So: if the repo actually being pushed (cwd) isn't this repo, this hook
+# no-ops (exit 0) instead of running agentharness's own suites against
+# someone else's push. --with-hook still installs it (via the shared
+# core.hooksPath), since prevent-trunk-commit's trunk-protection needs to
+# come along too — but only this repo's own pushes are ever gated on
+# tests/coverage.
+#
+# Blocks the push if any test suite fails, or if Python coverage drops
+# below 80% (this repo's own CODING_GUIDELINES.md Production-tier bar —
+# see patterns/testing/COVERAGE_REQUIREMENTS.md) — but only for pushes to
+# this repo itself.
+#
+# Missing tooling (bats/pytest) fails the push rather than silently
+# skipping — the point of this hook is enforcement, not a best-effort
+# reminder. Install instructions are printed when something's missing.
+# ============================================================================
+
+set -euo pipefail
+
+HOOKS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$HOOKS_DIR/../.." && pwd)"
+
+# Is the repo actually being pushed (current working directory) this repo,
+# or some consumer project that merely points core.hooksPath here?
+PUSHED_REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+if [ "$PUSHED_REPO_ROOT" != "$REPO_ROOT" ]; then
+    echo "pre-push: this push is not to agentharness itself (core.hooksPath"
+    echo "is just borrowed from it) — skipping agentharness's own test suite."
+    exit 0
+fi
+
+cd "$REPO_ROOT"
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+NC='\033[0m'
+
+COVERAGE_MIN=80
+FAILED=0
+
+echo "Running pre-push checks (test suite + ${COVERAGE_MIN}%+ coverage)..."
+echo ""
+
+# ----------------------------------------------------------------------------
+# Bats test suites
+# ----------------------------------------------------------------------------
+# .github/hooks/tests/ includes pre-push.bats, which tests this very script
+# — guard against it recursively re-invoking itself forever.
+export AGENTHARNESS_PRE_PUSH_RUNNING=1
+
+if command -v bats >/dev/null 2>&1; then
+    for suite in .github/hooks/tests/ tools/tests/harness-link.bats tools/tests/harness-lifecycle.bats tools/tests/generate-agents-md.bats tools/tests/materialize-skill-symlinks.bats; do
+        [ -e "$suite" ] || continue
+        echo "-> bats: $suite"
+        if ! bats "$suite"; then
+            FAILED=1
+        fi
+    done
+else
+    echo -e "${RED}✗ bats not installed — cannot run shell test suites.${NC}"
+    echo "  Install: git clone --depth 1 https://github.com/bats-core/bats-core.git /tmp/bats-core && sudo /tmp/bats-core/install.sh /usr/local"
+    FAILED=1
+fi
+
+echo ""
+
+# ----------------------------------------------------------------------------
+# Python unit tests with coverage gate
+# ----------------------------------------------------------------------------
+# New Python test suites should be added to this list as they're created.
+# Third field is comma-separated for a suite that covers more than one
+# module (tools/eval's tests exercise both score.py and run.py).
+PYTHON_SUITES=(
+    "patterns/logging:test_config_loader.py:config_loader"
+    "patterns/agentic-loops:test_agent_loop.py:agent_loop"
+    "tools/eval:tests:score,run"
+)
+
+if command -v python3 >/dev/null 2>&1 && python3 -m pytest --version >/dev/null 2>&1; then
+    for entry in "${PYTHON_SUITES[@]}"; do
+        IFS=':' read -r dir test_file modules <<< "$entry"
+        [ -e "$REPO_ROOT/$dir/$test_file" ] || continue
+        echo "-> pytest: $dir/$test_file (>=${COVERAGE_MIN}% coverage required)"
+        cov_args=()
+        IFS=',' read -ra module_list <<< "$modules"
+        for module in "${module_list[@]}"; do
+            cov_args+=("--cov=$module")
+        done
+        if ! (cd "$dir" && python3 -m pytest "$test_file" "${cov_args[@]}" --cov-fail-under="$COVERAGE_MIN" -q); then
+            FAILED=1
+        fi
+    done
+else
+    echo -e "${RED}✗ pytest not installed — cannot run Python test suite.${NC}"
+    echo "  Install: pip install pytest pytest-cov pyyaml"
+    FAILED=1
+fi
+
+echo ""
+
+if [ "$FAILED" -ne 0 ]; then
+    echo -e "${RED}✗ Pre-push checks failed. Push blocked.${NC}"
+    echo "Fix the failures above. Don't bypass with --no-verify — see COMMITTING_GUIDELINES.md."
+    exit 1
+fi
+
+echo -e "${GREEN}✓ All pre-push checks passed (tests clean, coverage >= ${COVERAGE_MIN}%).${NC}"
+exit 0

@@ -35,6 +35,9 @@ This directory contains repository-wide configuration files, guidelines, and bes
   - Testing checklist
   - Links to related guidelines
 
+- **[ISSUE_TEMPLATE/](./ISSUE_TEMPLATE/)** – `bug_report.md`,
+  `feature_request.md`
+
 ### Tools & Templates
 
 - **[.gitignore.template](./.gitignore.template)** – Comprehensive gitignore template
@@ -46,14 +49,19 @@ This directory contains repository-wide configuration files, guidelines, and bes
 
 - **[hooks/](./hooks/)** – Reusable git hooks
   - `prevent-trunk-commit` – Block commits to main/master branches
+  - `pre-push` – Run this repo's own test suites and enforce >=80%
+    coverage before every push (see `hooks/README.md` for what it
+    no-ops on for a consumer repo)
   - Hook setup instructions (manual and Husky)
   - Custom hook templates
   - Troubleshooting guide
 
 ### Configuration Files
 
-Additional GitHub-specific configurations are planned for future versions.
-See [ROADMAP.md](../ROADMAP.md) for upcoming components.
+- **[CODEOWNERS](./CODEOWNERS)** – Required reviewers for protected paths
+- **[dependabot.yml](./dependabot.yml)** – Automated dependency updates
+- **[workflows/](./workflows/)** – CI (`ci.yml`) and the scheduled online
+  link check (`link-check-scheduled.yml`)
 
 ## 🎯 How to Use These Guidelines
 
@@ -111,8 +119,8 @@ Projects can reference these guidelines in their own `.github/` or `CLAUDE.md`:
 ## Guidelines
 
 This project follows agentharness guidelines:
-- [Coding Guidelines](https://github.com/andrey/agentharness/.github/CODING_GUIDELINES.md)
-- [Committing Guidelines](https://github.com/andrey/agentharness/.github/COMMITTING_GUIDELINES.md)
+- [Coding Guidelines](https://github.com/andr-ca/agentharness/blob/main/.github/CODING_GUIDELINES.md)
+- [Committing Guidelines](https://github.com/andr-ca/agentharness/blob/main/.github/COMMITTING_GUIDELINES.md)
 
 See `.github/` in this project for project-specific customizations.
 ```
@@ -138,7 +146,7 @@ These guidelines are designed to:
 ## 🔗 Related Documentation
 
 - **Coding Guidelines Detail:** See specific language guides in `languages/{language}/CONVENTIONS.md`
-- **Framework Specifics:** See `frameworks/{framework}/README.md`
+- **Framework Specifics:** See `frameworks/{framework}/CONVENTIONS.md` (see `frameworks/README.md` for what exists today)
 - **Pattern Documentation:** See `patterns/{pattern}/README.md`
 
 ## ❓ Questions?

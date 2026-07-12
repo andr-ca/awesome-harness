@@ -4,20 +4,29 @@ Framework-agnostic patterns and best practices for common problems.
 
 ## 📁 Pattern Categories
 
-- **agentic-loops/** – Autonomous workflows and agent loop patterns
-- **error-handling/** – Error handling strategies and examples
-- **testing/** – Testing approaches, fixtures, and test patterns
-- **api-design/** – API design patterns and conventions
+What exists today (see [MANIFEST.md](../MANIFEST.md) for the authoritative
+list):
 
-Add categories for other pattern types as discovered.
+- **agentic-loops/** – Tested agent-loop reference implementation
+- **error-handling/** – Retry, circuit-breaker, structured logging
+- **testing/** – TDD, coverage, Playwright, completion checklist
+- **logging/** – Logging standards + example config + loader
+- **profiles/** – Rigor-tier profiles (prototype/internal/production)
 
-## 📚 What Each Pattern Includes
+Other pattern categories (API design, …) aren't built yet — see
+[ROADMAP.md](../ROADMAP.md) before assuming one exists.
+
+## 📚 What a Pattern Directory Can Contain
+
+Not a required shape — a `README.md` is enough to start; not every
+pattern here has `examples/` or a separate `implementation.md` as its own
+file (some fold the implementation into `README.md` directly):
 
 ```
 patterns/{pattern-category}/
 ├── README.md           # Overview and rationale
-├── examples/           # Before/after or working examples
-└── implementation.md   # Step-by-step implementation guide
+├── examples/           # Before/after or working examples (optional)
+└── implementation.md   # Step-by-step implementation guide (optional)
 ```
 
 ## 🎯 Pattern Template

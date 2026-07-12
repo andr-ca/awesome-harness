@@ -1,0 +1,21 @@
+# Machine-readable form of the "Production Service" column in
+# .github/CODING_GUIDELINES.md#rigor-tiers — that table is the canonical
+# description of what each field means and why; this file is what a
+# project or a script (like the pre-push hook) actually selects.
+#
+# This is also the fail-safe default: .github/hooks/pre-push applies this
+# profile whenever a repo has no .agentharness-profile file at all, so a
+# missing/typo'd profile file can't silently relax enforcement.
+profile: production
+tests:
+  required: true
+  tdd: true
+  coverage_min: 80
+ui_testing:
+  playwright_required: true
+logging:
+  level: full-telemetry
+error_handling:
+  strictness: handle-all-documented-failure-modes
+review:
+  pr_and_checklist_required: true

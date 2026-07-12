@@ -91,8 +91,9 @@ logging:
       # GCP Cloud Logging
       gcp:
         enabled: ${GCP_LOGGING_ENABLED:-false}
-        project_id: ${GCP_PROJECT_ID}
-        log_name: ${SERVICE_NAME}
+        # Only required if GCP logging is actually enabled above.
+        project_id: ${GCP_PROJECT_ID:-}
+        log_name: ${SERVICE_NAME:-my-service}
         # Uses Application Default Credentials
         # Set GOOGLE_APPLICATION_CREDENTIALS env var
 
@@ -106,7 +107,8 @@ logging:
       # Azure Application Insights
       azure:
         enabled: ${AZURE_LOGGING_ENABLED:-false}
-        instrumentation_key: ${APPINSIGHTS_INSTRUMENTATION_KEY}
+        # Only required if Azure logging is actually enabled above.
+        instrumentation_key: ${APPINSIGHTS_INSTRUMENTATION_KEY:-}
 
     # Elasticsearch (via Logstash/Filebeat)
     elasticsearch:

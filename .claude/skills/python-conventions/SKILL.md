@@ -9,7 +9,10 @@ metadata:
 
 # Python Conventions
 
-Full reference: `languages/python/CONVENTIONS.md` (complete examples) and
+This file is self-contained for day-to-day use. Deeper reference (needs
+the full harness checkout, not just this skill — these aren't bundled
+here since they're documentation, not something this skill runs):
+`languages/python/CONVENTIONS.md` (complete examples) and
 `languages/python/COPILOT_INSTRUCTIONS.md` (general agent operating
 principles for Python repos — inspect before changing, scope discipline,
 never claim a command passed without running it).
