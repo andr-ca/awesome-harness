@@ -24,9 +24,12 @@ Claude Code. Not started. (Earlier drafts of this repo mislabeled this as
 "Anthropic Codex" — Codex is an OpenAI product; any future `.codex/`
 content should not imply Anthropic affiliation.)
 
-### `frameworks/{react,vue,angular,django,express,go}/`
-Framework-specific config templates, patterns, and examples. Only the
-category README exists today; no framework subdirectories have been built.
+### `frameworks/{vue,angular,django,express,go}/`
+Framework-specific config templates, patterns, and examples. Not started
+for these frameworks. `frameworks/react/CONVENTIONS.md` is implemented
+(P1-09) — component naming and props typing, split out of
+`languages/typescript/CONVENTIONS.md` so the language guide isn't
+React-specific.
 
 ### `languages/{typescript,go,rust,...}/`
 Additional language convention guides, following the shape of the existing

@@ -80,15 +80,20 @@ const MaxRetries = 3;   // PascalCase for constants is non-standard
 ```
 
 ### Private Members
-- Prefix private methods and properties with `#` (modern TypeScript)
-- Alternative (deprecated but still seen): single underscore `_` prefix
+- Prefer native `#` private fields (ES2022+, TypeScript 3.8+) for true
+  runtime privacy — not enforced by `private`, which is erased at compile
+  time and still accessible via casts or `["_name"]` bracket access
+- A leading underscore (`_name`) is an older *convention*, not a
+  deprecated language feature — it's still common in codebases that
+  predate `#` fields or target a TS/JS version without them; don't rewrite
+  it on sight, but prefer `#` in new code
 - Type private properties explicitly
 
 ```typescript
 // Good (modern)
 class User {
   private name: string;
-  #internalState: Map<string, any>;
+  #internalState: Map<string, unknown>;
 
   constructor(name: string) {
     this.name = name;
@@ -267,25 +272,37 @@ function fetchUser(id): Promise<any> {  // Implicit any, wrong return type
 
 ### Null and Undefined
 
-- Prefer `null` for intentional absence of value (not `undefined`)
-- Use optional properties (`?`) for optional fields
+TypeScript's own idioms don't universally favor one over the other, and
+neither should this guide — optional properties (`?`), optional
+parameters, and destructuring defaults all naturally produce `undefined`,
+not `null`. Pick based on what the absence *means*:
+
+- Use `undefined` (via `?`) for "not provided / not yet set" — the
+  language's own default for anything optional
+- Use `null` for an explicit, deliberate "no value" that the code sets on
+  purpose (e.g. a nullable database column, "user cleared this field")
+- Whichever you pick for a given API, apply it consistently — the bug is
+  mixing both for the same kind of absence within one module, not the
+  specific choice
 - Use non-null assertion (`!`) sparingly and only when type system cannot infer safety
 
 ```typescript
-// Good
+// Good — optional property naturally uses undefined
 interface User {
   id: string;
   email: string;
-  middleName?: string;  // Optional field
+  middleName?: string;  // absent means "not provided", i.e. undefined
 }
 
-function getUserOrNull(id: string): User | null {
-  // Return null, not undefined
+// Good — explicit, intentional absence uses null
+interface UserRecord {
+  id: string;
+  deletedAt: Date | null;  // set to null on purpose when not deleted
 }
 
-// Bad
-function getUserOrUndefined(id: string): User | undefined { }
-const user = null ?? undefined;  // Confusing
+// Bad — mixing both for the same kind of absence in one API
+function getUser(id: string): User | null { }
+function getAccount(id: string): Account | undefined { }  // inconsistent with getUser
 ```
 
 ### Union Types Over Function Overloads
@@ -323,12 +340,16 @@ function process(value: string | number): string { }
 ```typescript
 // Good
 /**
- * Validates an email address using RFC 5322 rules.
+ * Pragmatic email format check: rejects obviously-malformed input
+ * (no @, no domain). NOT a full RFC 5322 validator — that grammar is
+ * far too permissive to usefully check with a regex (it allows quoted
+ * strings, comments, and forms almost no real mail system accepts). If
+ * you need to know the address actually works, send a verification
+ * email; don't try to make this regex stricter.
  * @param email - The email to validate
- * @returns true if valid, false otherwise
+ * @returns true if the format is plausible, false otherwise
  */
 export function validateEmail(email: string): boolean {
-  // Complex regex is intentional: RFC 5322 compliance requires it
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
@@ -356,7 +377,7 @@ function createUser(input: UserInput): User {
 
 users.filter((u) => u.isActive);
 
-const handleClick = (event: React.MouseEvent) => {
+const handleClick = (event: MouseEvent) => {
   // Handler
 };
 
@@ -365,7 +386,7 @@ const createUser = (input: UserInput): User => {  // Should be declaration
   return { id: generateId(), ...input };
 };
 
-function handleClick(event: React.MouseEvent) {  // Should be arrow function in most contexts
+function handleClick(event: MouseEvent) {  // Should be arrow function in most contexts
   // Handler
 }
 ```
@@ -374,6 +395,11 @@ function handleClick(event: React.MouseEvent) {  // Should be arrow function in 
 
 - Prefer async/await over `.then()` chains
 - Always handle errors with try/catch or `.catch()`
+- Logging a caught error is not the same as handling it: unless the
+  caller genuinely doesn't need to know the operation failed, rethrow
+  (or return an error result) after logging — a caught-and-swallowed
+  error makes an `async function` resolve successfully even though the
+  work it promised never happened
 
 ```typescript
 // Good
@@ -383,6 +409,7 @@ async function fetchAndProcess(id: string): Promise<void> {
     await processUser(user);
   } catch (error) {
     logger.error('Failed to process user', { id, error });
+    throw error;  // caller needs to know this failed, not see a false success
   }
 }
 
@@ -394,47 +421,10 @@ function fetchAndProcess(id: string): Promise<void> {
 }
 ```
 
-## React-Specific Conventions (if applicable)
+## React
 
-### Component Naming
-- Use `PascalCase` for component names
-- File name should match component name
-- Use descriptive, specific component names
-
-```typescript
-// Good
-export function UserProfileCard({ user }: { user: User }): JSX.Element {
-  return <div>{user.name}</div>;
-}
-
-// File: UserProfileCard.tsx
-
-// Bad
-export function Card({ user }: { user: User }): JSX.Element { }  // Too generic
-
-// File: card.tsx (should match component name)
-```
-
-### Props Typing
-- Define prop types explicitly (don't rely on inference)
-- Use `React.FC` or explicit return type
-- Destructure props in function signature when possible
-
-```typescript
-// Good
-interface UserCardProps {
-  user: User;
-  onSelect?: (user: User) => void;
-}
-
-export function UserCard({ user, onSelect }: UserCardProps): JSX.Element {
-  return (
-    <div onClick={() => onSelect?.(user)}>
-      {user.name}
-    </div>
-  );
-}
-
-// Avoid
-export const UserCard: React.FC<{ user: User }> = ({ user }) => { }  // Inline types
-```
+React/JSX conventions (component naming, props typing) are a framework
+add-on on top of this guide, not part of it — see
+[`frameworks/react/CONVENTIONS.md`](../../frameworks/react/CONVENTIONS.md).
+Everything above this section applies to React code too; only what's
+actually React-specific lives there.

@@ -15,7 +15,11 @@ Language-specific guidelines for writing idiomatic, maintainable Go code aligned
 - Use `camelCase` for function and variable names
 - Exported symbols (package-public) use `PascalCase`
 - Use descriptive names that clearly indicate purpose
-- Avoid abbreviations; spell out full words
+- Shorter is fine in small scopes — idiomatic Go favors `ctx`, `err`, `i`,
+  `w`, `r`, `buf` over spelled-out names when the type or context already
+  makes the meaning obvious. Reserve fuller names (`userRepository`,
+  `birthYear`) for identifiers with wider scope or where the short form
+  would be genuinely ambiguous.
 - Interface names are singular: `Reader`, `Writer`, `Closer` (not `IReader`)
 
 ```go
@@ -58,7 +62,7 @@ const (
 
 // Bad
 const DEFAULT_TIMEOUT = 30 * time.Second  // UPPER_CASE not idiomatic
-const defaultTimeout = 30 * time.Second   // Unexported, should be camelCase
+const default_page_size = 50              // snake_case is not idiomatic Go
 ```
 
 ### Types and Interfaces
@@ -84,6 +88,11 @@ type UserRepository interface {
 	FindByID(ctx context.Context, id string) (*User, error)
 	Save(ctx context.Context, user *User) error
 }
+
+// The interface's methods live on whatever concrete type implements it —
+// never on the interface name itself (an interface can't have methods
+// defined on it; see the Receivers section below for the concrete type
+// this repo's examples use: postgresUserRepository).
 
 // Bad
 type user struct { }              // Should be PascalCase
@@ -130,12 +139,12 @@ type ValidationErr struct { }            // Use Error, not Err
 ```go
 // Good
 func (u *User) IsActive() bool { }
-func (r *UserRepository) FindByID(ctx context.Context, id string) (*User, error) { }
+func (r *postgresUserRepository) FindByID(ctx context.Context, id string) (*User, error) { }
 func (c *Client) Do(req *http.Request) (*http.Response, error) { }
 
 // Bad
 func (user *User) IsActive() bool { }    // Too verbose for receiver
-func (ur *UserRepository) FindByID(...) { }  // Inconsistent shortening
+func (ur *postgresUserRepository) FindByID(...) { }  // Inconsistent shortening
 ```
 
 ## File Organization
@@ -245,13 +254,13 @@ import "os"
 
 ```go
 // Good
-data, err := ioutil.ReadFile(filename)
+data, err := os.ReadFile(filename)  // ioutil.ReadFile is deprecated since Go 1.16
 if err != nil {
 	return fmt.Errorf("read file: %w", err)
 }
 
 // Bad
-data, _ := ioutil.ReadFile(filename)  // Ignored error
+data, _ := os.ReadFile(filename)  // Ignored error
 if err != nil { }                      // Empty error handler
 ```
 
@@ -336,9 +345,9 @@ type User struct {
 
 // GetUser retrieves a user by ID.
 // Returns ErrNotFound if the user does not exist.
-func (r *UserRepository) GetUser(ctx context.Context, id string) (*User, error) {
+func (r *postgresUserRepository) GetUser(ctx context.Context, id string) (*User, error) {
 	// Complex logic here
-	return user, nil
+	return r.queryByID(ctx, id)
 }
 
 // Bad
@@ -346,7 +355,7 @@ func (r *UserRepository) GetUser(ctx context.Context, id string) (*User, error) 
 type User struct { }
 
 // Get the user by id (lowercase, vague)
-func (r *UserRepository) GetUser(id string) (*User, error) { }
+func (r *postgresUserRepository) GetUser(id string) (*User, error) { }
 
 // Missing comment for exported function
 func ProcessUser(user *User) error { }
@@ -355,13 +364,17 @@ func ProcessUser(user *User) error { }
 ### Function Design
 
 - Functions should do one thing well
-- Keep functions under 25 lines when possible (exceptions: large switch statements)
+- No fixed line-count ceiling — idiomatic Go doesn't enforce one, and
+  rigid limits push people to extract meaningless helpers just to hit a
+  number. Split a function when it does more than one thing or its
+  cyclomatic complexity makes it hard to test, not when it crosses a line
+  count.
 - Accept interfaces, return concrete types
 - Use multiple return values for errors and results
 
 ```go
 // Good
-func (r *UserRepository) FindByID(ctx context.Context, id string) (*User, error) {
+func (r *postgresUserRepository) FindByID(ctx context.Context, id string) (*User, error) {
 	// Single responsibility: find user by ID
 	if id == "" {
 		return nil, ErrInvalidID
@@ -370,7 +383,7 @@ func (r *UserRepository) FindByID(ctx context.Context, id string) (*User, error)
 }
 
 // Bad
-func (r *UserRepository) Process(userID string) (interface{}, interface{}) {
+func (r *postgresUserRepository) Process(userID string) (interface{}, interface{}) {
 	// Does too much, returns empty interfaces
 	user, err := r.find(userID)
 	// ... validation, logging, caching, etc.

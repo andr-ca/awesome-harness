@@ -26,8 +26,9 @@ generator script yet (see ROADMAP.md).
 |---|---|---|---|
 | Python conventions | `languages/python/CONVENTIONS.md` | guide | Naming, structure, idioms for `.py` files |
 | Python agent instructions | `languages/python/COPILOT_INSTRUCTIONS.md` | guide | General-purpose agent operating principles for Python repos |
-| TypeScript conventions | `languages/typescript/CONVENTIONS.md` | guide | Naming, type safety, React patterns for `.ts` / `.tsx` files |
+| TypeScript conventions | `languages/typescript/CONVENTIONS.md` | guide | Naming, type safety for `.ts` / `.tsx` files (React specifics are a separate framework add-on) |
 | Go conventions | `languages/go/CONVENTIONS.md` | guide | Naming, concurrency, interfaces, testing for `.go` files |
+| React conventions | `frameworks/react/CONVENTIONS.md` | guide | Component naming, props typing — layered on top of the TypeScript guide |
 
 ## Testing & Quality Patterns
 
