@@ -26,7 +26,7 @@ that provider's native tool-result format before sending them on.
 """
 
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional
 
 try:

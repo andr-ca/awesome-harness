@@ -281,6 +281,26 @@ cmd_init() {
         if [ ! -e "$target/$SUBMODULE_PATH/.git" ]; then
             git -C "$target" submodule add "$harness_remote" "$SUBMODULE_PATH"
             echo "  Added agentharness as a submodule at $SUBMODULE_PATH"
+            # 'submodule add' checks out the remote's default branch, which
+            # is not necessarily what this checkout (HARNESS_DIR) actually
+            # has: if HARNESS_DIR is on an unmerged branch/tag ahead of the
+            # remote's default, the submodule would silently diverge from
+            # it (fewer/different skills than what 'init' just planned
+            # against). Pin the submodule to HARNESS_DIR's exact commit
+            # when the remote has it, so submodule mode really does pin to
+            # what you're running from, not "whatever the default branch
+            # currently is". Falls back to the default-branch checkout
+            # 'submodule add' already did if that commit isn't reachable
+            # (e.g. purely local, never-pushed commits).
+            local harness_rev
+            harness_rev="$(git -C "$HARNESS_DIR" rev-parse HEAD 2>/dev/null || true)"
+            if [ -n "$harness_rev" ]; then
+                git -C "$target/$SUBMODULE_PATH" cat-file -e "$harness_rev" 2>/dev/null \
+                    || git -C "$target/$SUBMODULE_PATH" fetch --quiet origin "$harness_rev" 2>/dev/null || true
+                if git -C "$target/$SUBMODULE_PATH" cat-file -e "$harness_rev" 2>/dev/null; then
+                    git -C "$target/$SUBMODULE_PATH" checkout --quiet "$harness_rev"
+                fi
+            fi
         else
             echo "  Submodule already present at $SUBMODULE_PATH"
         fi
@@ -389,14 +409,19 @@ cmd_init() {
     #    cleanup, and 'uninstall' can still be run once a state file from
     #    a prior successful init exists).
     # ------------------------------------------------------------------
+    # For link/copy mode skills_src_root is HARNESS_DIR (unchanged); for
+    # submodule mode it's the submodule inside the target itself — record
+    # *that* as the source, not HARNESS_DIR. A real consumer installing via
+    # a submodule never has HARNESS_DIR's path on their machine at all; only
+    # the submodule clone is theirs to track drift against.
     local source_revision
-    source_revision="$(git -C "$HARNESS_DIR" rev-parse HEAD 2>/dev/null || echo unknown)"
+    source_revision="$(git -C "$skills_src_root" rev-parse HEAD 2>/dev/null || echo unknown)"
     local source_remote
-    source_remote="$(git -C "$HARNESS_DIR" remote get-url origin 2>/dev/null || true)"
+    source_remote="$(git -C "$skills_src_root" remote get-url origin 2>/dev/null || true)"
     local skills_csv
     skills_csv="$(IFS=,; echo "${linked_skills[*]}")"
     state_write "$target" "$mode" "$skills_csv" "$skills_filter" "$with_hook" \
-        "$profile" "$HARNESS_DIR" "$source_revision" "$source_remote"
+        "$profile" "$skills_src_root" "$source_revision" "$source_remote"
 
     echo "Done."
 }
@@ -764,7 +789,7 @@ cmd_uninstall() {
     if [ "$mode" = "submodule" ] && [ -e "$target/$SUBMODULE_PATH/.git" ]; then
         git -C "$target" submodule deinit -f "$SUBMODULE_PATH" 2>/dev/null || true
         rm -rf "$target/.git/modules/$SUBMODULE_PATH"
-        git -C "$target" rm -f "$SUBMODULE_PATH" 2>/dev/null || rm -rf "$target/$SUBMODULE_PATH"
+        git -C "$target" rm -f "$SUBMODULE_PATH" 2>/dev/null || rm -rf "${target:?}/${SUBMODULE_PATH:?}"
         echo "  Removed the $SUBMODULE_PATH submodule"
     fi
 

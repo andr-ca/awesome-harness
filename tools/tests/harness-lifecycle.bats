@@ -274,6 +274,41 @@ print('importable')
     target=$(readlink "$TEST_PROJECT/.claude/skills/committing")
     [[ "$target" == *".agentharness/.claude/skills/committing" ]]
     [ -f "$TEST_PROJECT/.claude/skills/committing/SKILL.md" ]
+
+    # Regression test: source.path/revision/remote must describe the
+    # submodule *inside TEST_PROJECT*, not this harness dev checkout
+    # (HARNESS_DIR). A real submodule-mode consumer never has HARNESS_DIR's
+    # path on their machine — only their own submodule clone — and
+    # recording HARNESS_DIR here previously made 'update'/'audit' compare
+    # against the wrong tree (see gpt-5.6-review-status.md P1-06/07 CI
+    # fixes: this caused 'update' to report phantom drift for skills that
+    # exist in the live HARNESS_DIR checkout but not in whatever commit the
+    # submodule actually cloned).
+    run python3 -c "
+import json
+with open('$TEST_PROJECT/.agentharness-state.json') as f: print(json.load(f)['source']['path'])
+"
+    [ "$status" -eq 0 ]
+    [ "$output" = "$TEST_PROJECT/.agentharness" ]
+}
+
+@test "lifecycle: --mode submodule with all skills reports no drift on immediate update" {
+    # Regression test for the exact failure this repo's own CI hit
+    # (fixture-matrix, submodule mode): init with the full default skill
+    # set, then update right after — must be a no-op. It wasn't, because
+    # 'update' used to recompute "available skills" from HARNESS_DIR
+    # instead of the submodule it actually just installed from, so it saw
+    # skills HARNESS_DIR has that the (possibly different-commit) submodule
+    # didn't, and reported phantom drift.
+    git -C "$TEST_PROJECT" init --quiet
+    git -C "$TEST_PROJECT" commit --quiet --allow-empty -m "init"
+
+    run bash "$SCRIPT" init "$TEST_PROJECT" --mode submodule
+    [ "$status" -eq 0 ]
+
+    run bash "$SCRIPT" update "$TEST_PROJECT"
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "(nothing to do)" ]]
 }
 
 @test "lifecycle: --mode submodule uninstall removes the submodule cleanly" {

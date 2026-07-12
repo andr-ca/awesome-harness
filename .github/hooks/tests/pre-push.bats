@@ -20,6 +20,13 @@ setup() {
 
 @test "pre-push: passes cleanly against the repo's current state" {
     run bash "$HOOK"
+    # bats doesn't print $output on a bare `[ "$status" -eq 0 ]` failure —
+    # print it explicitly so a CI failure here is diagnosable from the log
+    # instead of just "status 1, good luck".
+    if [ "$status" -ne 0 ]; then
+        echo "--- pre-push output (exit $status) ---" >&2
+        echo "$output" >&2
+    fi
     [ "$status" -eq 0 ]
     [[ "$output" =~ "All pre-push checks passed" ]]
 }

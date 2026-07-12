@@ -6,11 +6,28 @@ on:
   pull_request:
     branches: [main]
 
+# Least privilege by default — no job here needs to write to the repo,
+# comment on a PR, or touch releases. Override per-job only if that
+# ever changes, don't widen this default (P1-07).
+permissions:
+  contents: read
+
 jobs:
+  actionlint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Lint workflow files
+        uses: reviewdog/action-actionlint@be0761e4c1bab7cfdfca56cd03d4bb6253e39a4a # v1.72.0
+        with:
+          fail_level: error
+
   shellcheck:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Shellcheck all shell scripts
         run: |
           shopt -s globstar nullglob
@@ -26,17 +43,22 @@ jobs:
 
   hook-tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: "3.x"
-      - name: Install bats-core
+      - name: Install bats-core (pinned tag, no sudo — installs to a runner-local prefix on PATH)
         run: |
-          git clone --depth 1 https://github.com/bats-core/bats-core.git /tmp/bats-core
-          sudo /tmp/bats-core/install.sh /usr/local
+          set -euo pipefail
+          git clone --depth 1 --branch v1.13.0 https://github.com/bats-core/bats-core.git "$RUNNER_TEMP/bats-core"
+          cd "$RUNNER_TEMP/bats-core"
+          test "$(git rev-parse HEAD)" = "d6a46f2cc2d3025ee3ffb59991c6d93ef903e339"
+          ./install.sh "$RUNNER_TEMP/bats"
+          echo "$RUNNER_TEMP/bats/bin" >> "$GITHUB_PATH"
       - name: Install pytest (pre-push.bats invokes the pre-push hook, which needs it)
-        run: pip install pytest pytest-cov pyyaml jsonschema
+        run: pip install -r requirements-dev.txt
       - name: Run hook tests
         run: bats .github/hooks/tests/
       - name: Run harness-link tests
@@ -46,13 +68,18 @@ jobs:
 
   python-tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: "3.x"
       - name: Install dependencies
-        run: pip install pytest pytest-cov pyyaml jsonschema
+        run: pip install -r requirements-dev.txt
+      - name: Ruff (lint)
+        run: ruff check patterns/logging/config_loader.py patterns/logging/test_config_loader.py patterns/agentic-loops/agent_loop.py patterns/agentic-loops/test_agent_loop.py
+      - name: mypy (type check the non-test modules)
+        run: mypy patterns/logging/config_loader.py patterns/agentic-loops/agent_loop.py
       - name: Run config_loader tests (>=80% coverage required)
         run: |
           cd patterns/logging
@@ -64,10 +91,11 @@ jobs:
 
   markdown-links:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Check internal markdown links
-        uses: lycheeverse/lychee-action@v2
+        uses: lycheeverse/lychee-action@a8c4c7cb88f0c7386610c35eb25108e448569cb0 # v2.7.0
         with:
           args: >-
             --no-progress
@@ -77,15 +105,17 @@ jobs:
 
   manifest-verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Verify MANIFEST.md against actual files
         run: bash tools/verify-manifest.sh
 
   sample-project-integration:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Simulate a fresh project consuming the harness via harness-link.sh
         run: |
           set -euo pipefail
@@ -103,14 +133,15 @@ jobs:
   # checks it survives the merge untouched.
   fixture-matrix:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
         fixture: [python-project, typescript-project, go-project]
         mode: [link, copy, submodule]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: "3.x"
       - name: Install, verify, doctor, update, uninstall (${{ matrix.fixture }}, --mode ${{ matrix.mode }})
@@ -126,7 +157,7 @@ jobs:
           (cd "$TMP" && bash verify.sh)
           bash tools/setup/harness-link.sh doctor "$TMP"
           bash tools/setup/harness-link.sh status "$TMP"
-          bash tools/setup/harness-link.sh update "$TMP"
+          bash tools/setup/harness-link.sh update "$TMP" --yes
           bash tools/setup/harness-link.sh uninstall "$TMP" --yes
           # Uninstall must be complete: no state file, no lingering skills.
           [ ! -f "$TMP/.agentharness-state.json" ]
