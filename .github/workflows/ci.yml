@@ -190,6 +190,7 @@ jobs:
           mkdir "$TMP/consumer"
           node "$TMP/package/bin/cli.js" init "$TMP/consumer" --skills agentic-loops --with-hook
           [ -f "$TMP/consumer/.claude/skills/agentic-loops/agent_loop.py" ]
+          rm -f agentharness-*.tgz
       - name: Working tree must be unchanged after prepack/postpack
         run: git status --short --porcelain | (! grep .)
 
