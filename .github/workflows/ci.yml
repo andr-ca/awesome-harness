@@ -42,6 +42,5 @@ jobs:
           args: >-
             --no-progress
             --offline
-            --exclude-mail
             '**/*.md'
           fail: true

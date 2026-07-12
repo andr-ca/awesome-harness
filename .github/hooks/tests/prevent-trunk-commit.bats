@@ -16,13 +16,23 @@ teardown() {
     rm -rf "$TEST_REPO"
 }
 
+# git init + a throwaway local identity. CI runners have no default git
+# identity configured, and any commit (blocked or not) needs one before
+# git will even invoke the pre-commit hook, so every test needs this
+# instead of relying on the environment already having one.
+init_repo() {
+    git init -q -b "$1"
+    git config user.email "test@example.com"
+    git config user.name "Test"
+}
+
 install_hook() {
     cp "$HOOK" .git/hooks/pre-commit
     chmod +x .git/hooks/pre-commit
 }
 
 @test "blocks the first commit on an unborn main branch" {
-    git init -q -b main
+    init_repo main
     install_hook
     touch file.txt
     git add file.txt
@@ -32,7 +42,7 @@ install_hook() {
 }
 
 @test "blocks commits on master" {
-    git init -q -b master
+    init_repo master
     install_hook
     touch file.txt
     git add file.txt
@@ -41,7 +51,7 @@ install_hook() {
 }
 
 @test "allows commits on a feature branch" {
-    git init -q -b main
+    init_repo main
     install_hook
     touch file.txt
     git add file.txt
@@ -55,7 +65,7 @@ install_hook() {
 }
 
 @test "blocks release/* branches (prefix match)" {
-    git init -q -b main
+    init_repo main
     install_hook
     touch file.txt
     git add file.txt
@@ -68,7 +78,7 @@ install_hook() {
 }
 
 @test "does not block a branch merely prefixed like a trunk name (main-ish is not main)" {
-    git init -q -b main-ish
+    init_repo main-ish
     install_hook
     touch file.txt
     git add file.txt
