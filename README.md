@@ -198,6 +198,15 @@ run `plan` instead of `init`). Verify afterward with
 Or by hand — see [docs/INTEGRATION.md](docs/INTEGRATION.md) for the
 symlink/copy/submodule tradeoffs, troubleshooting, and update/uninstall.
 
+**npm, as an alternative to `git clone`:** `npx agentharness init
+/path/to/your-project` runs the same lifecycle CLI without a separate
+clone step (still needs `bash`/`python3` on your machine). This packaging
+exists and has been verified locally (`npm pack --dry-run`) but **has not
+yet been published to npm** — see
+[docs/RELEASING.md#npm-distribution](docs/RELEASING.md#npm-distribution)
+for exactly what's missing. Until it's published, use the `git clone`
+path above.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the full workflow (branching,

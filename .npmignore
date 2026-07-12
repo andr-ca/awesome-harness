@@ -1,0 +1,15 @@
+# npm's `files` allowlist in package.json ships whole directories
+# (patterns/, languages/, etc.) so a consumer gets this repo's own worked
+# examples and tests alongside the conventions docs. This file excludes
+# this repo's own local dev/build artifacts that live inside those
+# directories but were never meant to ship — .gitignore already excludes
+# them from git, but npm's directory-based `files` entries don't reliably
+# defer to .gitignore, so they're restated here.
+__pycache__/
+*.pyc
+*.pyo
+.coverage
+.coverage.*
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/

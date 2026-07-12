@@ -49,6 +49,12 @@ running `harness-link.sh audit` see it coming.
    `git log --oneline <tag>..origin/main` should be empty (or every
    commit since the tag should be accounted for as "not yet released,
    goes in the next Unreleased section").
+6. Before tagging, bump `package.json`'s `version` to match `vX.Y.Z` in
+   the same commit as the `CHANGELOG.md` move (step 2) — `release.yml`
+   refuses to publish if the tag and `package.json` version disagree.
+   Pushing the tag triggers `.github/workflows/release.yml`, which runs
+   `npm publish` using the `NPM_TOKEN` repo secret. See "npm
+   distribution" below for what that requires and its current state.
 
 ## Pin, Upgrade, Rollback
 
@@ -73,6 +79,38 @@ directory no longer exists" error (see
 `"doctor fails when a skill directory is deleted out from under it"` in
 the same test file) instead of leaving a silently-broken symlink; `audit`
 surfaces removed/added skills before you run `update` at all.
+
+## npm Distribution
+
+`npx agentharness init <project>` (or `npm install -g agentharness`) is
+an alternative to `git clone`-ing this repo: `package.json`'s `files`
+allowlist ships the skills, language/pattern/framework docs, and
+`tools/setup/harness-link.sh` itself; `bin/cli.js` is a thin Node shim
+that execs that script (requires `bash` and `python3` on the consumer's
+machine — same requirement as a git-clone install, just enforced with a
+clear error instead of a cryptic one if missing).
+
+**Not yet done — this is the credential/account boundary this repo's own
+tooling can't cross on its own:**
+- Confirming the `agentharness` name is still available and creating the
+  npm account/org to claim it (checked available as of this writing via
+  `npm view agentharness`, which 404s).
+- Adding the `NPM_TOKEN` secret to this repo (Settings → Secrets →
+  Actions) with publish rights for that package.
+- Running the actual first `npm publish` — `release.yml` is wired up and
+  `npm pack --dry-run` has been verified locally to produce a correct,
+  self-contained tarball (including materializing the `agentic-loops`
+  skill's bundled-resource symlinks into real files via the
+  `prepack`/`postpack` scripts, since tarballs don't preserve symlinks
+  the way git does), but nothing has actually been published yet.
+
+Until those three steps happen, `release.yml` will fail at the `npm
+publish` step (no valid token) — that's expected, not a bug to chase.
+
+For updating an npm-installed harness: bump the installed/declared
+version (`npm install -g agentharness@latest` or the equivalent in
+whatever manages the dependency), then run `npx agentharness update` the
+same way a git-clone `link`/`copy` install would.
 
 ## Supported Harness / Client Versions
 

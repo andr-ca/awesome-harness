@@ -90,6 +90,9 @@ generator script yet (see ROADMAP.md).
 | Python fixture | `examples/python-project/` | project | Realistic Python consumer (pre-existing `.gitignore`); CI-verified across all install modes |
 | TypeScript fixture | `examples/typescript-project/` | project | Realistic TypeScript consumer (pre-existing `.gitignore`); CI-verified across all install modes |
 | Go fixture | `examples/go-project/` | project | Realistic Go consumer (pre-existing `.gitignore`); CI-verified across all install modes |
+| npm package manifest | `package.json` | config | `files` allowlist for `npm publish`; `bin.agentharness` entry point; see `docs/RELEASING.md#npm-distribution` for what's built vs. not-yet-published |
+| npm CLI shim | `bin/cli.js` | script | Execs `tools/setup/harness-link.sh` from an npm/npx install; fails clearly if `bash`/`python3` are missing |
+| Symlink materializer | `tools/release/materialize-skill-symlinks.py` | script | `prepack`/`postpack` hook — npm tarballs don't preserve symlinks, so bundled-resource symlinks (e.g. `agentic-loops`'s) are copied to real files before packing, then restored via `git checkout` |
 
 ## GitHub Configuration
 
@@ -98,6 +101,7 @@ generator script yet (see ROADMAP.md).
 | Dependency updates | `.github/dependabot.yml` | config | Automated dependency version checking (Go, GitHub Actions) |
 | Code ownership | `.github/CODEOWNERS` | config | Review routing and ownership for framework components |
 | Scheduled link check | `.github/workflows/link-check-scheduled.yml` | workflow | Weekly online external-link validation, separate from the offline PR gate (P1-08) |
+| Release workflow | `.github/workflows/release.yml` | workflow | Runs `npm publish` on a `v*` tag push; inert until `NPM_TOKEN` secret exists (P2-03) |
 | Markdownlint config | `.markdownlint-cli2.yaml` | config | Rules enforced in CI's content-quality job; documents why purely-stylistic rules are off (P1-08) |
 | Content-quality checker | `tools/verify-content-quality.py` | script | YAML validity, skill frontmatter schema, tested-snippet syntax (P1-08); also checks `AGENTS.md` sync (P2-02) |
 | AGENTS.md generator | `tools/generate-agents-md.sh` | script | Builds the Codex adapter from `CLAUDE.md` + `.claude/skills/` (P2-02) |
