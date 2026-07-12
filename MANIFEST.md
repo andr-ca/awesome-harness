@@ -111,6 +111,7 @@ generator script yet (see ROADMAP.md).
 | Integration instructions | `docs/INTEGRATION.md` | doc |
 | Planned-but-not-built components | `ROADMAP.md` | doc |
 | Release history | `CHANGELOG.md` | doc |
+| Release policy (versioning, checklist, pin/upgrade/rollback) | `docs/RELEASING.md` | doc |
 | Security / secrets procedure | `SECURITY.md` | doc |
 | Prior full repo review | `docs/operational/reviews/fable-review.md` | historical record — dated 2026-07-11, describes the repo as `awesome-harness` before the rename |
 | Review recommendations status | `docs/operational/reviews/fable-review-status.md` | disposition of all 30 backlog items from the review above |

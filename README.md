@@ -136,6 +136,7 @@ agentharness/
 └── docs/
     ├── ARCHITECTURE.md
     ├── INTEGRATION.md
+    ├── RELEASING.md              # Versioning policy, release checklist, pin/upgrade/rollback
     └── operational/              # working notes, review history
 ```
 

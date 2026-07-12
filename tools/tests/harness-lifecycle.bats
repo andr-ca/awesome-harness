@@ -322,3 +322,37 @@ with open('$TEST_PROJECT/.agentharness-state.json') as f: print(json.load(f)['so
     run git -C "$TEST_PROJECT" submodule status
     [ -z "$output" ]
 }
+
+@test "lifecycle: --mode submodule supports pin, rollback, and re-upgrade against real history" {
+    # P1-12: demonstrates the pin/upgrade/rollback story the submodule mode
+    # promises (docs/INTEGRATION.md: "pinned via the submodule's own commit,
+    # not a mutable external path") against this repo's actual git history,
+    # not a simulated one. 'committing' has existed since v0.1.0, so it
+    # resolves at any ancestor commit we roll back to.
+    git -C "$TEST_PROJECT" init --quiet
+    git -C "$TEST_PROJECT" -c user.email=test@example.com -c user.name=Test commit --quiet --allow-empty -m "init"
+
+    bash "$SCRIPT" init "$TEST_PROJECT" --mode submodule --skills committing
+    submodule="$TEST_PROJECT/.agentharness"
+    pinned_commit=$(git -C "$submodule" rev-parse HEAD)
+
+    # Pin: doctor is healthy at the commit init recorded.
+    run bash "$SCRIPT" doctor "$TEST_PROJECT"
+    [ "$status" -eq 0 ]
+
+    # Rollback: move the submodule to an ancestor commit by hand (the
+    # documented, deliberately-manual way — see "Keeping Projects Updated"
+    # in docs/INTEGRATION.md). The skill symlink still resolves because it
+    # points into the submodule's working tree, not a specific blob.
+    rollback_commit=$(git -C "$submodule" rev-parse "${pinned_commit}~3")
+    git -C "$submodule" checkout --quiet "$rollback_commit"
+    [ -f "$TEST_PROJECT/.claude/skills/committing/SKILL.md" ]
+    run bash "$SCRIPT" doctor "$TEST_PROJECT"
+    [ "$status" -eq 0 ]
+
+    # Re-upgrade: move back to the tip commit, same mechanism.
+    git -C "$submodule" checkout --quiet "$pinned_commit"
+    run bash "$SCRIPT" doctor "$TEST_PROJECT"
+    [ "$status" -eq 0 ]
+    [ "$(git -C "$submodule" rev-parse HEAD)" = "$pinned_commit" ]
+}
