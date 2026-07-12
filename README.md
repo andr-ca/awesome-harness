@@ -179,9 +179,18 @@ symlink/copy/submodule tradeoffs, troubleshooting, and update/uninstall.
 3. Skills need frontmatter (see any file in `.claude/skills/` for the
    shape).
 4. Add an entry to MANIFEST.md.
-5. Every change goes through a feature branch and PR — see
+5. Before opening a PR, run `bash tools/check.sh` — the same checks CI
+   runs (shellcheck, bats, ruff, mypy, pytest with coverage,
+   `verify-manifest.sh`, markdownlint, content-quality).
+6. Every change goes through a feature branch and PR — see
    `.github/BRANCHING_STRATEGY.md`. Branch protection on `main` enforces
    this for everyone except repo admins.
+7. Review routing is in [.github/CODEOWNERS](.github/CODEOWNERS) — right
+   now that's a single maintainer (`@andr-ca`) for every path. A change to
+   `CLAUDE.md`, a skill's `SKILL.md`, or anything else an agent loads as
+   an instruction should get a second pair of eyes once this repo has
+   more than one active contributor; until then, the PR review step
+   itself is that check.
 
 ## License
 
