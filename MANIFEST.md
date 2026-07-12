@@ -37,6 +37,18 @@ generator script yet (see ROADMAP.md).
 | Completion checklist | `patterns/testing/COMPLETION_CHECKLIST.md` | checklist | Before marking any task done |
 | Playwright UI testing | `patterns/testing/PLAYWRIGHT_UI_TESTING.md` | guide | Web UI work at Production tier only |
 
+## Error Handling & Reliability
+
+| Asset | Path | Type | When to use |
+|---|---|---|---|
+| Error handling patterns | `patterns/error-handling/README.md` | guide | Explicit errors, wrapping, retry/circuit-breaker, structured logging |
+
+## Agentic & Autonomous Systems
+
+| Asset | Path | Type | When to use |
+|---|---|---|---|
+| Agentic loops | `patterns/agentic-loops/README.md` | guide | Building multi-turn agents, tool calling, tool chaining, branching |
+
 ## Logging
 
 | Asset | Path | Type | When to use |
