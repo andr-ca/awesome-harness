@@ -22,7 +22,7 @@ from typing import Any
 
 try:
     import yaml
-except ImportError as e:
+except ImportError as e:  # pragma: no cover — defensive; PyYAML is a required dependency
     raise ImportError(
         "PyYAML is required for config_loader. Install with: pip install pyyaml"
     ) from e
@@ -176,20 +176,28 @@ def load_config(config_path: str) -> Any:
     return process_config_value(config)
 
 
-if __name__ == "__main__":
-    # Simple CLI for testing. Resolved values (including anything pulled
-    # from the environment, which may be secrets) are never printed by
-    # default — only --show-config opts into that.
-    if len(sys.argv) < 2:
+def main(argv=None) -> int:
+    """CLI entrypoint. Extracted from `__main__` so tests can call it
+    in-process (subprocess-invoked code isn't visible to coverage.py
+    without extra setup, and this is simpler and faster than that).
+
+    Resolved values (including anything pulled from the environment,
+    which may be secrets) are never printed by default — only
+    --show-config opts into that.
+    """
+    if argv is None:
+        argv = sys.argv
+
+    if len(argv) < 2:
         print(
-            f"Usage: {sys.argv[0]} <config_file> [--show-env-vars] [--show-config]",
+            f"Usage: {argv[0]} <config_file> [--show-env-vars] [--show-config]",
             file=sys.stderr,
         )
-        sys.exit(1)
+        return 1
 
-    config_file = sys.argv[1]
-    show_env_vars = "--show-env-vars" in sys.argv
-    show_config = "--show-config" in sys.argv
+    config_file = argv[1]
+    show_env_vars = "--show-env-vars" in argv
+    show_config = "--show-config" in argv
 
     try:
         config = load_config(config_file)
@@ -198,13 +206,14 @@ if __name__ == "__main__":
             print("Environment variables referenced:")
             with open(config_file) as f:
                 content = f.read()
-            for _, _, var_name, default_value in find_env_var_placeholders(content):
+            for _, _, var_name, _default_value in find_env_var_placeholders(content):
+                # A var with neither an env value nor a default would have
+                # already raised inside load_config() above, so by this
+                # point every placeholder is one or the other.
                 if os.environ.get(var_name) is not None:
                     status = "set (from environment)"
-                elif default_value is not None:
-                    status = "not set, using default"
                 else:
-                    status = "not set, no default (would error)"
+                    status = "not set, using default"
                 print(f"  {var_name}: {status}")
             print()
 
@@ -215,6 +224,11 @@ if __name__ == "__main__":
         else:
             print(f"OK: {config_file} loaded and interpolated successfully.")
             print("(pass --show-config to print the resolved config — may include secrets)")
+        return 0
     except (FileNotFoundError, yaml.YAMLError, ValueError) as e:
         print(f"ERROR: {e}", file=sys.stderr)
-        sys.exit(1)
+        return 1
+
+
+if __name__ == "__main__":  # pragma: no cover — entry point, all logic is in main() and tested there
+    sys.exit(main())

@@ -15,7 +15,7 @@ import yaml
 # when pytest is invoked from the repo root (or anywhere else).
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from config_loader import interpolate_env_vars, load_config, process_config_value  # noqa: E402
+from config_loader import interpolate_env_vars, load_config, main, process_config_value  # noqa: E402
 
 
 class TestInterpolateEnvVars:
@@ -73,6 +73,11 @@ class TestInterpolateEnvVars:
         """Strings without ${...} are returned unchanged."""
         result = interpolate_env_vars("just a string")
         assert result == "just a string"
+
+    def test_malformed_placeholder_missing_closing_brace_raises(self):
+        """A placeholder with no closing '}' raises a clear ValueError."""
+        with pytest.raises(ValueError, match="missing closing"):
+            interpolate_env_vars("${UNCLOSED")
 
 
 class TestProcessConfigValue:
@@ -186,6 +191,89 @@ class TestLoadConfig:
 
             config = load_config(str(config_path))
             assert config == {}
+
+
+class TestCLI:
+    """Tests for main(), the CLI entrypoint used by `python config_loader.py`.
+
+    Calls main() directly (in-process) rather than via subprocess: it's
+    faster, and subprocess-invoked code isn't visible to coverage.py
+    without extra sitecustomize/COVERAGE_PROCESS_START configuration.
+    main() takes argv explicitly for exactly this reason.
+    """
+
+    def _config_with_secret(self, tmpdir):
+        config_path = Path(tmpdir) / "config.yaml"
+        config_path.write_text(
+            yaml.dump({"service": {"name": "myapp", "secret": "${API_KEY}"}})
+        )
+        return str(config_path)
+
+    def _config_with_secret_and_default(self, tmpdir):
+        config_path = Path(tmpdir) / "config.yaml"
+        config_path.write_text(
+            yaml.dump(
+                {
+                    "service": {
+                        "name": "myapp",
+                        "secret": "${API_KEY}",
+                        "region": "${REGION:-us-east-1}",
+                    }
+                }
+            )
+        )
+        return str(config_path)
+
+    def test_no_args_prints_usage_and_returns_nonzero(self, capsys):
+        exit_code = main(["config_loader.py"])
+        captured = capsys.readouterr()
+        assert exit_code == 1
+        assert "Usage" in captured.err
+
+    def test_defaults_to_sys_argv_when_called_with_no_argument(self, monkeypatch, capsys):
+        """main() with no argv falls back to sys.argv (the real CLI path)."""
+        monkeypatch.setattr(sys, "argv", ["config_loader.py"])
+        exit_code = main()
+        captured = capsys.readouterr()
+        assert exit_code == 1
+        assert "Usage" in captured.err
+
+    def test_missing_config_file_errors_and_returns_nonzero(self, capsys):
+        exit_code = main(["config_loader.py", "/nonexistent/config.yaml"])
+        captured = capsys.readouterr()
+        assert exit_code == 1
+        assert "ERROR" in captured.err
+
+    def test_default_output_does_not_leak_secret(self, capsys):
+        os.environ["API_KEY"] = "sk-super-secret-value"
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_file = self._config_with_secret(tmpdir)
+            exit_code = main(["config_loader.py", config_file])
+            captured = capsys.readouterr()
+            assert exit_code == 0
+            assert "loaded and interpolated successfully" in captured.out
+            assert "sk-super-secret-value" not in captured.out
+
+    def test_show_env_vars_reports_status_not_value(self, capsys):
+        os.environ["API_KEY"] = "sk-super-secret-value"
+        os.environ.pop("REGION", None)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_file = self._config_with_secret_and_default(tmpdir)
+            exit_code = main(["config_loader.py", config_file, "--show-env-vars"])
+            captured = capsys.readouterr()
+            assert exit_code == 0
+            assert "API_KEY: set (from environment)" in captured.out
+            assert "REGION: not set, using default" in captured.out
+            assert "sk-super-secret-value" not in captured.out
+
+    def test_show_config_prints_resolved_value(self, capsys):
+        os.environ["API_KEY"] = "sk-super-secret-value"
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_file = self._config_with_secret(tmpdir)
+            exit_code = main(["config_loader.py", config_file, "--show-config"])
+            captured = capsys.readouterr()
+            assert exit_code == 0
+            assert "sk-super-secret-value" in captured.out
 
 
 if __name__ == "__main__":
