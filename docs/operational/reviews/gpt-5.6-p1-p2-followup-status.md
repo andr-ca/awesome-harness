@@ -61,7 +61,32 @@ the safe half now, write up the rest as options.
 - **P2-08:** README gained a one-line positioning subtitle and a "Why
   not just CLAUDE.md?" section.
 
-## P2 items not implemented — options for the user
+## P2 items — expanded scope, now implemented
+
+**Timestamp:** 2026-07-12T22:10:00Z
+
+After the options memo below was written, the user reviewed it and chose
+the most ambitious option for all four remaining items. Given the size
+and real external dependencies involved (npm registry credentials, live
+API costs for evals), this was planned via `EnterPlanMode`/`ExitPlanMode`
+before any code changed — see the approved plan for the full design and
+sequencing rationale. The user approved that plan with no changes. All
+four are now built, sequenced in the plan's order, each its own commit
+group, verified locally and confirmed green on hosted CI before moving
+to the next:
+
+| Item | Commit(s) | What shipped |
+|---|---|---|
+| P2-02 | `ad8e4ea` | `tools/generate-agents-md.sh` builds `AGENTS.md` (Codex's equivalent of `CLAUDE.md`) from `CLAUDE.md` + every skill's `SKILL.md`, generated (not hand-maintained) so it can't drift; a CI drift-check regenerates and diffs against the committed copy; README/INTEGRATION.md state plainly this is untested against a real Codex session |
+| P2-06 | `ea71715`, `0585922`, `086276b`, `907b466`, `72f6880`, `f294b6d` | Cut generic tutorial/reference material from `languages/{python,typescript,go}/CONVENTIONS.md`, `patterns/logging/{README,LOGGING_STANDARDS}.md`, `patterns/testing/{TDD,COVERAGE_REQUIREMENTS,PLAYWRIGHT_UI_TESTING}.md`, `patterns/error-handling/README.md`, `.github/BRANCHING_STRATEGY.md`, and one restated line in `.github/CODING_GUIDELINES.md` — kept every repo-specific decision, deduplicated the 80%-coverage mandate to one source of truth. Caught and preserved several genuine repo decisions in the TypeScript file that an initial automated inventory had mis-classified as "100% generic" (private-field guidance, null-vs-undefined framework, async/await rethrow rule) by reading the file in full before cutting |
+| P2-03 | `88ae11a`, `9b86f4d` | `package.json`/`bin/cli.js` so `npx agentharness init` works as an alternative to `git clone`; `.github/workflows/release.yml` runs `npm publish` on a `v*` tag. Built up to the credential boundary only — publishing needs an `NPM_TOKEN` secret and confirming the package name, neither of which this session can do. Caught a real bug via end-to-end testing (pack → unpack → run), not just eyeballing the `files` list: the `agentic-loops` skill's bundled-resource symlinks don't survive `npm pack` (tarballs don't preserve symlinks the way git does), which would have shipped a silently-broken skill to every npm-installed consumer — fixed with a prepack/postpack materialize-then-restore step |
+| P2-04 | `093acc0` | `tools/eval/`: 3 task specs (2 Python, 1 Go) with hidden grading tests; `score.py`, a fully deterministic scorer (no LLM calls) tested against hand-written correct/broken fixtures per task; `run.py`'s orchestration logic (condition setup, ledger writing) unit-tested with a fake, free agent — `invoke_agent_via_api`, the piece that would spend real API credits, is deliberately left unimplemented; results ledger format documented in `tools/eval/results/README.md` |
+
+None of this expanded past what the user approved in the plan — P2-05
+(real dogfooding) remains explicitly out of scope as a non-coding item,
+unchanged from the original assessment below.
+
+## P2 items — original options memo (superseded above, kept for the record)
 
 ### P2-02 — Cross-agent adapters (Codex/`AGENTS.md`, others)
 
