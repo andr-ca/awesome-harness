@@ -23,7 +23,9 @@ generator script yet (see ROADMAP.md).
 | Asset | Path | Type | When to use |
 |---|---|---|---|
 | Python conventions | `languages/python/CONVENTIONS.md` | guide | Naming, structure, idioms for `.py` files |
-| Python agent instructions | `languages/python/COPILOT_INSTRUCTIONS.md` | guide | General-purpose agent operating principles for Python repos (not harness-specific, portable) |
+| Python agent instructions | `languages/python/COPILOT_INSTRUCTIONS.md` | guide | General-purpose agent operating principles for Python repos |
+| TypeScript conventions | `languages/typescript/CONVENTIONS.md` | guide | Naming, type safety, React patterns for `.ts` / `.tsx` files |
+| Go conventions | `languages/go/CONVENTIONS.md` | guide | Naming, concurrency, interfaces, testing for `.go` files |
 
 ## Testing & Quality Patterns
 
