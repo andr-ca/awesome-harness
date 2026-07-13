@@ -82,35 +82,41 @@ surfaces removed/added skills before you run `update` at all.
 
 ## npm Distribution
 
-`npx agentharness init <project>` (or `npm install -g agentharness`) is
-an alternative to `git clone`-ing this repo: `package.json`'s `files`
-allowlist ships the skills, language/pattern/framework docs, and
+`npx agentharness-toolkit init <project>` (or
+`npm install -g agentharness-toolkit`) is an alternative to
+`git clone`-ing this repo: `package.json`'s `files` allowlist ships the
+skills, language/pattern/framework docs, and
 `tools/setup/harness-link.sh` itself; `bin/cli.js` is a thin Node shim
 that execs that script (requires `bash` and `python3` on the consumer's
 machine — same requirement as a git-clone install, just enforced with a
-clear error instead of a cryptic one if missing).
+clear error instead of a cryptic one if missing). The package name is
+`agentharness-toolkit` — the shorter `agentharness` was rejected by
+npm's anti-squatting check as "too similar" to an existing unrelated
+package (`agent-harness`) — but the installed CLI command itself is
+still just `agentharness` (`package.json`'s `bin` field is independent
+of the package name).
 
-**Not yet done — this is the credential/account boundary this repo's own
-tooling can't cross on its own:**
-- Confirming the `agentharness` name is still available and creating the
-  npm account/org to claim it (checked available as of this writing via
-  `npm view agentharness`, which 404s).
-- Adding the `NPM_TOKEN` secret to this repo (Settings → Secrets →
-  Actions) with publish rights for that package.
-- Running the actual first `npm publish` — `release.yml` is wired up and
-  `npm pack --dry-run` has been verified locally to produce a correct,
-  self-contained tarball (including materializing the `agentic-loops`
-  skill's bundled-resource symlinks into real files via the
-  `prepack`/`postpack` scripts, since tarballs don't preserve symlinks
-  the way git does), but nothing has actually been published yet.
+**Credential/account boundary this repo's own tooling couldn't cross on
+its own** (now resolved manually, outside CI):
+- The `NPM_TOKEN` repo secret (Settings → Secrets → Actions) — added.
+- The actual first `npm publish` — needed a manual, interactive run
+  (`npm login` + `npm publish --access public`) once, since npm requires
+  either 2FA or a "bypass 2FA" token for publishing and a CI token can't
+  satisfy an interactive OTP prompt on its own.
 
-Until those three steps happen, `release.yml` will fail at the `npm
-publish` step (no valid token) — that's expected, not a bug to chase.
+Once the package exists on the registry, a narrower, "bypass 2FA"-scoped
+token can replace the manual step for future tagged releases —
+`release.yml` is already wired up and `npm pack --dry-run` has been
+verified locally to produce a correct, self-contained tarball (including
+materializing the `agentic-loops` skill's bundled-resource symlinks into
+real files via the `prepack`/`postpack` scripts, since tarballs don't
+preserve symlinks the way git does).
 
 For updating an npm-installed harness: bump the installed/declared
-version (`npm install -g agentharness@latest` or the equivalent in
-whatever manages the dependency), then run `npx agentharness update` the
-same way a git-clone `link`/`copy` install would.
+version (`npm install -g agentharness-toolkit@latest` or the equivalent
+in whatever manages the dependency), then run
+`npx agentharness-toolkit update` the same way a git-clone `link`/`copy`
+install would.
 
 ## Supported Harness / Client Versions
 

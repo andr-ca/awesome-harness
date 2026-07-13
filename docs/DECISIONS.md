@@ -24,9 +24,9 @@ fully unit-tested with a free, deterministic fake. No eval results,
 costs, or adherence numbers exist yet — the suite is a rubric and a
 harness, not a completed measurement. See `tools/eval/README.md`.
 
-## npm as the low-friction distribution channel, built to the credential boundary
+## npm as the low-friction distribution channel, published as agentharness-toolkit
 
-**Status:** Settled on npm as the channel; publish itself pending.
+**Status:** Settled on the channel and package name; publish itself in progress.
 
 **Context:** `harness-link.sh init --mode submodule` already gives a
 pinned install path, but "clone this repo first" is friction compared to
@@ -40,10 +40,15 @@ Bash/Python tooling underneath.
 (`npm pack` → unpack → run), including a real bug caught this way: npm
 tarballs don't preserve the `agentic-loops` skill's symlinked bundled
 resources, fixed with a prepack/postpack materialize-then-restore step.
-The package has never actually been published — that needs an npm
-account/org, the `agentharness` name confirmed available, and an
-`NPM_TOKEN` repo secret, none of which this repo's own tooling can
-create for itself. See `docs/RELEASING.md#npm-distribution`.
+First publish needed two manual, one-time resolutions neither this
+repo's tooling nor CI could complete unattended: the unscoped
+`agentharness` name was rejected by npm's anti-squatting check as too
+similar to an existing package (`agent-harness`), settled as
+`agentharness-toolkit` instead (the CLI command itself stays
+`agentharness` — `bin` is independent of the package name); and npm's
+2FA-or-bypass-token publish requirement meant the actual first
+`npm publish` had to be run interactively rather than from CI. See
+`docs/RELEASING.md#npm-distribution`.
 
 ## Publish authority split from workflow completion, gated by an opt-in flag
 

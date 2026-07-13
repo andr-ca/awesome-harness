@@ -1,9 +1,9 @@
 name: Release
 
 # Publishes the npm package on a version tag push (see docs/RELEASING.md).
-# Requires an NPM_TOKEN secret with publish rights for the "agentharness"
-# package — not yet configured; this workflow is inert until it is (see
-# docs/RELEASING.md's "npm publish" step for the setup this needs).
+# Requires an NPM_TOKEN secret with publish rights for the
+# "agentharness-toolkit" package (see docs/RELEASING.md's "npm publish"
+# step for the setup this needs).
 on:
   push:
     tags:

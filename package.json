@@ -1,5 +1,5 @@
 {
-  "name": "agentharness",
+  "name": "agentharness-toolkit",
   "version": "0.2.0",
   "description": "Git conventions, coding guidelines, testing standards, and on-demand skills for coding agents (Claude Code, Codex) — written once, referenced everywhere.",
   "license": "MIT",
