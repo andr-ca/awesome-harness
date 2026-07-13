@@ -19,11 +19,14 @@ architects, reviewers, debuggers). One shipped so far:
 `coding-guidelines-reviewer` (a read-only reviewer scoped to
 `.github/CODING_GUIDELINES.md`'s rigor tiers), ported to every
 delegation-capable non-Claude tool confirmed (Codex CLI, OpenCode,
-Cursor, Kilo Code, GitHub Copilot — see `docs/CLIENT_COMPATIBILITY.md`'s
-custom-agent table and `docs/INTEGRATION.md`'s "Custom Agents" section
-for the generators; Copilot was initially misclassified as persona-only
-and corrected the same day, see that table's dated note). Explorers,
-architects, and debuggers remain unstarted.
+Cursor, Kilo Code, GitHub Copilot, Gemini CLI — see
+`docs/CLIENT_COMPATIBILITY.md`'s custom-agent table and
+`docs/INTEGRATION.md`'s "Custom Agents" section for the generators;
+Copilot and Gemini CLI were both initially misclassified as persona-only
+and corrected the same day, see that table's dated notes). Zed likely
+supports real delegation too but has no confirmed config-file format to
+port into, so it's flagged as unconfirmed rather than built against a
+guess. Explorers, architects, and debuggers remain unstarted.
 
 ### `.claude/hooks/`
 Claude Code event hooks (as distinct from git hooks in `.github/hooks/`).

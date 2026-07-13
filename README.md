@@ -118,19 +118,21 @@ ports it to every tool that supports genuine delegation:
 | Cursor | `tools/generate-cursor-agents.sh` | `.cursor/agents/*.md` (distinct from `.cursor/rules/*.mdc` above — a different Cursor feature) |
 | Kilo Code | `tools/generate-kilo-agents.sh` | `.kilo/agents/*.md` |
 | GitHub Copilot | `tools/generate-copilot-agents.sh` | `.github/agents/*.agent.md` (distinct from `.github/copilot-instructions.md`/`.github/instructions/` above — genuine isolated-context sub-agent delegation, not the routing/skill mechanism) |
+| Gemini CLI | `tools/generate-gemini-agents.sh` | `.gemini/agents/*.md` |
 
-Gemini CLI and Zed only offer persona/tool-scope switching for the same
-agent, not true delegation — nothing to port to there. **None of these
-five generators translate tool/permission scoping** (Claude Code's
-`tools:` field, Cursor's `readonly`/`is_background`, Kilo's
+Zed likely has real subagent delegation architecturally too, but no
+confirmed user-facing named-config-file format was found to port
+into — flagged as unconfirmed rather than built against a guess. **None
+of these six generators translate tool/permission scoping** (Claude
+Code's `tools:` field, Cursor's `readonly`/`is_background`, Kilo's
 `permission`, Copilot's `target`/`disable-model-invocation`/
-`user-invocable`) — that vocabulary is unverified per platform, so
-ported files carry only `name`/`description`/`model`/body; re-specify
-the tool/permission scope by hand for the target platform. See
-`docs/CLIENT_COMPATIBILITY.md`'s "Custom agents / sub-agent delegation"
-section for the full per-tool table, sources, and a dated correction
-note (an earlier research pass wrongly classified Copilot as
-persona-only).
+`user-invocable`, Gemini's `tools`/`temperature`/`max_turns`) — that
+vocabulary is unverified per platform, so ported files carry only
+`name`/`description`/`model`/body; re-specify the tool/permission scope
+by hand for the target platform. See `docs/CLIENT_COMPATIBILITY.md`'s
+"Custom agents / sub-agent delegation" section for the full per-tool
+table, sources, and dated correction notes (an earlier research pass
+wrongly classified both Copilot and Gemini CLI as persona-only).
 
 **Supported platforms:** Linux and macOS (Bash scripts, POSIX shell
 conditionals, `bats-core` for shell tests). Windows is untested; WSL

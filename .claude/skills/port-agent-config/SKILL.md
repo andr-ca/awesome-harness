@@ -67,13 +67,15 @@ delegation-capable target:
 | Cursor | `tools/generate-cursor-agents.sh --output-dir .` | `.cursor/agents/<name>.md` (not `.cursor/rules/` — that's the skill generator) |
 | Kilo Code | `tools/generate-kilo-agents.sh --output-dir .` | `.kilo/agents/<name>.md` |
 | GitHub Copilot | `tools/generate-copilot-agents.sh --output-dir .` | `.github/agents/<name>.agent.md` (not `.github/copilot-instructions.md`/`.github/instructions/` — those are the routing/skill generator) |
-| Gemini CLI, Zed | nothing to generate — neither supports true sub-agent delegation, only persona/tool-scope switching for the same agent (see `docs/CLIENT_COMPATIBILITY.md`'s custom-agent table) | — |
+| Gemini CLI | `tools/generate-gemini-agents.sh --output-dir .` | `.gemini/agents/<name>.md` |
+| Zed | nothing to generate — real subagent delegation exists architecturally, but no confirmed user-facing named-config-file format was found (see `docs/CLIENT_COMPATIBILITY.md`'s custom-agent table) | — |
 
-**Important limitation, state it every time**: none of these five
+**Important limitation, state it every time**: none of these six
 generators port tool/permission scoping (Claude Code's `tools:` field,
 Cursor's `readonly`/`is_background`, Kilo's `permission`/
 `permission.task`, Copilot's `target`/`disable-model-invocation`/
-`user-invocable`) — that vocabulary is unverified per-platform. Ported
+`user-invocable`, Gemini's `tools`/`temperature`/`max_turns`) — that
+vocabulary is unverified per-platform. Ported
 files carry `name`/`description`/`model` and the body verbatim; tell the
 user the tool/permission scope needs re-specifying by hand for the
 target platform.
@@ -106,13 +108,16 @@ target platform.
    unless the user has actually run it themselves.
 6. **Custom subagents** (task delegation, not skills/instructions) only
    port meaningfully between tools that both support real delegation
-   (Claude Code, Codex CLI, OpenCode, Cursor, Kilo Code, GitHub Copilot —
-   see `docs/CLIENT_COMPATIBILITY.md`'s custom-agent table); porting to
-   Gemini CLI/Zed means falling back to a persona/mode switch, not
-   delegation, and that difference must be said out loud, not silently
-   smoothed over. Don't assume a tool is persona-only without checking
-   its docs directly — this table was wrong about Copilot for a full
-   session before being caught and corrected. Same tool/permission-scoping
+   with a confirmed config-file format (Claude Code, Codex CLI,
+   OpenCode, Cursor, Kilo Code, GitHub Copilot, Gemini CLI — see
+   `docs/CLIENT_COMPATIBILITY.md`'s custom-agent table); Zed likely has
+   real delegation too but no confirmed file format to port into, so
+   treat it as unconfirmed rather than either persona-only or portable.
+   Don't assume a tool is persona-only without checking its docs
+   directly — this table was wrong about both Copilot and Gemini CLI for
+   a full session before being caught and corrected (same root-cause
+   error both times: conflating "can't nest further subagents" with "no
+   delegation at all"). Same tool/permission-scoping
    limitation as Section A's generators applies here too — port
    `name`/`description`/`model`/body, don't guess at the target's
    tool-name vocabulary.

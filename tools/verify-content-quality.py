@@ -12,8 +12,8 @@ cross-platform-parity adapters (GEMINI.md, .kilo/rules/agentharness.md,
 .github/copilot-instructions.md + .github/instructions/*, and
 .cursor/rules/*.mdc), and the custom-agent-porting generators
 (.codex/agents/*.toml, .opencode/agents/*.md, .cursor/agents/*.md,
-.kilo/agents/*.md, and .github/agents/*.agent.md) against their
-structured sources.
+.kilo/agents/*.md, .github/agents/*.agent.md, and .gemini/agents/*.md)
+against their structured sources.
 """
 
 from __future__ import annotations
@@ -563,6 +563,12 @@ def check_copilot_agents_sync() -> list[str]:
     )
 
 
+def check_gemini_agents_sync() -> list[str]:
+    return _check_agent_generator_sync(
+        "tools/generate-gemini-agents.sh", ".gemini/agents"
+    )
+
+
 def main() -> int:
     errors = []
     errors += check_yaml_files()
@@ -582,6 +588,7 @@ def main() -> int:
     errors += check_cursor_agents_sync()
     errors += check_kilo_agents_sync()
     errors += check_copilot_agents_sync()
+    errors += check_gemini_agents_sync()
 
     if errors:
         print("Content-quality check failed:\n")
