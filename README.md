@@ -79,11 +79,18 @@ other agent's skill/tool-loading mechanism has been tested against this
 repo yet — don't assume Cursor, Copilot, or another harness picks up
 `.claude/skills/` the same way Claude Code does.
 
-An `AGENTS.md` adapter for Codex exists at the repo root, generated from
-the same `CLAUDE.md`/skill catalog by `tools/generate-agents-md.sh` (kept
-in sync by a CI check, not hand-maintained). **It has not been verified
-against a real Codex CLI session** — best-effort until someone actually
-tests it; treat it the same as any other untested-client claim above.
+Codex CLI is supported via its real on-demand skill mechanism (the Agent
+Skills open standard, shared with Claude Code): every skill is installed
+into `.agents/skills/<name>` alongside `.claude/skills/<name>` (same
+source, no separate flag), which Codex scans and loads on demand by
+matching each `SKILL.md`'s description — not by front-loading every
+skill's full body. `AGENTS.md` at the repo root covers routing rules
+only, generated from `CLAUDE.md` by `tools/generate-agents-md.sh` (kept
+in sync by a CI check, not hand-maintained; see `docs/INTEGRATION.md`'s
+Codex section for the design and the measured before/after size). This
+has not been verified against a live Codex CLI session end-to-end — the
+mechanism is implemented against Codex's published skill-discovery
+behavior, not yet dogfooded in a real session.
 
 **Supported platforms:** Linux and macOS (Bash scripts, POSIX shell
 conditionals, `bats-core` for shell tests). Windows is untested; WSL
@@ -161,7 +168,7 @@ orientation map, not the source of truth.
 agentharness/
 ├── README.md                    # This file
 ├── CLAUDE.md                    # Agent-facing router + mandatory rules
-├── AGENTS.md                    # Codex adapter, generated from CLAUDE.md + skills (untested)
+├── AGENTS.md                    # Codex routing rules, generated from CLAUDE.md (skills load on demand from .agents/skills/)
 ├── MANIFEST.md                  # Index of every real asset
 ├── ROADMAP.md                   # What's planned but not built yet
 ├── CHANGELOG.md                 # Release history

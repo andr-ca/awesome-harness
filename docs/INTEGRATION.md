@@ -199,26 +199,38 @@ via a system reminder listing available skills); if it doesn't show up,
 run `doctor` (see Troubleshooting below) or check the frontmatter is
 valid YAML with `name` and `description` fields.
 
-### Codex (`AGENTS.md`)
+### Codex (`AGENTS.md` + `.agents/skills/`)
 
-Codex has no on-demand skill-loading mechanism — it reads one `AGENTS.md`
-file in full. Generate one from this harness's own `CLAUDE.md` +
-`.claude/skills/` catalog instead of hand-writing a separate copy that
-drifts:
+Codex CLI's real skill mechanism (the Agent Skills open standard, shared
+with Claude Code since December 2025) scans `.agents/skills/` from the
+working directory up to the repo root, reads each skill's `SKILL.md`
+`name`/`description` metadata up front, and loads a skill's full body
+only once its description matches the task at hand — the same
+progressive-disclosure model Claude Code uses, not "no on-demand
+loading" as an earlier version of this adapter assumed (P0-06).
+
+`harness-link.sh init`/`update` install every skill into `.agents/skills/`
+alongside `.claude/skills/` automatically (same source, same `SKILL.md`)
+— no separate flag needed. `AGENTS.md` itself only needs to cover
+repo-wide routing rules plus a lightweight name+description index so
+Codex's own metadata scan has something to match against before it lists
+`.agents/skills/` itself:
 
 ```bash
 ~/agentharness/tools/generate-agents-md.sh --output AGENTS.md
 ```
 
-Re-run it whenever the harness updates, the same way you'd re-run
-`update` for skills — there's no CI check keeping *your* project's copy
-in sync (only this harness's own root `AGENTS.md` has that), so treat it
-as a copy-mode integration (see Method 2 above): pin it, regenerate
-deliberately.
+Re-run it whenever `CLAUDE.md` or the skill catalog changes, the same
+way you'd re-run `update` for skills — there's no CI check keeping
+*your* project's copy in sync (only this harness's own root `AGENTS.md`
+has that), so treat it as a copy-mode integration (see Method 2 above):
+pin it, regenerate deliberately.
 
-**This adapter has not been verified against a real Codex CLI session —
-best-effort only.** See the README's "Supported clients" section before
-relying on it.
+Redesigning this adapter (previously an 880-line/33.7KB file
+concatenating every skill's full body into every task) cut this harness's
+own generated `AGENTS.md` to 201 lines/11.6KB — routing rules plus a
+6-line skill index, with full skill content loaded only on demand from
+`.agents/skills/`.
 
 ### Language Guidelines
 

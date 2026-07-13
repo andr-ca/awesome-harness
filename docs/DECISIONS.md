@@ -131,6 +131,17 @@ but explicitly labeled "not verified against a real Codex CLI session" —
 the same "don't claim what you haven't tested" principle applied to a
 best-effort exception instead of blocking it outright.
 
+**2026-07-13 update (P0-06):** the original `AGENTS.md` adapter's
+foundational premise was wrong — Codex CLI has a real on-demand skill
+mechanism (the Agent Skills open standard, shared with Claude Code since
+December 2025), not "no on-demand loading." Redesigned: every skill now
+installs into `.agents/skills/<name>` alongside `.claude/skills/<name>`
+(same source), and `AGENTS.md` shrank from concatenating every skill's
+full body (880 lines/33.7KB) to routing rules plus a name+description
+index (201 lines/11.6KB). Still not verified against a live Codex CLI
+session end-to-end — the "don't claim what you haven't tested" caveat
+stands, now against the corrected mechanism instead of the wrong one.
+
 ## Symlink as the default install mode, not copy or submodule
 
 **Status:** Settled.
