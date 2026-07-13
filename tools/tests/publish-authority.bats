@@ -45,6 +45,12 @@ setup() {
     grep -q "pulls/<n>/comments" "$HARNESS_ROOT/CLAUDE.md"
 }
 
+@test "publish-authority: CLAUDE.md requires watching CI to a real terminal state, not reporting in-progress as done" {
+    grep -q "Never report a push/merge as done while CI is still running or red" "$HARNESS_ROOT/CLAUDE.md"
+    grep -q "gh run rerun <run-id> --failed" "$HARNESS_ROOT/CLAUDE.md"
+    grep -q "own resulting CI run" "$HARNESS_ROOT/CLAUDE.md"
+}
+
 @test "publish-authority: creating the flag file is a real, working git-ignore round trip" {
     scratch="$BATS_TEST_TMPDIR/scratch-roundtrip"
     mkdir -p "$scratch"

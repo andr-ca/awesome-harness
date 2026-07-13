@@ -45,6 +45,35 @@ Copilot's code review). Before merging:
    and confirmed like any other recommendation); note explicitly why
    anything is skipped rather than silently ignoring it.
 
+**Never report a push/merge as done while CI is still running or red —
+watch it through to an actual, current green before moving on or telling
+the user it's finished.** "I pushed" and "CI passed" are different
+claims; only the second one means the work is safe. This applies to
+every CI-triggering push this mandate covers: opening a PR, pushing more
+commits to one, and merging into `main`.
+1. After any such push, poll the run (`gh run watch --exit-status`, or an
+   equivalent poll loop) until it reaches a terminal state — `queued` and
+   `in_progress` are not outcomes, and reporting either as "done" is the
+   exact mistake this rule exists to prevent.
+2. On failure, read the actual log for the failed job(s)
+   (`gh run view <run-id> --log-failed`) before deciding what to do next
+   — don't guess from the job name.
+3. If the failure is transient infrastructure (runner provisioning,
+   `Service Unavailable`/network errors resolving actions, a flaky step
+   unrelated to this diff — not a real test/lint/type failure), rerun
+   the failed jobs (`gh run rerun <run-id> --failed`) and re-poll. Retry
+   up to 5 times; if it's still failing after that, stop and surface it
+   to the user rather than silently retrying forever.
+4. If the failure reflects the actual change (a real test/lint/build
+   failure), fix it like any other bug per the Recommendation Assessment
+   mandate below, push the fix, and re-verify CI from a clean state —
+   don't rerun a failing job hoping it passes the second time.
+5. A merge to `main` is not finished until `main`'s own resulting CI run
+   (the run the merge commit itself triggers, not just the PR's
+   pre-merge run) is confirmed green — a PR's checks passing before
+   merge doesn't guarantee the post-merge run on `main` will, and only
+   the post-merge run reflects what's actually deployed/tagged from.
+
 ### Publish authority
 
 `touch .agentharness-publish-mode` at this repo's root grants standing
