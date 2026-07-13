@@ -31,6 +31,39 @@ that every project's own (short) `CLAUDE.md` *references* — see
 project-specific `CLAUDE.md`; it just stops being where the shared rules
 live.
 
+**Before** (two real projects, each with their own copy-pasted-and-drifted rules):
+
+```markdown
+<!-- project-a/CLAUDE.md -->
+## Testing
+Aim for 80% coverage. Use pytest. Don't mock the database.
+
+<!-- project-b/CLAUDE.md, written six months later by someone else -->
+## Testing
+Try to keep coverage reasonable (70%+ ok for now). pytest preferred.
+```
+
+Neither number is *wrong* on its own — but now there are two "the
+policy," a reviewer moving between repos has to remember which applies
+where, and nobody can say which one is actually current.
+
+**After** (both projects reference the same source instead of restating it):
+
+```markdown
+<!-- project-a/CLAUDE.md and project-b/CLAUDE.md, identical on this point -->
+## Testing
+See agentharness's `patterns/testing/COVERAGE_REQUIREMENTS.md` for the
+coverage bar by rigor tier. This project is Production tier.
+```
+
+One number, one place it can drift from — see
+`patterns/testing/COVERAGE_REQUIREMENTS.md` for what that file actually
+says today. Updating the bar means editing agentharness once; every
+project referencing it picks up the change the next time its harness
+checkout syncs (see "Pin, Upgrade, Rollback" in
+[docs/RELEASING.md](docs/RELEASING.md) for exactly when that happens per
+install mode).
+
 ## Product Contract
 
 **Target users:** teams or individuals running multiple projects with a
@@ -197,6 +230,9 @@ run `plan` instead of `init`). Verify afterward with
 
 Or by hand — see [docs/INTEGRATION.md](docs/INTEGRATION.md) for the
 symlink/copy/submodule tradeoffs, troubleshooting, and update/uninstall.
+See [docs/DEMO.md](docs/DEMO.md) for a 5-minute walkthrough with real
+commands and real output — what `init` actually installs, and what the
+enforced trunk-protection hook looks like when it fires.
 
 **npm, as an alternative to `git clone`:** `npx agentharness init
 /path/to/your-project` runs the same lifecycle CLI without a separate

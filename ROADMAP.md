@@ -107,9 +107,30 @@ follow the same template.
   syntax checks — see `.github/workflows/ci.yml`'s `content-quality` job).
   Automated detection of the *same rule restated with a different number*
   across docs (this repo's actual "one source of truth per rule" bug
-  class) is deliberately deferred until after P1-10 consolidates the
-  testing/logging policy docs — building the detector first would either
-  need to hard-fail on ~15 pre-existing, legitimate cross-references
-  (e.g. "80%" appearing in files that correctly link back to
-  `COVERAGE_REQUIREMENTS.md` rather than restating the rule) or be too
-  narrowly allow-listed to catch anything new.
+  class) was originally deferred until after P1-10 consolidated the
+  testing/logging policy docs. P1-10 and P2-06 (the encyclopedia-reduction
+  pass) are both now done, so the blocking condition is resolved, but the
+  detector itself is still unbuilt — see
+  `docs/operational/reviews/gpt-5.6-completion-reaudit-status.md` for the
+  scoping question this needs before work starts (still needs to avoid
+  hard-failing on legitimate cross-references vs. an allow-list too
+  narrow to catch anything new).
+
+- **P2-05 (real dogfood) has no target.** Confirmed still not done as of
+  the 2026-07-13 re-audit (`gpt-5.6-completion-reaudit.md`): no evidence
+  the harness is pinned and used in a real, non-fixture project. This
+  isn't a coding task — it means picking at least one real repo (ideally
+  not this session's author's own) to adopt `harness-link.sh init`
+  against and letting friction surface over real use, then feeding
+  findings back. Tracked here so it isn't silently dropped between status
+  snapshots; see
+  `docs/operational/reviews/gpt-5.6-completion-reaudit-status.md`.
+
+- **P0-03's remote-write authorization model is unresolved.** Flagged as
+  a missed gap by the 2026-07-13 re-audit: `CLAUDE.md`'s Agent Workflow
+  Completion section still mandates commit/push/PR for every finished
+  task by default, with no opt-in profile that keeps an agent
+  inspection/review-only. This is a product-direction change (it alters
+  the harness's default trust model), not a scoped fix — see
+  `docs/operational/reviews/gpt-5.6-completion-reaudit-status.md` for the
+  scoping question posed to the user before any change is made.

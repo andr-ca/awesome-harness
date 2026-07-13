@@ -7,7 +7,8 @@ Several component categories below (frameworks, most languages, most
 pattern categories, `.claude/agents/`) don't have content yet — see
 [MANIFEST.md](../MANIFEST.md) for what exists and [ROADMAP.md](../ROADMAP.md)
 for what's planned. The layering and design principles are already the
-policy for whatever gets built next.
+policy for whatever gets built next. For *why* specific choices were made
+(not just what the target shape is), see [DECISIONS.md](DECISIONS.md).
 
 ## 🎯 Design Philosophy
 

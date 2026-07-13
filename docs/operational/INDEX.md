@@ -41,12 +41,22 @@ Documents ready to be promoted to harness or archived:
 - `reviews/pr4-comments-status.md` — disposition and verification record for
   PR #4's review-comment fixes and later coverage/pre-push work.
 - `reviews/gpt-5.6-p1-p2-followup-status.md` — completion status for the
-  entire P1 backlog (P1-06 through P1-14), the confirmed-scope half of
-  the P2 batch, and (as of 2026-07-12T22:10:00Z) the remaining four P2
+  P1-06–P1-14 slice of the P1 backlog, the confirmed-scope half of the P2
+  batch, and (as of 2026-07-12T22:10:00Z) the remaining four P2
   product-direction items (P2-02, P2-03, P2-04, P2-06), which the user
   chose the most ambitious option for after reviewing the doc's original
-  options memo (kept in the same file for the record). P2-05 (real
-  dogfooding) remains a non-coding item, not tracked as a build task.
+  options memo (kept in the same file for the record). Only P2-06 fully
+  closed its outcome — P2-02/03/04 are foundations built to a named
+  external boundary; see the 2026-07-13T precision correction added
+  inline and the re-audit below.
+- `reviews/gpt-5.6-completion-reaudit.md` — evidence-based re-audit at merged
+  `main` commit `d4d2541`, recorded 2026-07-13T02:55:42Z. Reclassifies the
+  original 30 recommendations as 17 verified, 11 partial, 1 missed, and 1
+  deferred; re-scores the repository from 4.5/10 to 7.0/10.
+- `reviews/gpt-5.6-completion-reaudit-status.md` — this session's
+  per-item response to the re-audit above: scoped/low-risk items fixed
+  directly, larger product-direction items scoped and put to the user for
+  confirmation before implementation.
 
 ## 📚 Archives
 
