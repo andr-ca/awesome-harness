@@ -40,6 +40,11 @@ setup() {
     [ "$output" -ge 1 ]
 }
 
+@test "publish-authority: CLAUDE.md requires checking PR review comments before merging, not just CI" {
+    grep -q "Never merge a PR on CI status alone" "$HARNESS_ROOT/CLAUDE.md"
+    grep -q "pulls/<n>/comments" "$HARNESS_ROOT/CLAUDE.md"
+}
+
 @test "publish-authority: creating the flag file is a real, working git-ignore round trip" {
     scratch="$BATS_TEST_TMPDIR/scratch-roundtrip"
     mkdir -p "$scratch"

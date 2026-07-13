@@ -45,6 +45,25 @@ push to remote with tracking, create a PR with `gh pr create`, and never
 leave verified work uncommitted-and-unpushed — an agent claiming work is
 "complete" while it's only staged locally is incomplete.
 
+**Never merge a PR on CI status alone — wait for review comments, then
+address them, before merging.** A green CI run says nothing about
+feedback left on the diff itself (human or automated, e.g. GitHub
+Copilot's code review). Before merging:
+1. Give automated review time to post (its own check, separate from CI,
+   e.g. "Copilot Code Review") — don't merge the instant CI turns green.
+2. Fetch *both* comment types — issue-level (`gh pr view <n> --json
+   comments`) and inline review comments (`gh api
+   repos/<owner>/<repo>/pulls/<n>/comments`); the first call alone misses
+   inline findings entirely.
+3. Verify each finding against current code before acting on it — an
+   automated reviewer's claim can be stale (already fixed by a later
+   commit) or simply wrong; confirm the premise, don't implement a "fix"
+   on faith.
+4. Fix what's real and in scope per the Recommendation Assessment
+   mandate below (scoped/low-risk directly; larger findings get scoped
+   and confirmed like any other recommendation); note explicitly why
+   anything is skipped rather than silently ignoring it.
+
 #### Publish authority
 
 `touch .agentharness-publish-mode` at this repo's root grants standing
