@@ -103,8 +103,11 @@ state_path() { echo "$1/$STATE_FILE_NAME"; }
 state_write() {
     # $1=target $2=mode $3=skills_csv $4=skills_filter(or "") $5=with_hook(true/false)
     # $6=profile(or "") $7=source_path $8=source_revision $9=source_remote(or "")
+    # $10=hooks_path(or "" — the exact core.hooksPath value this CLI actually
+    #     set; only present when with_hook installation genuinely succeeded)
     local target="$1" mode="$2" skills_csv="$3" skills_filter="$4" with_hook="$5"
     local profile="$6" source_path="$7" source_revision="$8" source_remote="$9"
+    local hooks_path="${10:-}"
     local existing_installed_at=""
     if [ -f "$(state_path "$target")" ]; then
         existing_installed_at="$(state_field "$target" "installed_at" || true)"
@@ -112,6 +115,7 @@ state_write() {
     AH_MODE="$mode" AH_SKILLS_CSV="$skills_csv" AH_SKILLS_FILTER="$skills_filter" \
     AH_WITH_HOOK="$with_hook" AH_PROFILE="$profile" AH_SOURCE_PATH="$source_path" \
     AH_SOURCE_REVISION="$source_revision" AH_SOURCE_REMOTE="$source_remote" \
+    AH_HOOKS_PATH="$hooks_path" \
     AH_EXISTING_INSTALLED_AT="$existing_installed_at" \
     python3 - "$(state_path "$target")" <<'PYEOF'
 import datetime
@@ -135,6 +139,7 @@ data = {
     "skills": [s for s in skills_csv.split(",") if s],
     "skills_filter": os.environ.get("AH_SKILLS_FILTER") or None,
     "with_hook": os.environ.get("AH_WITH_HOOK") == "true",
+    "hooks_path": os.environ.get("AH_HOOKS_PATH") or None,
     "profile": os.environ.get("AH_PROFILE") or None,
     "installed_at": existing_installed_at,
     "updated_at": now,
@@ -199,8 +204,15 @@ list_available_skills() {
 # or unknown. --skills is user-supplied, so reject anything but a plain
 # directory name — "../../etc" or an absolute path must never make the
 # resolved source path escape the skills directory.
+#
+# Used by 'update' (upstream skill removal between install and update is
+# legitimate drift, not a typo, so update tolerates it and just skips) and by
+# 'init'/'plan' AFTER validate_skills_filter has already confirmed every name
+# is valid — at that point this never actually skips anything for init, it's
+# just the shared resolution logic.
 resolve_wanted_skills() {
     local skills_src_root="$1" filter="$2"
+    [ "$filter" = "none" ] && return 0
     local wanted=()
     if [ -n "$filter" ]; then
         IFS=',' read -ra wanted <<< "$filter"
@@ -220,6 +232,36 @@ resolve_wanted_skills() {
         fi
         echo "$skill"
     done
+}
+
+# Hard-fail validator for init/plan (P0-04): a typo or path-traversal attempt
+# in an explicit --skills list used to be silently dropped, producing a
+# "successful" install with zero skills and no way for automation to tell
+# that apart from a real, intentional empty install. Checked BEFORE any
+# filesystem mutation — an invalid name aborts the whole command, atomically.
+# An explicit filter of exactly "none" is the one sanctioned way to request
+# zero skills; anything else that resolves to nothing is treated as an error.
+validate_skills_filter() {
+    local skills_src_root="$1" filter="$2"
+    [ "$filter" = "none" ] && return 0
+    [ -z "$filter" ] && return 0
+    local wanted=()
+    IFS=',' read -ra wanted <<< "$filter"
+    local bad=0
+    for skill in "${wanted[@]}"; do
+        case "$skill" in
+            */*|.*|'')
+                echo "Error: invalid skill name: '$skill' (must be a plain directory name, no path separators or leading dot)" >&2
+                bad=1
+                continue
+                ;;
+        esac
+        if [ ! -d "$skills_src_root/.claude/skills/$skill" ]; then
+            echo "Error: unknown skill: '$skill' (no directory under .claude/skills/)" >&2
+            bad=1
+        fi
+    done
+    return "$bad"
 }
 
 # ----------------------------------------------------------------------------
@@ -268,6 +310,18 @@ cmd_init() {
     # submodule this init creates inside the target itself.
     local skills_src_root="$HARNESS_DIR"
     local hooks_src_dir="$HARNESS_DIR/.github/hooks"
+
+    # P0-04: validate before any mutation (including before the dry-run
+    # branch below, so 'plan' reports the same failure 'init' would rather
+    # than silently planning an empty install). For submodule mode this
+    # checks against HARNESS_DIR rather than the not-yet-created submodule —
+    # correct because 'submodule add' below pins to this exact checkout's
+    # commit, so the two are guaranteed to have identical skill directories.
+    if ! validate_skills_filter "$skills_src_root" "$skills_filter"; then
+        echo "Error: one or more requested skill names are invalid or unknown — aborting before making any changes." >&2
+        echo "Use --skills none to explicitly install zero skills." >&2
+        exit 1
+    fi
 
     if [ "$dry_run" = true ]; then
         echo "Plan for 'init' on $target (mode: $mode):"
@@ -384,9 +438,18 @@ cmd_init() {
     # ------------------------------------------------------------------
     # 3. Hooks (opt-in)
     # ------------------------------------------------------------------
+    # installed_hooks_path is the source of truth for what state_write records
+    # (P0-01): it's only ever set on a branch that actually wrote
+    # core.hooksPath, never from the --with-hook flag's intent alone. A
+    # declined install (conflicting existing hooksPath, no --force) must
+    # record with_hook=false — otherwise doctor/uninstall later believe the
+    # harness owns a hook path it never touched, and uninstall would
+    # unconditionally unset a config value that predates this install.
+    local installed_hooks_path=""
     if [ "$with_hook" = true ]; then
         if ! git -C "$target" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
             echo "  --with-hook requested but $target is not a git repo — skipping." >&2
+            with_hook=false
         else
             local hooks_path
             if [ "$mode" = "copy" ]; then
@@ -401,13 +464,17 @@ cmd_init() {
             if [ -z "$existing_hooks_path" ] || [ "$existing_hooks_path" = "$hooks_path" ]; then
                 git -C "$target" config core.hooksPath "$hooks_path"
                 echo "  Installed trunk-protection + coverage hooks (core.hooksPath)"
+                installed_hooks_path="$hooks_path"
             elif [ "$force" = true ]; then
                 git -C "$target" config core.hooksPath "$hooks_path"
                 echo "  Overwrote existing core.hooksPath ($existing_hooks_path) with agentharness hooks (--force)"
+                installed_hooks_path="$hooks_path"
             else
                 echo "  --with-hook requested but $target already has a different core.hooksPath set:" >&2
                 echo "    $existing_hooks_path" >&2
                 echo "  Not overwriting — rerun with --force, or 'git -C $target config --unset core.hooksPath' first." >&2
+                echo "  Recording with_hook=false — this install does not own $target's hook configuration." >&2
+                with_hook=false
             fi
         fi
     fi
@@ -439,7 +506,7 @@ cmd_init() {
     local skills_csv
     skills_csv="$(IFS=,; echo "${linked_skills[*]}")"
     state_write "$target" "$mode" "$skills_csv" "$skills_filter" "$with_hook" \
-        "$profile" "$skills_src_root" "$source_revision" "$source_remote"
+        "$profile" "$skills_src_root" "$source_revision" "$source_remote" "$installed_hooks_path"
 
     echo "Done."
 }
@@ -466,6 +533,10 @@ cmd_status() {
     echo "  source remote: $remote"
     echo "  skills:        $(state_field "$target" skills)"
     echo "  with_hook:     $(state_field "$target" with_hook)"
+    local hooks_path
+    hooks_path="$(state_field "$target" hooks_path 2>/dev/null || echo "(none)")"
+    [ "$hooks_path" = "None" ] && hooks_path="(none)"
+    echo "  hooks_path:    $hooks_path"
     local profile
     profile="$(state_field "$target" profile 2>/dev/null || echo "(none)")"
     echo "  profile:       $profile"
@@ -523,13 +594,24 @@ cmd_doctor() {
     local with_hook
     with_hook="$(state_field "$target" with_hook)"
     if [ "$with_hook" = "true" ]; then
-        local hooks_path
-        hooks_path="$(git -C "$target" config --get core.hooksPath 2>/dev/null || true)"
-        if [ -z "$hooks_path" ]; then
-            echo "  ✗ with_hook is recorded true, but core.hooksPath is unset" >&2
+        # Compare against the exact path this CLI recorded, not just "is
+        # something set" (P0-01) — a repo that later points core.hooksPath
+        # somewhere else entirely would otherwise read as healthy.
+        local recorded_hooks_path actual_hooks_path
+        recorded_hooks_path="$(state_field "$target" hooks_path 2>/dev/null || echo "")"
+        [ "$recorded_hooks_path" = "None" ] && recorded_hooks_path=""
+        actual_hooks_path="$(git -C "$target" config --get core.hooksPath 2>/dev/null || true)"
+        if [ -z "$recorded_hooks_path" ]; then
+            echo "  ✗ with_hook is recorded true, but no hooks_path was recorded (older state, or install never actually applied it) — rerun 'init --with-hook' to re-record" >&2
+            failed=1
+        elif [ -z "$actual_hooks_path" ]; then
+            echo "  ✗ with_hook is recorded true ($recorded_hooks_path), but core.hooksPath is unset" >&2
+            failed=1
+        elif [ "$actual_hooks_path" != "$recorded_hooks_path" ]; then
+            echo "  ✗ core.hooksPath has changed since install (recorded: $recorded_hooks_path, actual: $actual_hooks_path)" >&2
             failed=1
         else
-            echo "  ✓ core.hooksPath set ($hooks_path)"
+            echo "  ✓ core.hooksPath set ($actual_hooks_path)"
         fi
     fi
 
@@ -911,12 +993,17 @@ cmd_update() {
     [ -d "$target" ] && target="$(cd "$target" && pwd)"
     require_state "$target"
 
-    local mode source_path skills_filter with_hook profile
+    local mode source_path skills_filter with_hook profile hooks_path
     mode="$(state_field "$target" mode)"
     source_path="$(state_field "$target" source.path)"
     skills_filter="$(state_field "$target" skills_filter 2>/dev/null || echo "")"
     [ "$skills_filter" = "None" ] && skills_filter=""
     with_hook="$(state_field "$target" with_hook)"
+    # update never touches hooks — carry the previously recorded path through
+    # unchanged (P0-01: this must stay in sync with whatever init/doctor last
+    # verified, not silently reset to empty just because update doesn't ask).
+    hooks_path="$(state_field "$target" hooks_path 2>/dev/null || echo "")"
+    [ "$hooks_path" = "None" ] && hooks_path=""
     profile="$(state_field "$target" profile 2>/dev/null || echo "")"
     [ "$profile" = "None" ] && profile=""
 
@@ -1016,7 +1103,7 @@ cmd_update() {
     local new_skills_csv
     new_skills_csv="$(IFS=,; echo "${current[*]}")"
     state_write "$target" "$mode" "$new_skills_csv" "$skills_filter" "$with_hook" \
-        "$profile" "$source_path" "$source_revision" "$source_remote"
+        "$profile" "$source_path" "$source_revision" "$source_remote" "$hooks_path"
     echo "Updated."
 }
 
@@ -1075,8 +1162,22 @@ cmd_uninstall() {
     fi
 
     if [ "$with_hook" = "true" ]; then
-        git -C "$target" config --unset core.hooksPath 2>/dev/null || true
-        echo "  Unset core.hooksPath"
+        # Only unset core.hooksPath if it still holds exactly what this CLI
+        # installed (P0-01) — if the recorded path is missing (older state)
+        # or the user/another tool has since repointed it, unsetting would
+        # destroy configuration this install never owned.
+        local recorded_hooks_path actual_hooks_path
+        recorded_hooks_path="$(state_field "$target" hooks_path 2>/dev/null || echo "")"
+        [ "$recorded_hooks_path" = "None" ] && recorded_hooks_path=""
+        actual_hooks_path="$(git -C "$target" config --get core.hooksPath 2>/dev/null || true)"
+        if [ -z "$recorded_hooks_path" ]; then
+            echo "  core.hooksPath: no hooks_path was recorded for this install — leaving core.hooksPath ($actual_hooks_path) untouched" >&2
+        elif [ "$actual_hooks_path" = "$recorded_hooks_path" ]; then
+            git -C "$target" config --unset core.hooksPath 2>/dev/null || true
+            echo "  Unset core.hooksPath"
+        else
+            echo "  core.hooksPath has changed since install (recorded: $recorded_hooks_path, actual: $actual_hooks_path) — leaving it untouched" >&2
+        fi
     fi
 
     [ -f "$target/$PROFILE_FILE_NAME" ] && rm -f "$target/$PROFILE_FILE_NAME" && echo "  Removed $PROFILE_FILE_NAME"

@@ -302,6 +302,65 @@ with open(p, 'w') as f: json.dump(d, f, indent=2)
     [ "$status" -ne 0 ]
 }
 
+@test "lifecycle: P0-01 regression — a pre-existing foreign core.hooksPath survives init, doctor, and uninstall" {
+    # Direct reproduction of the gpt-5.6 third-pass P0-01 finding: init used
+    # to record with_hook=true even when it declined to overwrite a
+    # conflicting core.hooksPath, doctor only checked "is something set" (so
+    # it passed against the untouched foreign value), and uninstall then
+    # unconditionally unset core.hooksPath — deleting config the harness
+    # never installed.
+    git -C "$TEST_PROJECT" init --quiet
+    git -C "$TEST_PROJECT" config core.hooksPath "preexisting/hooks"
+
+    run bash "$SCRIPT" init "$TEST_PROJECT" --skills committing --with-hook
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "already has a different core.hooksPath" ]]
+    hooks_path=$(git -C "$TEST_PROJECT" config core.hooksPath)
+    [ "$hooks_path" = "preexisting/hooks" ]
+
+    run python3 -c "
+import json
+with open('$TEST_PROJECT/.agentharness-state.json') as f:
+    d = json.load(f)
+print(d['with_hook'])
+print(d['hooks_path'])
+"
+    [[ "$output" =~ "False" ]]
+    [[ "$output" =~ "None" ]]
+
+    run bash "$SCRIPT" doctor "$TEST_PROJECT"
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "all checks passed" ]]
+
+    run bash "$SCRIPT" uninstall "$TEST_PROJECT" --yes
+    [ "$status" -eq 0 ]
+    hooks_path=$(git -C "$TEST_PROJECT" config core.hooksPath)
+    [ "$hooks_path" = "preexisting/hooks" ]
+}
+
+@test "lifecycle: P0-01 regression — doctor fails if core.hooksPath is repointed after a real install" {
+    git -C "$TEST_PROJECT" init --quiet
+    bash "$SCRIPT" init "$TEST_PROJECT" --skills committing --with-hook
+
+    git -C "$TEST_PROJECT" config core.hooksPath "someone/else/changed/this"
+
+    run bash "$SCRIPT" doctor "$TEST_PROJECT"
+    [ "$status" -ne 0 ]
+    [[ "$output" =~ "core.hooksPath has changed since install" ]]
+}
+
+@test "lifecycle: P0-01 regression — uninstall leaves a repointed core.hooksPath untouched" {
+    git -C "$TEST_PROJECT" init --quiet
+    bash "$SCRIPT" init "$TEST_PROJECT" --skills committing --with-hook
+
+    git -C "$TEST_PROJECT" config core.hooksPath "someone/else/changed/this"
+
+    run bash "$SCRIPT" uninstall "$TEST_PROJECT" --yes
+    [ "$status" -eq 0 ]
+    hooks_path=$(git -C "$TEST_PROJECT" config core.hooksPath)
+    [ "$hooks_path" = "someone/else/changed/this" ]
+}
+
 @test "lifecycle: uninstall declines without confirmation" {
     bash "$SCRIPT" init "$TEST_PROJECT" --skills committing
 

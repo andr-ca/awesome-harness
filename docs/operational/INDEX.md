@@ -14,7 +14,17 @@ Currently being researched, developed, or planned:
 
 Items currently under development:
 
-- (none yet)
+- `reviews/gpt-5.6-sol-3rdpass-2026-07-13T134419Z.md` — third-pass
+  independent review at `9d32ddc`, scoring the repo 7.3/10 (up from 7.0).
+  6 P0, 10 P1, 8 P2 findings. P0-01 (hook ownership through the
+  lifecycle) and P0-04 (atomic install on invalid `--skills`) are fixed;
+  P0-05 (gate release publication on ancestry/CI/artifact, not just
+  version match) is fixed. P0-02 (npm/npx install durability), P0-03
+  (coverage-hook contract), and P0-06 (Codex adapter redesign) each
+  involve a real design choice and are pending user confirmation before
+  implementation, per `CLAUDE.md`'s Recommendation Assessment mandate.
+  All P1/P2 items are an unconfirmed backlog, not yet scoped for a
+  decision.
 
 ## ✅ Completed & Ready
 

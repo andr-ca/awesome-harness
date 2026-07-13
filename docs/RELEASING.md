@@ -52,9 +52,16 @@ running `harness-link.sh audit` see it coming.
 6. Before tagging, bump `package.json`'s `version` to match `vX.Y.Z` in
    the same commit as the `CHANGELOG.md` move (step 2) — `release.yml`
    refuses to publish if the tag and `package.json` version disagree.
-   Pushing the tag triggers `.github/workflows/release.yml`, which runs
-   `npm publish` using the `NPM_TOKEN` repo secret. See "npm
-   distribution" below for what that requires and its current state.
+   Pushing the tag triggers `.github/workflows/release.yml`, which no
+   longer just checks the version string (P0-05): it also verifies the
+   tagged commit is actually an ancestor of `origin/main` (not a stray
+   branch tip), re-checks that every one of that commit's own CI check
+   runs passed (via the GitHub API — a manually-created or malicious tag
+   pointing at an untested commit is rejected even if `package.json`
+   happens to match), and packs/unpacks/smoke-tests the exact tarball
+   through the CLI shim before running `npm publish`. Steps 1 and 5 above
+   remain good practice for a human doing the release, but they're no
+   longer the only thing standing between a bad tag and a real publish.
 
 ## Pin, Upgrade, Rollback
 
