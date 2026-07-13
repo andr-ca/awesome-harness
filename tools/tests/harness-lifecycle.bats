@@ -454,6 +454,22 @@ print('importable')
     ! grep -q "local edit" "$TEST_PROJECT/.claude/skills/committing/SKILL.md"
 }
 
+@test "lifecycle: --mode copy --with-hook uninstall removes the copied hook files, not just core.hooksPath" {
+    # Copilot review on PR #21: uninstall's hook-file cleanup only fired
+    # when coverage_hook=true, leaving a plain '--mode copy --with-hook'
+    # install's copied prevent-trunk-commit/pre-commit/pre-push files
+    # behind after uninstall (core.hooksPath still got correctly unset).
+    git -C "$TEST_PROJECT" init --quiet
+    bash "$SCRIPT" init "$TEST_PROJECT" --mode copy --skills committing --with-hook
+
+    [ -f "$TEST_PROJECT/.github/hooks/pre-push" ]
+
+    run bash "$SCRIPT" uninstall "$TEST_PROJECT" --yes
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "Removed the copied hook files" ]]
+    [ ! -e "$TEST_PROJECT/.github/hooks" ]
+}
+
 @test "lifecycle: --mode submodule adds this harness as a real submodule and symlinks from it" {
     git -C "$TEST_PROJECT" init --quiet
     git -C "$TEST_PROJECT" -c user.email=test@example.com -c user.name=Test commit --quiet --allow-empty -m "init"

@@ -659,6 +659,14 @@ cmd_init() {
                     # since .github/hooks doesn't exist yet at that point).
                     *) existing_hooks_abs="$target/$existing_hooks_path" ;;
                 esac
+                # Normalize away './'/trailing-slash/'..' differences (e.g.
+                # "./.github/hooks" or "$target/.github/hooks/") that would
+                # otherwise still fail this string comparison even though
+                # git resolves them to the same directory (Copilot review,
+                # round 4). Pure string manipulation — no filesystem access,
+                # so it works whether or not the directory already exists.
+                existing_hooks_abs="$(python3 -c "import os.path, sys; print(os.path.normpath(sys.argv[1]))" "$existing_hooks_abs")"
+                hooks_path="$(python3 -c "import os.path, sys; print(os.path.normpath(sys.argv[1]))" "$hooks_path")"
             fi
             if [ -n "$existing_hooks_abs" ] && [ "$existing_hooks_abs" != "$hooks_path" ] && [ "$force" != true ]; then
                 echo "  --with-hook requested but $target already has a different core.hooksPath set:" >&2
@@ -1423,19 +1431,26 @@ cmd_uninstall() {
         elif [ "$actual_hooks_path" = "$recorded_hooks_path" ]; then
             git -C "$target" config --unset core.hooksPath 2>/dev/null || true
             echo "  Unset core.hooksPath"
-            # P0-03: a coverage-hook install wrote real, consumer-owned
-            # files at $target/.github/hooks/ (unlike link/submodule/npm's
-            # symlink-to-the-shared-dir case, which has nothing here to
-            # remove) — clean those up too, but only in this
-            # verified-still-ours branch, same ownership guard as the
-            # config unset above.
-            local coverage_hook
-            coverage_hook="$(state_field "$target" coverage_hook 2>/dev/null || echo "false")"
-            if [ "$coverage_hook" = "true" ] && [ "$recorded_hooks_path" = "$target/.github/hooks" ]; then
+            # Both --mode copy and a coverage-hook install (P0-03) write
+            # real, consumer-owned hook files at $target/.github/hooks/
+            # (unlike link/submodule/npm's symlink-to-the-shared-dir case,
+            # which has nothing here to remove) — clean those up too, but
+            # only in this verified-still-ours branch, same ownership
+            # guard as the config unset above. Copilot review: this used
+            # to only fire when coverage_hook=true, leaving a plain
+            # '--mode copy --with-hook' install's copied
+            # prevent-trunk-commit/pre-commit/pre-push files behind.
+            if [ "$recorded_hooks_path" = "$target/.github/hooks" ]; then
+                local coverage_hook
+                coverage_hook="$(state_field "$target" coverage_hook 2>/dev/null || echo "false")"
                 rm -f "$target/.github/hooks/pre-push" "$target/.github/hooks/pre-commit" "$target/.github/hooks/prevent-trunk-commit"
                 rmdir "$target/.github/hooks" 2>/dev/null || true
                 rmdir "$target/.github" 2>/dev/null || true
-                echo "  Removed the generated coverage-aware pre-push hook"
+                if [ "$coverage_hook" = "true" ]; then
+                    echo "  Removed the generated coverage-aware pre-push hook"
+                else
+                    echo "  Removed the copied hook files"
+                fi
             fi
         else
             echo "  core.hooksPath has changed since install (recorded: $recorded_hooks_path, actual: $actual_hooks_path) — leaving it untouched" >&2

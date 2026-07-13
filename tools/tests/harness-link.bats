@@ -201,6 +201,21 @@ print(len(d['skills']))
     [ "$hooks_path" = "$TEST_PROJECT/.github/hooks" ]
 }
 
+@test "harness-link.sh: --mode copy --with-hook normalizes a './'-prefixed, trailing-slash hooksPath before comparing (Copilot review round 4)" {
+    # Plain string concatenation isn't enough: "./.github/hooks/" and
+    # "$TEST_PROJECT/.github/hooks" are the same directory to git but
+    # different strings — normalize both sides before comparing.
+    git -C "$TEST_PROJECT" init --quiet
+    git -C "$TEST_PROJECT" config core.hooksPath "./.github/hooks/"
+
+    run bash "$SCRIPT" "$TEST_PROJECT" --mode copy --with-hook
+    [ "$status" -eq 0 ]
+    [[ "$output" != *"already has a different core.hooksPath"* ]]
+    [[ "$output" =~ "Installed trunk-protection hook" ]]
+    hooks_path=$(git -C "$TEST_PROJECT" config core.hooksPath)
+    [ "$hooks_path" = "$TEST_PROJECT/.github/hooks" ]
+}
+
 @test "harness-link.sh: --with-hook still detects a genuinely different relative core.hooksPath as a conflict" {
     git -C "$TEST_PROJECT" init --quiet
     git -C "$TEST_PROJECT" config core.hooksPath "some/other/hooks"
