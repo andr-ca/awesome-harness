@@ -80,6 +80,8 @@ jobs:
         run: bats tools/tests/generate-manifest.bats
       - name: Run symlink materializer tests
         run: bats tools/tests/materialize-skill-symlinks.bats
+      - name: Run skill-symlink integrity tests
+        run: bats tools/tests/verify-skill-symlinks.bats
       - name: Run publish-authority flag tests
         run: bats tools/tests/publish-authority.bats
       - name: Run enforce-profile tests
@@ -171,6 +173,8 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - name: Verify MANIFEST.md against actual files
         run: bash tools/verify-manifest.sh
+      - name: Verify skill symlinks (.claude/skills <-> .agents/skills)
+        run: bash tools/verify-skill-symlinks.sh
 
   sample-project-integration:
     runs-on: ubuntu-latest

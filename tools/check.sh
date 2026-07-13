@@ -57,6 +57,9 @@ bats tools/tests/generate-manifest.bats
 step "bats: tools/tests/materialize-skill-symlinks.bats"
 bats tools/tests/materialize-skill-symlinks.bats
 
+step "bats: tools/tests/verify-skill-symlinks.bats"
+bats tools/tests/verify-skill-symlinks.bats
+
 step "bats: tools/tests/publish-authority.bats"
 bats tools/tests/publish-authority.bats
 
@@ -96,6 +99,9 @@ python3 -m pytest tools/tests/test_verify_content_quality.py -q
 
 step "MANIFEST.md verification"
 bash tools/verify-manifest.sh
+
+step "skill symlink integrity (.claude/skills <-> .agents/skills)"
+bash tools/verify-skill-symlinks.sh
 
 if command -v npx >/dev/null 2>&1; then
     step "markdownlint"

@@ -245,7 +245,11 @@ sections:
   - asset: Local check entrypoint
     path: tools/check.sh
     type: script
-    when_to_use: Runs every check CI runs (shellcheck, bats, ruff, mypy, pytest+coverage, manifest verify) in one command (P1-06)
+    when_to_use: Runs every check CI runs (shellcheck, bats, ruff, mypy, pytest+coverage, manifest verify, skill-symlink integrity) in one command (P1-06)
+  - asset: Skill-symlink verifier
+    path: tools/verify-skill-symlinks.sh
+    type: script
+    when_to_use: Verifies `.agents/skills/` stays 1:1 with `.claude/skills/` — every Agent-Skills-standard tool (Codex, Copilot, Gemini, ...) reads the symlinks, so drift silently hides a skill from them while Claude still sees it
   - asset: Pinned dev/CI toolchain
     path: requirements-dev.txt
     type: config
