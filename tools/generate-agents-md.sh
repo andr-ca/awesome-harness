@@ -41,26 +41,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # reimplementing skill discovery here.
 # shellcheck source=./setup/harness-link.sh
 source "$SCRIPT_DIR/setup/harness-link.sh"
+# shellcheck source=./lib/adapter-common.sh
+source "$SCRIPT_DIR/lib/adapter-common.sh"
 
-harness_dir="$HARNESS_DIR"
+harness_dir=""
+# shellcheck disable=SC2034  # used by write_generated_content() in adapter-common.sh
 output=""
-
-while [ $# -gt 0 ]; do
-    case "$1" in
-        --output)
-            output="$2"
-            shift 2
-            ;;
-        -h|--help)
-            echo "Usage: $(basename "$0") [harness-dir] [--output <path>]"
-            exit 0
-            ;;
-        *)
-            harness_dir="$1"
-            shift
-            ;;
-    esac
-done
+parse_common_adapter_args "$@"
 
 claude_md="$harness_dir/CLAUDE.md"
 skills_dir="$harness_dir/.claude/skills"
@@ -69,22 +56,6 @@ if [ ! -f "$claude_md" ]; then
     echo "Error: $claude_md not found." >&2
     exit 1
 fi
-
-# Shift every heading down one level (H1->H2, ... H5->H6), skipping lines
-# inside fenced code blocks — several skills have Python/shell comments
-# starting with "# " inside ```-fences (e.g. error-handling's "# ✅ Good:
-# ..." examples) that must NOT be mistaken for Markdown headings and
-# mangled. Demoting avoids every source doc's own H1 colliding with this
-# file's single top-level "# AGENTS.md" title (MD025), while preserving
-# each doc's internal heading hierarchy relative to itself.
-demote_headings() {
-    awk '
-        /^```/ { in_fence = !in_fence; print; next }
-        in_fence { print; next }
-        /^#{1,5} / { print "#" $0; next }
-        { print }
-    '
-}
 
 generate() {
     cat <<'HEADER'
@@ -119,33 +90,7 @@ HEADER
     echo
     echo "---"
     echo
-    echo "## Skills (loaded on demand from \`.agents/skills/\`)"
-    echo
-
-    while IFS= read -r skill; do
-        [ -z "$skill" ] && continue
-        local_skill_md="$skills_dir/$skill/SKILL.md"
-        [ -f "$local_skill_md" ] || continue
-        # Only the frontmatter's name/description — the same metadata
-        # Codex's own progressive-disclosure scan reads before deciding
-        # whether to load the full SKILL.md. Not the skill body: that
-        # defeats the point of on-demand loading (see script header).
-        description="$(awk 'BEGIN{n=0} /^---$/{n++; next} n==1 && /^description: /{sub(/^description: /,""); print; exit}' "$local_skill_md")"
-        echo "- \`.agents/skills/$skill/SKILL.md\` — $description"
-    done < <(list_available_skills "$harness_dir" | sort)
+    render_skill_index "$harness_dir" "$skills_dir"
 }
 
-# cat -s squeezes the runs of consecutive blank lines that appear at the
-# seams between concatenated documents (this script's own blank-line
-# spacing plus whatever blank line each source file already ended/started
-# with) down to one — simpler and more robust than hand-tracking exact
-# spacing across every seam. $(...) then strips all trailing newlines
-# (a bash command-substitution property, not a bug) so printf can put
-# back exactly one — otherwise the file ends in a lone blank line that
-# markdownlint's MD012 flags as a second consecutive blank at EOF.
-content="$(generate | cat -s)"
-if [ -n "$output" ]; then
-    printf '%s\n' "$content" > "$output"
-else
-    printf '%s\n' "$content"
-fi
+generate | write_generated_content
