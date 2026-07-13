@@ -1,0 +1,102 @@
+---
+name: port-agent-config
+description: Use when asked to port, migrate, or add equivalent agent instructions/skills for a different coding tool than the one already configured — e.g. "add Cursor support from our CLAUDE.md", "we're switching from Cursor to Codex, port our rules", "make this work for Copilot too". Covers both agentharness-linked projects (use the real generators, don't hand-write) and plain projects with hand-authored config (port by hand, same principles).
+metadata:
+  type: skills
+  complexity: medium
+  when: "User asks to port/migrate/convert/add support for a different coding agent's instructions or skills"
+---
+
+# Port Agent Config
+
+Move a project's agent instructions and skills to work with a different
+coding tool, without breaking what already works for the current one. Two
+situations, two procedures — check which one applies before doing anything.
+
+## Step 0: which situation is this?
+
+Look for a **reachable agentharness checkout** with `tools/generate-*.sh` in it:
+- This repo itself (agentharness) — the scripts are right here.
+- A consumer project where `harness-link.sh init` ran: `readlink` a
+  `.claude/skills/*` entry to find the harness's real path, or look for an
+  `agentharness/` submodule, or a durable npm-mode copy.
+
+**Found one → Section A.** **Not found → Section B.**
+
+## Section A — agentharness-linked: use the real generators
+
+Don't hand-write the target file. Each generator already reuses the exact
+same source (`CLAUDE.md` + the skill catalog), is CI-drift-checked against
+its committed output, and carries the correct caveats — reconstructing its
+shape by hand is strictly worse and will drift the next time `CLAUDE.md`
+changes.
+
+| Target tool | Generator | Produces |
+|---|---|---|
+| Codex CLI | `tools/generate-agents-md.sh --output AGENTS.md` | `AGENTS.md` |
+| Gemini CLI / Antigravity | `tools/generate-gemini-md.sh --output GEMINI.md` | `GEMINI.md` |
+| GitHub Copilot | `tools/generate-copilot-instructions.sh --output-dir .` | `.github/copilot-instructions.md` + `.github/instructions/*.instructions.md` |
+| Kilo Code | `tools/generate-kilo-rules.sh --output .kilo/rules/agentharness.md` | `.kilo/rules/agentharness.md` |
+| Cursor | `tools/generate-cursor-rules.sh --output-dir .` | `.cursor/rules/agentharness-router.mdc` + one `.mdc` per skill |
+| OpenCode / Zed | nothing to generate — both read `AGENTS.md` directly | — |
+| Claude Code | nothing to generate — `CLAUDE.md` is the hand-authored source | — |
+
+Steps:
+
+1. Run the matching command against the target project (see each script's
+   own `--help`, or `docs/INTEGRATION.md`'s per-platform section when the
+   harness checkout and the target project aren't the same directory).
+2. Re-run the project's own content-quality check (`tools/verify-content-quality.py`
+   here; the consumer's equivalent elsewhere) to confirm the new file isn't
+   silently broken.
+3. Tell the user this is a manual step, not auto-wired into `init`/`update`
+   (`ROADMAP.md`'s P1-01) — they'll need to re-run it whenever `CLAUDE.md`
+   or the skill catalog changes.
+4. Keep the same caveat every generated file already states: not verified
+   against a live session of the target tool.
+
+## Section B — no agentharness: hand-port
+
+1. **Read the source config in full.** Don't summarize from memory — find
+   every file the source tool actually reads.
+2. **Identify the target's real mechanism**: its always-on file (name,
+   location, whether it's read hierarchically or as a single file) and its
+   skill/rule format (Agent Skills' progressive disclosure vs. Cursor's
+   per-file `.mdc` frontmatter). `docs/CLIENT_COMPATIBILITY.md` in
+   agentharness is a good reference table even from outside the repo; don't
+   guess if you can check the target tool's own docs instead.
+3. **Port routing prose near-verbatim**, demoting every heading one level
+   so the source's own H1 doesn't collide with the target file's H1 — the
+   same rule every generator here follows (`demote_headings()` in
+   `tools/lib/adapter-common.sh`).
+4. **Port skills without duplicating bodies:**
+   - Target supports the Agent Skills standard (Codex, Gemini CLI,
+     Antigravity, GitHub Copilot, Zed, Kilo Code, OpenCode all do): point it
+     at the same skills directory instead of re-authoring content, and add
+     only a name+description index to the always-on file.
+   - Target has no Agent Skills support (Cursor is the only confirmed
+     case): port each skill individually into the target's native rule
+     format — for Cursor, one `.mdc` per skill, `description` copied
+     verbatim, no `globs` (Agent-Requested activation, not Auto-Attached).
+5. **State the caveat explicitly**: "ported from `<source>`'s config to
+   `<target>`'s format; not verified against a live `<target>` session" —
+   unless the user has actually run it themselves.
+
+## The one mistake to avoid either way
+
+Never concatenate every skill's full body into the always-on router file
+"to be safe." That defeats progressive disclosure and front-loads
+irrelevant context into every task regardless of relevance — the exact bug
+this repo's own `AGENTS.md` redesign fixed (P0-06: an 880-line file cut to
+~200 by switching to an index). Always prefer: routing rules + skill
+index, full bodies loaded on demand.
+
+## Reference
+
+- `docs/CLIENT_COMPATIBILITY.md` — per-tool file/mechanism table, sources
+  and caveats.
+- `docs/INTEGRATION.md` — the exact manual-regen recipe for each
+  already-built target.
+- `tools/lib/adapter-common.sh` — the shared logic (`demote_headings`,
+  `render_skill_index`, `frontmatter_field`) every generator uses; read it
+  before hand-porting something none of the generators cover yet.

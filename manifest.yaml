@@ -231,6 +231,10 @@ sections:
     path: .claude/skills/audit-review-followup/SKILL.md
     type: skill
     when_to_use: Verifying that review recommendations were actually implemented; re-scoring
+  - asset: Port agent config
+    path: .claude/skills/port-agent-config/SKILL.md
+    type: skill
+    when_to_use: Porting/migrating agent instructions and skills to a different coding tool — uses this repo's own generators when linked, hand-ports the same principles when not
 - name: Setup & Examples
   columns:
   - Asset

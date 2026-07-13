@@ -89,6 +89,7 @@ they drift (`check_manifest_md_sync()` in `tools/verify-content-quality.py`).
 | Error handling | `.claude/skills/error-handling/SKILL.md` | skill | Loads on demand for error recovery, resilience patterns |
 | Agentic loops | `.claude/skills/agentic-loops/SKILL.md` | skill | Loads on demand for multi-turn agents, tool calling |
 | Audit review follow-up | `.claude/skills/audit-review-followup/SKILL.md` | skill | Verifying that review recommendations were actually implemented; re-scoring |
+| Port agent config | `.claude/skills/port-agent-config/SKILL.md` | skill | Porting/migrating agent instructions and skills to a different coding tool — uses this repo's own generators when linked, hand-ports the same principles when not |
 
 ## Setup & Examples
 
