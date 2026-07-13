@@ -353,6 +353,9 @@ sections:
   - asset: Integration instructions
     path: docs/INTEGRATION.md
     type: doc
+  - asset: Client compatibility matrix (always-on instructions + on-demand skills, per agentic tool)
+    path: docs/CLIENT_COMPATIBILITY.md
+    type: doc
   - asset: 5-minute scripted demo (real commands, real output)
     path: docs/DEMO.md
     type: doc

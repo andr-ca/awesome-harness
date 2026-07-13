@@ -131,6 +131,7 @@ they drift (`check_manifest_md_sync()` in `tools/verify-content-quality.py`).
 | Architecture / design philosophy | `docs/ARCHITECTURE.md` | doc |
 | Architecture decision log (compact, retroactive) | `docs/DECISIONS.md` | doc |
 | Integration instructions | `docs/INTEGRATION.md` | doc |
+| Client compatibility matrix (always-on instructions + on-demand skills, per agentic tool) | `docs/CLIENT_COMPATIBILITY.md` | doc |
 | 5-minute scripted demo (real commands, real output) | `docs/DEMO.md` | doc |
 | Planned-but-not-built components | `ROADMAP.md` | doc |
 | Release history | `CHANGELOG.md` | doc |
