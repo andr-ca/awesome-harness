@@ -187,11 +187,14 @@ label by the review filename cited next to it, never by number alone.
   generator(s) into the consumer project with stable relative references,
   tracked through state/update/doctor/uninstall via marked managed blocks
   so user-owned project instructions are never overwritten.
-- **P1-02 — Complete profile enforcement for mainstream projects.** Go
-  and non-`node --test` JS/TS runners (Vitest/Jest/Mocha) still exit 0 as
-  unsupported. Proposed: runner adapters with explicit commands and
-  machine-readable results for Go plus one mainstream JS runner, and a
-  `--strict` flag so CI can fail on "unsupported" instead of passing.
+- **P1-02 — Complete profile enforcement for mainstream projects.**
+  Largely **done**: `enforce-profile` now has real runner adapters for
+  **Go** (`go test -coverprofile` + `go tool cover`) and **Vitest**
+  (`coverage-summary.json`), plus a **`--strict`** flag that turns an
+  unsupported project/runner into a failure instead of a non-blocking
+  exit 0. Still open: Jest and Mocha adapters, and wiring
+  `enforce-profile` into `.github/hooks/pre-push` (its own decision — see
+  `patterns/profiles/README.md`).
 - **P1-03 — Fix profile/workflow documentation drift.** The four concrete
   contradictions are now **fixed** (verified by hand against ground truth
   — `package.json`/tags, `enforce-profile`,

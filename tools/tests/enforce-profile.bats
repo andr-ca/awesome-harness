@@ -213,3 +213,171 @@ EOF
     [ "$status" -ne 0 ]
     [[ "$output" =~ "no 'test' script defined" ]]
 }
+
+# --- Go (P1-02) ------------------------------------------------------------
+#
+# `go test -coverprofile` + `go tool cover -func` total is stable across Go
+# versions and needs no third-party tooling — the Go analog of the Python
+# pytest-cov path. GOCACHE is pinned into the throwaway project so the run
+# never depends on (or pollutes) a shared cache.
+
+write_covered_go_project() {
+    cat > "$TEST_PROJECT/go.mod" <<'EOF'
+module fixture
+
+go 1.21
+EOF
+    cat > "$TEST_PROJECT/mod.go" <<'EOF'
+package fixture
+
+func Add(a, b int) int { return a + b }
+EOF
+    cat > "$TEST_PROJECT/mod_test.go" <<'EOF'
+package fixture
+
+import "testing"
+
+func TestAdd(t *testing.T) {
+	if Add(2, 3) != 5 {
+		t.Fatal("bad")
+	}
+}
+EOF
+}
+
+write_undercovered_go_project() {
+    # Add is tested; Sub/Mul/Div are not — 1 of 4 functions, well under 80%.
+    cat > "$TEST_PROJECT/go.mod" <<'EOF'
+module fixture
+
+go 1.21
+EOF
+    cat > "$TEST_PROJECT/mod.go" <<'EOF'
+package fixture
+
+func Add(a, b int) int { return a + b }
+func Sub(a, b int) int { return a - b }
+func Mul(a, b int) int { return a * b }
+func Div(a, b int) int { return a / b }
+EOF
+    cat > "$TEST_PROJECT/mod_test.go" <<'EOF'
+package fixture
+
+import "testing"
+
+func TestAdd(t *testing.T) {
+	if Add(2, 3) != 5 {
+		t.Fatal("bad")
+	}
+}
+EOF
+}
+
+@test "enforce-profile (Go): production tier passes a fully covered module" {
+    command -v go >/dev/null || skip "go not installed"
+    export GOCACHE="$TEST_PROJECT/.gocache"
+    write_covered_go_project
+    echo "production" > "$TEST_PROJECT/.agentharness-profile"
+    run bash "$SCRIPT" enforce-profile "$TEST_PROJECT"
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "Go project detected" ]]
+    [[ "$output" =~ "meets the 'production' tier's minimum" ]]
+}
+
+@test "enforce-profile (Go): production tier fails an undercovered module" {
+    command -v go >/dev/null || skip "go not installed"
+    export GOCACHE="$TEST_PROJECT/.gocache"
+    write_undercovered_go_project
+    echo "production" > "$TEST_PROJECT/.agentharness-profile"
+    run bash "$SCRIPT" enforce-profile "$TEST_PROJECT"
+    [ "$status" -ne 0 ]
+    [[ "$output" =~ "is below the 'production' tier's minimum" ]]
+}
+
+@test "enforce-profile (Go): internal tier requires tests but has no coverage floor" {
+    command -v go >/dev/null || skip "go not installed"
+    export GOCACHE="$TEST_PROJECT/.gocache"
+    write_undercovered_go_project
+    echo "internal" > "$TEST_PROJECT/.agentharness-profile"
+    run bash "$SCRIPT" enforce-profile "$TEST_PROJECT"
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "coverage_min: none" ]]
+}
+
+# --- Vitest (P1-02) --------------------------------------------------------
+#
+# Vitest's `--coverage.reporter=json-summary` writes
+# coverage/coverage-summary.json with a stable `total.lines.pct`. These
+# tests stub the local `node_modules/.bin/vitest` binary so the real
+# invoke->parse->gate path is exercised hermetically — no Vitest install,
+# no network (the point of P1-05's hermeticity goal).
+
+write_vitest_project() {
+    local pct="$1" exit_code="${2:-0}"
+    cat > "$TEST_PROJECT/package.json" <<'EOF'
+{"name": "fixture", "scripts": {"test": "vitest run"}}
+EOF
+    mkdir -p "$TEST_PROJECT/node_modules/.bin"
+    cat > "$TEST_PROJECT/node_modules/.bin/vitest" <<EOF
+#!/usr/bin/env bash
+mkdir -p coverage
+printf '%s' '{"total":{"lines":{"total":10,"covered":$pct,"skipped":0,"pct":$pct}}}' > coverage/coverage-summary.json
+exit $exit_code
+EOF
+    chmod +x "$TEST_PROJECT/node_modules/.bin/vitest"
+}
+
+@test "enforce-profile (Vitest): production tier passes a fully covered project" {
+    command -v node >/dev/null || skip "node not installed"
+    write_vitest_project 100
+    echo "production" > "$TEST_PROJECT/.agentharness-profile"
+    run bash "$SCRIPT" enforce-profile "$TEST_PROJECT"
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "Vitest" ]]
+    [[ "$output" =~ "meets the 'production' tier's minimum" ]]
+}
+
+@test "enforce-profile (Vitest): production tier fails an undercovered project" {
+    command -v node >/dev/null || skip "node not installed"
+    write_vitest_project 50
+    echo "production" > "$TEST_PROJECT/.agentharness-profile"
+    run bash "$SCRIPT" enforce-profile "$TEST_PROJECT"
+    [ "$status" -ne 0 ]
+    [[ "$output" =~ "is below the 'production' tier's minimum" ]]
+}
+
+@test "enforce-profile (Vitest): a failing test run fails enforcement" {
+    command -v node >/dev/null || skip "node not installed"
+    write_vitest_project 100 1
+    echo "production" > "$TEST_PROJECT/.agentharness-profile"
+    run bash "$SCRIPT" enforce-profile "$TEST_PROJECT"
+    [ "$status" -ne 0 ]
+}
+
+# --- --strict (P1-02) ------------------------------------------------------
+
+@test "enforce-profile --strict: unrecognized project type fails instead of exit 0" {
+    echo "some content" > "$TEST_PROJECT/README.md"
+    echo "production" > "$TEST_PROJECT/.agentharness-profile"
+    run bash "$SCRIPT" enforce-profile "$TEST_PROJECT" --strict
+    [ "$status" -ne 0 ]
+    [[ "$output" =~ "strict" ]]
+}
+
+@test "enforce-profile --strict: an unsupported JS runner (Jest) fails instead of exit 0" {
+    cat > "$TEST_PROJECT/package.json" <<'EOF'
+{"name": "fixture", "scripts": {"test": "jest"}}
+EOF
+    echo "production" > "$TEST_PROJECT/.agentharness-profile"
+    run bash "$SCRIPT" enforce-profile "$TEST_PROJECT" --strict
+    [ "$status" -ne 0 ]
+    [[ "$output" =~ "strict" ]]
+}
+
+@test "enforce-profile --strict: still passes a supported, compliant project" {
+    command -v node >/dev/null || skip "node not installed"
+    write_vitest_project 100
+    echo "production" > "$TEST_PROJECT/.agentharness-profile"
+    run bash "$SCRIPT" enforce-profile "$TEST_PROJECT" --strict
+    [ "$status" -eq 0 ]
+}

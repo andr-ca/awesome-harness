@@ -20,27 +20,32 @@ or `production`:
 echo production > .agentharness-profile
 ```
 
-**Current state — enforced for Python and JS/TS projects, advisory for
-everything else.** `harness-link.sh enforce-profile <project>` reads
-`.agentharness-profile` and gates on it for real, at a tier where
-`tests.required` is not `false` (prototype skips entirely):
+**Current state — enforced for Python, Go, and JS/TS (`node --test` or
+Vitest) projects; advisory for everything else.** `harness-link.sh
+enforce-profile <project>` reads `.agentharness-profile` and gates on it
+for real, at a tier where `tests.required` is not `false` (prototype
+skips entirely):
 
 - **Python** (`pyproject.toml`/`setup.py`/`requirements.txt` present):
   runs `pytest --cov-fail-under=<tier's coverage_min>` and fails if it
   doesn't pass.
-- **JS/TS** (`package.json` present): narrower by necessity — only a
-  project whose `package.json` `"test"` script already invokes Node's
-  own built-in `node --test` gets real enforcement (the one JS/TS test
-  runner with a stable, zero-extra-dependency coverage output this repo
-  can parse). A project using Jest, Vitest, Mocha, or anything else gets
-  a clear "isn't Node's built-in test runner" and exits 0 — guessing at
-  a third-party tool's output format risked a wrong result more than an
-  absent one.
+- **Go** (`go.mod` present): runs `go test -coverprofile ./...` and gates
+  the `go tool cover -func` total against the tier's `coverage_min` —
+  both standard-toolchain, no third-party dependency.
+- **JS/TS** (`package.json` present): a project whose `"test"` script
+  invokes Node's built-in `node --test` (per-file coverage summary) or
+  Vitest (`coverage-summary.json`'s `total.lines.pct`) gets real
+  enforcement — the two JS runners with a stable, machine-readable
+  coverage output this repo can parse without guessing. Jest, Mocha, or
+  anything else gets a clear "not implemented for this runner" and, by
+  default, exits 0.
 
 A project this can't classify at all (no recognizable project file)
-gets "not implemented yet" and exits 0 — like the JS/TS-runner case
-above, it never falsely blocks or falsely passes something it can't
-actually check.
+gets "not implemented yet" and exits 0 — it never falsely blocks or
+falsely passes something it can't actually check. Pass **`--strict`** to
+turn every such "not implemented" case into a failure instead, so a CI
+job can require that every project it runs against is one enforcement
+actually understands.
 
 This is **not** wired into `.github/hooks/pre-push` automatically —
 that hook still only ever runs *this* repo's own hardcoded test suites

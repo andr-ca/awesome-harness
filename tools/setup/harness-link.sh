@@ -21,13 +21,16 @@
 #             Does not run policy-conflict detection itself — points at
 #             'python3 tools/verify-content-quality.py' instead (B7).
 #   enforce-profile
-#             Read .agentharness-profile and, for a detected Python
-#             project, gate on it for real (pytest --cov-fail-under at
-#             the selected tier's coverage_min; skips entirely if the
-#             tier doesn't require tests). Python-only v1 — other project
-#             types report "not implemented yet" and exit 0 rather than
-#             falsely passing or blocking. Not wired into pre-push
-#             automatically; invoke it explicitly, same as audit/doctor.
+#             Read .agentharness-profile and gate on it for real for a
+#             detected Python (pytest --cov-fail-under), Go (go test +
+#             go tool cover), or Vitest JS/TS project at the selected
+#             tier's coverage_min; skips entirely if the tier doesn't
+#             require tests. An unrecognized project type or JS runner
+#             (Jest/Mocha) reports "not implemented yet" and exits 0
+#             rather than falsely passing or blocking — pass --strict to
+#             make that a failure instead (for a CI job that must cover
+#             every project). Not wired into pre-push automatically;
+#             invoke it explicitly, same as audit/doctor.
 #   update    Re-sync an existing install to the current harness state.
 #   uninstall Reverse everything 'init' recorded.
 #
@@ -103,6 +106,11 @@ update/uninstall options:
 audit options:
   --json                        Machine-readable drift report (CI/scripting)
 
+enforce-profile options:
+  --strict                      Fail (non-zero) on a project type or test
+                                runner enforcement doesn't support, instead
+                                of the default non-blocking exit 0
+
 Examples:
   $(basename "$0") init ~/my-project --with-hook
   $(basename "$0") init ~/my-project --mode copy --skills committing,branching
@@ -110,6 +118,7 @@ Examples:
   $(basename "$0") doctor ~/my-project
   $(basename "$0") audit ~/my-project --json
   $(basename "$0") enforce-profile ~/my-project
+  $(basename "$0") enforce-profile ~/my-project --strict
   $(basename "$0") update ~/my-project --yes
   $(basename "$0") uninstall ~/my-project
 EOF
@@ -1094,45 +1103,88 @@ profile_field() {
     ' "$1"
 }
 
-# JS/TS v1, deliberately narrow: this repo's own tooling has full,
-# zero-extra-dependency conventions for exactly one JS/TS test runner —
-# Node's own built-in `node --test` (stable since Node 18/20), the same
-# way the Python path assumes pytest+pytest-cov specifically rather than
-# "any test runner." Real-world JS/TS projects overwhelmingly use Jest,
-# Vitest, or Mocha instead — those have no single stable, dependency-free
-# way to invoke and parse coverage from the outside, so rather than
-# guess at (and mis-parse) an arbitrary tool's output, a project whose
-# own package.json `scripts.test` doesn't already opt into `node --test`
-# gets an honest "not implemented for this test runner yet" and exit 0 —
-# never a false pass or a false block on a tool this doesn't understand.
-enforce_js_ts_profile() {
+# JS/TS + Go runner adapters (B4 was Python-only; P1-02 extends
+# enforcement to Go and one mainstream JS runner, Vitest, plus a
+# --strict mode so CI can fail on "unsupported" instead of quietly
+# passing). The guiding rule is unchanged: only run a check this repo
+# can invoke and parse deterministically with no guessing —
+#   * Python  → pytest + pytest-cov (`--cov-fail-under`)
+#   * Go      → `go test -coverprofile` + `go tool cover -func` total
+#   * JS/TS   → Node's built-in `node --test` OR Vitest's
+#               `coverage-summary.json` (both stable, machine-readable)
+# Anything else (Jest, Mocha, an unrecognized project type) gets an
+# honest "not implemented yet". By default that is a non-blocking exit 0
+# (never a false pass framed as a real check); under --strict it is a
+# failure, so a CI job can require that every project it runs against is
+# actually one enforcement understands.
+
+# In non-strict mode an unsupported project/runner is a clean exit 0
+# (the explanatory message is already printed); under --strict it fails,
+# so CI can require full coverage of the projects it gates.
+unsupported_exit() {
+    if [ "$1" = true ]; then
+        echo "  (--strict) failing because profile enforcement is not implemented for this project/runner." >&2
+        return 1
+    fi
+    return 0
+}
+
+# Go: `go test -coverprofile` writes a merged profile across ./...; `go
+# tool cover -func` prints a final `total:` line whose last field is the
+# statement-coverage percentage — stable across Go versions and needs no
+# third-party tooling.
+enforce_go_profile() {
     local target="$1" profile_name="$2" coverage_min="$3"
 
-    if ! command -v node >/dev/null 2>&1; then
-        echo "Error: node not available — cannot enforce the '$profile_name' tier's test requirement for this JS/TS project." >&2
+    if ! command -v go >/dev/null 2>&1; then
+        echo "Error: go not available — cannot enforce the '$profile_name' tier's test requirement for this Go project." >&2
         return 1
     fi
 
-    local test_script
-    # $target is passed as an argv argument, not interpolated into the JS
-    # source string — avoids both module-resolution pitfalls (a relative
-    # path like "my-project" would otherwise be treated as a package name,
-    # not a file path, unless it happens to start with ./ or /) and
-    # string-injection risk from unusual path characters (quotes, etc.).
-    test_script="$(node -p "(require(process.argv[1] + '/package.json').scripts || {}).test || ''" "$target" 2>/dev/null)"
+    echo "  Go project detected; tests.required: true, coverage_min: ${coverage_min:-none}"
 
-    if [ -z "$test_script" ]; then
-        echo "Error: no 'test' script defined in package.json — cannot enforce the '$profile_name' tier's test requirement." >&2
+    if [ -z "$coverage_min" ]; then
+        (cd "$target" && go test ./...)
+        return
+    fi
+
+    local profile_tmp
+    profile_tmp="$(mktemp)"
+    if ! (cd "$target" && go test -covermode=set -coverprofile="$profile_tmp" ./...); then
+        rm -f "$profile_tmp"
         return 1
     fi
 
-    case "$test_script" in
-        *"node --test"*|*"node:test"*) ;;
-        *)
-            echo "  JS/TS project detected, but its 'test' script ('$test_script') isn't Node's built-in test runner — profile enforcement is currently limited to projects using \`node --test\` (v1 scope). See ROADMAP.md."
-            return 0
-            ;;
-    esac
+    # `go tool cover` must run from inside the module so it can resolve
+    # the package paths recorded in the profile (otherwise: "package X is
+    # not in std"). Guarded with `if !` so a parse failure is handled
+    # here, not aborted by `set -e`.
+    local cover_out
+    if ! cover_out="$(cd "$target" && go tool cover -func="$profile_tmp" 2>/dev/null)"; then
+        rm -f "$profile_tmp"
+        echo "Error: 'go tool cover' failed on the coverage profile — cannot enforce coverage_min=$coverage_min." >&2
+        return 1
+    fi
+    rm -f "$profile_tmp"
+
+    local pct
+    pct="$(echo "$cover_out" | awk '/^total:/ {gsub(/%/,"",$NF); print $NF}')"
+    if [ -z "$pct" ]; then
+        echo "Error: could not parse a total coverage percentage from 'go tool cover' — cannot enforce coverage_min=$coverage_min (no tests?)." >&2
+        return 1
+    fi
+    if awk -v pct="$pct" -v min="$coverage_min" 'BEGIN { exit !(pct < min) }'; then
+        echo "Coverage $pct% is below the '$profile_name' tier's minimum of $coverage_min%."
+        return 1
+    fi
+    echo "  Coverage $pct% meets the '$profile_name' tier's minimum of $coverage_min%."
+}
+
+# Node's built-in test runner: `--experimental-test-coverage` prints an
+# "all files" summary row whose second pipe-delimited column is the line
+# percentage.
+enforce_js_node_test() {
+    local target="$1" profile_name="$2" coverage_min="$3"
 
     echo "  JS/TS project detected (Node built-in test runner); tests.required: true, coverage_min: ${coverage_min:-none}"
 
@@ -1161,11 +1213,95 @@ enforce_js_ts_profile() {
     echo "  Coverage $pct% meets the '$profile_name' tier's minimum of $coverage_min%."
 }
 
+# Vitest: `--coverage.reporter=json-summary` writes
+# coverage/coverage-summary.json, whose `total.lines.pct` is a stable,
+# machine-readable number (no scraping of human-formatted terminal
+# output). Uses the project's own local vitest binary when present, else
+# npx --no-install (never silently pulls vitest from the network).
+enforce_js_vitest_profile() {
+    local target="$1" profile_name="$2" coverage_min="$3"
+
+    echo "  JS/TS project detected (Vitest); tests.required: true, coverage_min: ${coverage_min:-none}"
+
+    local -a runner
+    if [ -x "$target/node_modules/.bin/vitest" ]; then
+        runner=("$target/node_modules/.bin/vitest")
+    elif command -v npx >/dev/null 2>&1; then
+        runner=(npx --no-install vitest)
+    else
+        echo "Error: vitest not found (no node_modules/.bin/vitest and no npx) — cannot enforce the '$profile_name' tier's test requirement." >&2
+        return 1
+    fi
+
+    local out
+    if ! out="$(cd "$target" && "${runner[@]}" run --coverage --coverage.enabled --coverage.reporter=json-summary 2>&1)"; then
+        echo "$out"
+        return 1
+    fi
+    echo "$out"
+
+    if [ -z "$coverage_min" ]; then
+        return 0
+    fi
+
+    local summary="$target/coverage/coverage-summary.json"
+    if [ ! -f "$summary" ]; then
+        echo "Error: Vitest produced no coverage/coverage-summary.json (is @vitest/coverage-v8 installed and coverage enabled?) — cannot enforce coverage_min=$coverage_min." >&2
+        return 1
+    fi
+    local pct
+    pct="$(node -p "require(process.argv[1]).total.lines.pct" "$summary" 2>/dev/null)"
+    if [ -z "$pct" ]; then
+        echo "Error: could not parse total line coverage from coverage-summary.json — cannot enforce coverage_min=$coverage_min." >&2
+        return 1
+    fi
+
+    if awk -v pct="$pct" -v min="$coverage_min" 'BEGIN { exit !(pct < min) }'; then
+        echo "Coverage $pct% is below the '$profile_name' tier's minimum of $coverage_min%."
+        return 1
+    fi
+    echo "  Coverage $pct% meets the '$profile_name' tier's minimum of $coverage_min%."
+}
+
+# Dispatch a JS/TS project to the right runner adapter by reading its
+# package.json `scripts.test`. $target is passed as an argv argument, not
+# interpolated into the JS source string — avoids both module-resolution
+# pitfalls (a relative path like "my-project" would otherwise be treated
+# as a package name, not a file path, unless it starts with ./ or /) and
+# string-injection risk from unusual path characters (quotes, etc.).
+enforce_js_ts_profile() {
+    local target="$1" profile_name="$2" coverage_min="$3" strict="$4"
+
+    if ! command -v node >/dev/null 2>&1; then
+        echo "Error: node not available — cannot enforce the '$profile_name' tier's test requirement for this JS/TS project." >&2
+        return 1
+    fi
+
+    local test_script
+    test_script="$(node -p "(require(process.argv[1] + '/package.json').scripts || {}).test || ''" "$target" 2>/dev/null)"
+
+    if [ -z "$test_script" ]; then
+        echo "Error: no 'test' script defined in package.json — cannot enforce the '$profile_name' tier's test requirement." >&2
+        return 1
+    fi
+
+    case "$test_script" in
+        *"node --test"*|*"node:test"*)
+            enforce_js_node_test "$target" "$profile_name" "$coverage_min" ;;
+        *vitest*)
+            enforce_js_vitest_profile "$target" "$profile_name" "$coverage_min" ;;
+        *)
+            echo "  JS/TS project detected, but its 'test' script ('$test_script') isn't Node's built-in test runner or Vitest — profile enforcement currently supports \`node --test\` and Vitest (v1 scope). See ROADMAP.md."
+            unsupported_exit "$strict" ;;
+    esac
+}
+
 cmd_enforce_profile() {
-    local target=""
+    local target="" strict=false
     while [ $# -gt 0 ]; do
         case "$1" in
             -h|--help) usage; exit 0 ;;
+            --strict) strict=true; shift ;;
             *) if [ -z "$target" ]; then target="$1"; else echo "Unexpected argument: $1" >&2; exit 1; fi; shift ;;
         esac
     done
@@ -1212,13 +1348,18 @@ cmd_enforce_profile() {
         return
     fi
 
+    if [ -f "$target/go.mod" ]; then
+        enforce_go_profile "$target" "$profile_name" "$coverage_min"
+        return
+    fi
+
     if [ -f "$target/package.json" ]; then
-        enforce_js_ts_profile "$target" "$profile_name" "$coverage_min"
+        enforce_js_ts_profile "$target" "$profile_name" "$coverage_min" "$strict"
         return
     fi
 
     echo "  Profile enforcement isn't implemented yet for this project type — see ROADMAP.md."
-    return 0
+    unsupported_exit "$strict"
 }
 
 # ----------------------------------------------------------------------------
