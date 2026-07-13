@@ -2,7 +2,8 @@
 
 A scripted walkthrough of what installing this harness actually does,
 using real commands run against a scratch project — every command below
-and its output was executed against this repo to write this doc (see
+and its output was actually executed, against a scratch project using
+this repo's own tooling, to write this doc (see
 `docs/operational/reviews/gpt-5.6-completion-reaudit-status.md`, P2-07).
 No video, no hosting decision needed: copy-paste and run it yourself
 against a scratch directory if you want to see it live.

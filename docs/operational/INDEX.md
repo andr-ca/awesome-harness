@@ -47,7 +47,7 @@ Documents ready to be promoted to harness or archived:
   chose the most ambitious option for after reviewing the doc's original
   options memo (kept in the same file for the record). Only P2-06 fully
   closed its outcome — P2-02/03/04 are foundations built to a named
-  external boundary; see the 2026-07-13T precision correction added
+  external boundary; see the 2026-07-13 precision correction added
   inline and the re-audit below.
 - `reviews/gpt-5.6-completion-reaudit.md` — evidence-based re-audit at merged
   `main` commit `d4d2541`, recorded 2026-07-13T02:55:42Z. Reclassifies the

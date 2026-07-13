@@ -73,7 +73,7 @@ the safe half now, write up the rest as options.
 ## P2 items — expanded scope, built to their respective boundaries
 
 **Timestamp:** 2026-07-12T22:10:00Z
-**Precision correction added:** 2026-07-13T (per the independent
+**Precision correction added:** 2026-07-13 (per the independent
 re-audit) — "now implemented" below described the infrastructure, not
 the outcome each recommendation actually asked for. Only P2-06 is a
 fully closed outcome. P2-02, P2-03, and P2-04 are foundations built up

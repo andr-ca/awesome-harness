@@ -241,10 +241,10 @@ See [docs/DEMO.md](docs/DEMO.md) for a 5-minute walkthrough with real
 commands and real output — what `init` actually installs, and what the
 enforced trunk-protection hook looks like when it fires.
 
-**npm, as an alternative to `git clone`:** `npx agentharness-toolkit init
-/path/to/your-project` runs the same lifecycle CLI without a separate
-clone step (still needs `bash`/`python3` on your machine; installed
-globally, the CLI command itself is just `agentharness`). See
+**npm, as an alternative to `git clone`:** `npx agentharness-toolkit init /path/to/your-project`
+runs the same lifecycle CLI without a separate clone step (still needs
+`bash`/`python3` on your machine; installed globally, the CLI command
+itself is just `agentharness`). See
 [docs/RELEASING.md#npm-distribution](docs/RELEASING.md#npm-distribution)
 for the package's current publish status.
 

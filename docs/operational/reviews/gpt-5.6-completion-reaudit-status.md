@@ -202,4 +202,5 @@ specifically.
 - Prior status (now precision-corrected): `docs/operational/reviews/gpt-5.6-p1-p2-followup-status.md`
 - New: `docs/DECISIONS.md`, `docs/DEMO.md`
 - `ROADMAP.md` — three new "Explicitly Deferred / Needs a Decision" entries
-- PR: pending (see workflow completion below)
+- PR: #9 (merged), plus the "Larger items" follow-on PRs #10–#13 (see
+  "Final disposition" above)
