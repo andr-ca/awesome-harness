@@ -4,9 +4,11 @@ markdown-links and markdownlint don't — bad YAML, malformed skill
 frontmatter, syntax errors in the two docs whose Python examples are
 explicitly maintained as tested, runnable reference implementations (not
 every illustrative snippet in the repo — most are deliberately partial
-pseudocode, and syntax-checking those would just be noise), and
+pseudocode, and syntax-checking those would just be noise);
 duplicate-policy detection (B7): the same numeric mandate restated with a
-*different* number somewhere outside its source of truth.
+*different* number somewhere outside its source of truth; and
+generated-file drift for AGENTS.md (P2-02) and MANIFEST.md (B2) against
+their structured sources.
 """
 
 from __future__ import annotations
@@ -242,6 +244,30 @@ def check_agents_md_sync() -> list[str]:
     return []
 
 
+def check_manifest_md_sync() -> list[str]:
+    # B2: MANIFEST.md is generated from manifest.yaml by
+    # tools/generate-manifest.py, not hand-maintained — exact mirror of
+    # check_agents_md_sync() above, same drift class, same fix.
+    committed = REPO_ROOT / "MANIFEST.md"
+    generator = REPO_ROOT / "tools/generate-manifest.py"
+    if not committed.is_file():
+        return [f"{committed.relative_to(REPO_ROOT)}: expected file not found"]
+    result = subprocess.run(
+        [sys.executable, str(generator)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        return [f"{generator.relative_to(REPO_ROOT)}: failed to run — {result.stderr.strip()}"]
+    if result.stdout != committed.read_text():
+        return [
+            f"{committed.relative_to(REPO_ROOT)}: out of sync with its source — "
+            f"run 'tools/generate-manifest.py --output MANIFEST.md' and commit the result"
+        ]
+    return []
+
+
 def main() -> int:
     errors = []
     errors += check_yaml_files()
@@ -249,6 +275,7 @@ def main() -> int:
     errors += check_python_snippets()
     errors += check_duplicate_policy_numbers()
     errors += check_agents_md_sync()
+    errors += check_manifest_md_sync()
 
     if errors:
         print("Content-quality check failed:\n")

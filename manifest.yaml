@@ -1,0 +1,403 @@
+intro: |-
+  Machine-readable-ish index of every real asset in this repo. One line per
+  item: what it is, where it lives, when to read it. If it's not listed here,
+  it doesn't exist yet — check [ROADMAP.md](ROADMAP.md) for planned work.
+regeneration_note: |-
+  Generated from `manifest.yaml` by `tools/generate-manifest.py` — edit
+  that file, not this one, and run the generator to regenerate. CI fails if
+  they drift (`check_manifest_md_sync()` in `tools/verify-content-quality.py`).
+sections:
+- name: Git / Workflow
+  columns:
+  - Asset
+  - Path
+  - Type
+  - When to use
+  assets:
+  - asset: Branching strategy
+    path: .github/BRANCHING_STRATEGY.md
+    type: guide
+    when_to_use: Before creating a branch; naming, worktrees, gitignore, secrets cleanup
+  - asset: Committing guidelines
+    path: .github/COMMITTING_GUIDELINES.md
+    type: guide
+    when_to_use: Before every commit; message format, atomic commits, agent workflow-completion rule
+  - asset: Coding guidelines
+    path: .github/CODING_GUIDELINES.md
+    type: guide
+    when_to_use: Before writing code in any language; naming, comments, testing mandate, definition of done
+  - asset: PR template
+    path: .github/pull_request_template.md
+    type: template
+    when_to_use: Auto-populated on PR creation
+  - asset: gitignore template
+    path: .github/.gitignore.template
+    type: template
+    when_to_use: '`cp` into a new project as `.gitignore`'
+  - asset: prevent-trunk-commit hook
+    path: .github/hooks/prevent-trunk-commit
+    type: git hook
+    when_to_use: The enforcement logic. Installed via `git config core.hooksPath .github/hooks` (done in this repo)
+  - asset: pre-commit dispatcher
+    path: .github/hooks/pre-commit
+    type: git hook
+    when_to_use: Required alongside the hook above — `core.hooksPath` only invokes a file literally named `pre-commit`; this execs `prevent-trunk-commit`
+  - asset: pre-push test/coverage hook
+    path: .github/hooks/pre-push
+    type: git hook
+    when_to_use: Runs bats + pytest suites and blocks the push if anything fails or Python coverage drops below 80%. Installed the same way as the hooks above (git only needs a file literally named `pre-push`)
+- name: Language Conventions
+  columns:
+  - Asset
+  - Path
+  - Type
+  - When to use
+  assets:
+  - asset: Python conventions
+    path: languages/python/CONVENTIONS.md
+    type: guide
+    when_to_use: Naming, structure, idioms for `.py` files
+  - asset: Python agent instructions
+    path: languages/python/COPILOT_INSTRUCTIONS.md
+    type: guide
+    when_to_use: General-purpose agent operating principles for Python repos
+  - asset: TypeScript conventions
+    path: languages/typescript/CONVENTIONS.md
+    type: guide
+    when_to_use: Naming, type safety for `.ts` / `.tsx` files (React specifics are a separate framework add-on)
+  - asset: Go conventions
+    path: languages/go/CONVENTIONS.md
+    type: guide
+    when_to_use: Naming, concurrency, interfaces, testing for `.go` files
+  - asset: React conventions
+    path: frameworks/react/CONVENTIONS.md
+    type: guide
+    when_to_use: Component naming, props typing — layered on top of the TypeScript guide
+- name: Testing & Quality Patterns
+  columns:
+  - Asset
+  - Path
+  - Type
+  - When to use
+  assets:
+  - asset: Rigor tiers
+    path: .github/CODING_GUIDELINES.md#rigor-tiers
+    type: policy
+    when_to_use: '**Read first** — decides which mandates below actually apply to the code you''re writing'
+  - asset: Rigor-tier profiles
+    path: patterns/profiles/README.md
+    type: guide
+    when_to_use: Selecting a tier via `.agentharness-profile`, precedence order, current enforcement state (Python-only via `enforce-profile`, advisory for other project types)
+  - asset: Prototype profile
+    path: patterns/profiles/prototype.yaml
+    type: config
+    when_to_use: Machine-readable form of the Rigor Tiers table's Prototype column
+  - asset: Internal profile
+    path: patterns/profiles/internal.yaml
+    type: config
+    when_to_use: Machine-readable form of the Rigor Tiers table's Internal Tool column
+  - asset: Production profile
+    path: patterns/profiles/production.yaml
+    type: config
+    when_to_use: Machine-readable form of the Rigor Tiers table's Production Service column
+  - asset: TDD
+    path: patterns/testing/TDD.md
+    type: guide
+    when_to_use: Where this repo's TDD guidance departs from standard practice (one worked mistake)
+  - asset: Coverage requirements
+    path: patterns/testing/COVERAGE_REQUIREMENTS.md
+    type: policy
+    when_to_use: Single source of truth for the 80% coverage tiers — other docs link here, don't restate
+  - asset: Completion checklist
+    path: patterns/testing/COMPLETION_CHECKLIST.md
+    type: checklist
+    when_to_use: Before marking any task done
+  - asset: Playwright UI testing
+    path: patterns/testing/PLAYWRIGHT_UI_TESTING.md
+    type: guide
+    when_to_use: Web UI work at Production tier only
+- name: Error Handling & Reliability
+  columns:
+  - Asset
+  - Path
+  - Type
+  - When to use
+  assets:
+  - asset: Error handling patterns
+    path: patterns/error-handling/README.md
+    type: guide
+    when_to_use: Explicit errors, wrapping, retry/circuit-breaker, structured logging
+- name: Agentic & Autonomous Systems
+  columns:
+  - Asset
+  - Path
+  - Type
+  - When to use
+  assets:
+  - asset: Agentic loops
+    path: patterns/agentic-loops/README.md
+    type: guide
+    when_to_use: Building multi-turn agents, tool calling, tool chaining, branching
+  - asset: Agent loop implementation
+    path: patterns/agentic-loops/agent_loop.py
+    type: utility
+    when_to_use: 'Python: tested, provider-neutral single-tool-call agent loop with schema validation, budget, approval hook, audit trace'
+  - asset: Agent loop tests
+    path: patterns/agentic-loops/test_agent_loop.py
+    type: tests
+    when_to_use: Tests for agent_loop.py; run with pytest
+- name: Eval Suite
+  columns:
+  - Asset
+  - Path
+  - Type
+  - When to use
+  assets:
+  - asset: Overview
+    path: tools/eval/README.md
+    type: guide
+    when_to_use: What the suite measures, task format, how to score a candidate, what running a real eval requires (P2-04)
+  - asset: Task definitions
+    path: tools/eval/tasks/
+    type: fixtures
+    when_to_use: '3 task specs (2 Python, 1 Go): prompt, starter code, hidden grading tests'
+  - asset: Deterministic scorer
+    path: tools/eval/score.py
+    type: script
+    when_to_use: Runs a task's hidden tests against a candidate dir; no LLM calls (P2-04)
+  - asset: Orchestrator
+    path: tools/eval/run.py
+    type: script
+    when_to_use: Baseline/treatment condition setup + ledger writing; the live-agent call is unimplemented by design — see the README's "Running a real eval" (P2-04)
+  - asset: Scorer/orchestrator fixtures
+    path: tools/eval/fixtures/
+    type: fixtures
+    when_to_use: Hand-written correct/broken implementations per task, used by `tests/test_score.py`
+  - asset: Results ledger
+    path: tools/eval/results/README.md
+    type: doc
+    when_to_use: JSON-lines format for tracked score history
+- name: Logging
+  columns:
+  - Asset
+  - Path
+  - Type
+  - When to use
+  assets:
+  - asset: Logging standards
+    path: patterns/logging/LOGGING_STANDARDS.md
+    type: guide
+    when_to_use: Structured logging design, levels, what to log/redact, centralized config
+  - asset: logging.yaml example
+    path: patterns/logging/logging.yaml.example
+    type: template
+    when_to_use: Copy and adapt for your service; includes OTEL, cloud, file, console backends
+  - asset: Config loader
+    path: patterns/logging/config_loader.py
+    type: utility
+    when_to_use: 'Python: load YAML config with `${VAR:-default}` env var interpolation'
+  - asset: Config loader tests
+    path: patterns/logging/test_config_loader.py
+    type: tests
+    when_to_use: Tests for config_loader.py; run with pytest
+- name: Claude Code Skills
+  columns:
+  - Asset
+  - Path
+  - Type
+  - When to use
+  assets:
+  - asset: Committing
+    path: .claude/skills/committing/SKILL.md
+    type: skill
+    when_to_use: Loads on demand for commit-related work
+  - asset: Branching
+    path: .claude/skills/branching/SKILL.md
+    type: skill
+    when_to_use: Loads on demand for branch/worktree work
+  - asset: Python conventions
+    path: .claude/skills/python-conventions/SKILL.md
+    type: skill
+    when_to_use: Loads on demand when writing Python
+  - asset: Error handling
+    path: .claude/skills/error-handling/SKILL.md
+    type: skill
+    when_to_use: Loads on demand for error recovery, resilience patterns
+  - asset: Agentic loops
+    path: .claude/skills/agentic-loops/SKILL.md
+    type: skill
+    when_to_use: Loads on demand for multi-turn agents, tool calling
+  - asset: Audit review follow-up
+    path: .claude/skills/audit-review-followup/SKILL.md
+    type: skill
+    when_to_use: Verifying that review recommendations were actually implemented; re-scoring
+- name: Setup & Examples
+  columns:
+  - Asset
+  - Path
+  - Type
+  - When to use
+  assets:
+  - asset: Harness lifecycle CLI
+    path: tools/setup/harness-link.sh
+    type: script
+    when_to_use: init/plan/status/doctor/audit/enforce-profile/update/uninstall; link/copy/submodule modes; state tracked in `<project>/.agentharness-state.json`
+  - asset: Local check entrypoint
+    path: tools/check.sh
+    type: script
+    when_to_use: Runs every check CI runs (shellcheck, bats, ruff, mypy, pytest+coverage, manifest verify) in one command (P1-06)
+  - asset: Pinned dev/CI toolchain
+    path: requirements-dev.txt
+    type: config
+    when_to_use: Exact pinned versions of pytest/ruff/mypy/etc. — `pip install -r requirements-dev.txt` (P1-06)
+  - asset: Sample project
+    path: examples/sample-project/
+    type: project
+    when_to_use: Blank/generic fixture; demonstrates harness integration, validates INTEGRATION.md commands work
+  - asset: Integration verification
+    path: examples/sample-project/verify.sh
+    type: script
+    when_to_use: Checks that skills, hooks, and guidelines are properly integrated
+  - asset: Python fixture
+    path: examples/python-project/
+    type: project
+    when_to_use: Realistic Python consumer (pre-existing `.gitignore`); CI-verified across all install modes
+  - asset: TypeScript fixture
+    path: examples/typescript-project/
+    type: project
+    when_to_use: Realistic TypeScript consumer (pre-existing `.gitignore`); CI-verified across all install modes
+  - asset: Go fixture
+    path: examples/go-project/
+    type: project
+    when_to_use: Realistic Go consumer (pre-existing `.gitignore`); CI-verified across all install modes
+  - asset: npm package manifest
+    path: package.json
+    type: config
+    when_to_use: '`files` allowlist for `npm publish`; `bin.agentharness` entry point; see `docs/RELEASING.md#npm-distribution` for what''s built vs. not-yet-published'
+  - asset: npm CLI shim
+    path: bin/cli.js
+    type: script
+    when_to_use: Execs `tools/setup/harness-link.sh` from an npm/npx install; fails clearly if `bash`/`python3` are missing
+  - asset: Symlink materializer
+    path: tools/release/materialize-skill-symlinks.py
+    type: script
+    when_to_use: '`prepack`/`postpack` hook — npm tarballs don''t preserve symlinks, so bundled-resource symlinks (e.g. `agentic-loops`''s) are copied to real files before packing, then restored via `git checkout`'
+  - asset: Manifest source of truth
+    path: manifest.yaml
+    type: config
+    when_to_use: Structured source MANIFEST.md is generated from (B2) — edit this, not MANIFEST.md directly
+  - asset: MANIFEST.md generator
+    path: tools/generate-manifest.py
+    type: script
+    when_to_use: Renders MANIFEST.md from manifest.yaml; drift-checked in CI the same way tools/generate-agents-md.sh is (B2)
+- name: GitHub Configuration
+  columns:
+  - Asset
+  - Path
+  - Type
+  - Purpose
+  assets:
+  - asset: Dependency updates
+    path: .github/dependabot.yml
+    type: config
+    purpose: Automated dependency version checking (Go, GitHub Actions)
+  - asset: Code ownership
+    path: .github/CODEOWNERS
+    type: config
+    purpose: Review routing and ownership for framework components
+  - asset: Scheduled link check
+    path: .github/workflows/link-check-scheduled.yml
+    type: workflow
+    purpose: Weekly online external-link validation, separate from the offline PR gate (P1-08)
+  - asset: Release workflow
+    path: .github/workflows/release.yml
+    type: workflow
+    purpose: Runs `npm publish` on a `v*` tag push; inert until `NPM_TOKEN` secret exists (P2-03)
+  - asset: Markdownlint config
+    path: .markdownlint-cli2.yaml
+    type: config
+    purpose: Rules enforced in CI's content-quality job; documents why purely-stylistic rules are off (P1-08)
+  - asset: Content-quality checker
+    path: tools/verify-content-quality.py
+    type: script
+    purpose: YAML validity, skill frontmatter schema, tested-snippet syntax (P1-08); `AGENTS.md` sync (P2-02); duplicate-policy number detection (B7); `MANIFEST.md` sync (B2)
+  - asset: Duplicate-policy detection tests
+    path: tools/tests/test_verify_content_quality.py
+    type: tests
+    purpose: Tests for `check_duplicate_policy_numbers()` — real conflicts vs. measured-result/cross-reference/fenced-example false positives (B7)
+  - asset: AGENTS.md generator
+    path: tools/generate-agents-md.sh
+    type: script
+    purpose: Builds the Codex adapter from `CLAUDE.md` + `.claude/skills/` (P2-02)
+- name: Meta
+  columns:
+  - Asset
+  - Path
+  - Type
+  assets:
+  - asset: Repo overview
+    path: README.md
+    type: doc
+  - asset: Agent-facing router + mandatory rules
+    path: CLAUDE.md
+    type: doc (loaded every session — kept short on purpose)
+  - asset: Codex adapter (generated, untested against real Codex)
+    path: AGENTS.md
+    type: doc (generated by `tools/generate-agents-md.sh`; do not hand-edit)
+  - asset: Architecture / design philosophy
+    path: docs/ARCHITECTURE.md
+    type: doc
+  - asset: Architecture decision log (compact, retroactive)
+    path: docs/DECISIONS.md
+    type: doc
+  - asset: Integration instructions
+    path: docs/INTEGRATION.md
+    type: doc
+  - asset: 5-minute scripted demo (real commands, real output)
+    path: docs/DEMO.md
+    type: doc
+  - asset: Planned-but-not-built components
+    path: ROADMAP.md
+    type: doc
+  - asset: Release history
+    path: CHANGELOG.md
+    type: doc
+  - asset: Release policy (versioning, checklist, pin/upgrade/rollback)
+    path: docs/RELEASING.md
+    type: doc
+  - asset: Security / secrets procedure
+    path: SECURITY.md
+    type: doc
+  - asset: Contribution workflow
+    path: CONTRIBUTING.md
+    type: doc
+  - asset: Code of Conduct
+    path: CODE_OF_CONDUCT.md
+    type: doc
+  - asset: 'Issue template: bug report'
+    path: .github/ISSUE_TEMPLATE/bug_report.md
+    type: GitHub config
+  - asset: 'Issue template: feature request'
+    path: .github/ISSUE_TEMPLATE/feature_request.md
+    type: GitHub config
+  - asset: Prior full repo review
+    path: docs/operational/reviews/fable-review.md
+    type: historical record — dated 2026-07-11, describes the repo as `awesome-harness` before the rename
+  - asset: Review recommendations status
+    path: docs/operational/reviews/fable-review-status.md
+    type: disposition of all 30 backlog items from the review above
+  - asset: Independent repo review (GPT-5.6)
+    path: docs/operational/reviews/gpt-5.6-review.md
+    type: second-opinion review, dated 2026-07-11; completion status is recorded separately below
+  - asset: GPT-5.6 review completion status
+    path: docs/operational/reviews/gpt-5.6-review-status.md
+    type: evidence-based re-validation of all 30 backlog items and 12 release gates at `43604a7`
+  - asset: GPT-5.6 completion re-audit
+    path: docs/operational/reviews/gpt-5.6-completion-reaudit.md
+    type: current-state validation at merged `main` commit `d4d2541`; 17 verified, 11 partial, 1 missed, 1 deferred
+  - asset: GPT-5.6 re-audit response
+    path: docs/operational/reviews/gpt-5.6-completion-reaudit-status.md
+    type: 'per-item disposition: scoped fixes implemented directly, larger items scoped for user confirmation'
+  - asset: 'PR #4 review-comment status'
+    path: docs/operational/reviews/pr4-comments-status.md
+    type: 'disposition of Copilot''s PR #4 comments and this session''s own audit gaps'
