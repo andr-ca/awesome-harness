@@ -318,6 +318,8 @@ with open(p, 'w') as f: json.dump(d, f, indent=2)
 
     [ ! -e "$TEST_PROJECT/.claude/skills/committing" ]
     [ ! -e "$TEST_PROJECT/.claude/skills/branching" ]
+    [ ! -e "$TEST_PROJECT/.agents/skills/committing" ]
+    [ ! -e "$TEST_PROJECT/.agents/skills/branching" ]
     [ ! -f "$TEST_PROJECT/.agentharness-profile" ]
     [ ! -f "$TEST_PROJECT/.agentharness-state.json" ]
     run git -C "$TEST_PROJECT" config core.hooksPath
@@ -404,6 +406,24 @@ print(d['hooks_path'])
     [ -f "$TEST_PROJECT/.claude/skills/committing/SKILL.md" ]
     [ ! -L "$TEST_PROJECT/.claude/skills/committing" ]
     [ ! -L "$TEST_PROJECT/.claude/skills/committing/SKILL.md" ]
+}
+
+@test "lifecycle: --mode copy also physically copies each skill into .agents/skills/ (P0-06)" {
+    bash "$SCRIPT" init "$TEST_PROJECT" --mode copy --skills committing
+
+    [ -f "$TEST_PROJECT/.agents/skills/committing/SKILL.md" ]
+    [ ! -L "$TEST_PROJECT/.agents/skills/committing" ]
+    [ ! -L "$TEST_PROJECT/.agents/skills/committing/SKILL.md" ]
+}
+
+@test "lifecycle: doctor also checks .agents/skills/, not just .claude/skills/ (P0-06)" {
+    bash "$SCRIPT" init "$TEST_PROJECT" --skills committing
+    rm -rf "$TEST_PROJECT/.agents/skills/committing"
+
+    run bash "$SCRIPT" doctor "$TEST_PROJECT"
+    [ "$status" -ne 0 ]
+    [[ "$output" =~ "SKILL.md not found" ]]
+    [[ "$output" =~ ".agents/skills/committing" ]]
 }
 
 @test "lifecycle: --mode copy dereferences a skill's bundled-resource symlinks instead of copying them literally" {

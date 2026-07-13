@@ -50,6 +50,19 @@ file_hash() {
     [[ "$target" == *"/.claude/skills/committing" ]]
 }
 
+@test "harness-link.sh: also symlinks each skill into .agents/skills/ for Codex's real on-demand discovery (P0-06)" {
+    bash "$SCRIPT" "$TEST_PROJECT"
+
+    [ -d "$TEST_PROJECT/.agents/skills" ]
+    [ ! -L "$TEST_PROJECT/.agents/skills" ]
+    [ -L "$TEST_PROJECT/.agents/skills/committing" ]
+    target=$(readlink "$TEST_PROJECT/.agents/skills/committing")
+    [[ "$target" == *"/.claude/skills/committing" ]]
+    # Same source as .claude/skills/committing — not two independent copies.
+    [ -e "$TEST_PROJECT/.agents/skills/committing/SKILL.md" ]
+    diff -q "$TEST_PROJECT/.agents/skills/committing/SKILL.md" "$TEST_PROJECT/.claude/skills/committing/SKILL.md"
+}
+
 @test "harness-link.sh: --skills filters which skills are linked" {
     bash "$SCRIPT" "$TEST_PROJECT" --skills committing,branching
 

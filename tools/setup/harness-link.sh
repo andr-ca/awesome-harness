@@ -64,6 +64,12 @@ PROFILE_FILE_NAME=".agentharness-profile"
 GITIGNORE_MARKER="# --- Added by agentharness harness-link.sh ---"
 SUBMODULE_PATH=".agentharness"
 NPM_DURABLE_PATH=".agentharness-pkg"
+# Every installed skill is mirrored under both directories: .claude/skills
+# for Claude Code, .agents/skills for Codex CLI's real on-demand skill
+# discovery (the Agent Skills open standard both clients now share — see
+# tools/generate-agents-md.sh's header for the P0-06 rationale). Same
+# source, same SKILL.md, two directories a client scans natively.
+SKILL_DEST_SUBDIRS=(".claude/skills" ".agents/skills")
 
 usage() {
     cat <<EOF
@@ -551,31 +557,33 @@ cmd_init() {
     # ------------------------------------------------------------------
     # 1. Skills
     # ------------------------------------------------------------------
-    local skills_dst="$target/.claude/skills"
-    mkdir -p "$skills_dst"
     local linked_skills=()
 
     while IFS= read -r skill; do
         linked_skills+=("$skill")
-        local src="$skills_src_root/.claude/skills/$skill"
-        local dst="$skills_dst/$skill"
-        case "$mode" in
-            link|submodule|npm)
-                if [ -L "$dst" ]; then
-                    rm "$dst"
-                elif [ -e "$dst" ]; then
-                    echo "  Skipping $skill: $dst exists and is not a symlink (not overwriting)" >&2
-                    continue
-                fi
-                ln -s "$src" "$dst"
-                echo "  Linked skill: $skill"
-                ;;
-            copy)
-                rm -rf "$dst"
-                cp -rL "$src" "$dst"
-                echo "  Copied skill: $skill"
-                ;;
-        esac
+        for dest_subdir in "${SKILL_DEST_SUBDIRS[@]}"; do
+            local skills_dst="$target/$dest_subdir"
+            mkdir -p "$skills_dst"
+            local src="$skills_src_root/.claude/skills/$skill"
+            local dst="$skills_dst/$skill"
+            case "$mode" in
+                link|submodule|npm)
+                    if [ -L "$dst" ]; then
+                        rm "$dst"
+                    elif [ -e "$dst" ]; then
+                        echo "  Skipping $skill ($dest_subdir): $dst exists and is not a symlink (not overwriting)" >&2
+                        continue
+                    fi
+                    ln -s "$src" "$dst"
+                    echo "  Linked skill: $skill ($dest_subdir)"
+                    ;;
+                copy)
+                    rm -rf "$dst"
+                    cp -rL "$src" "$dst"
+                    echo "  Copied skill: $skill ($dest_subdir)"
+                    ;;
+            esac
+        done
     done < <(resolve_wanted_skills "$skills_src_root" "$skills_filter")
 
     # ------------------------------------------------------------------
@@ -797,22 +805,24 @@ cmd_doctor() {
     IFS=',' read -ra skills <<< "$skills_csv"
     for skill in "${skills[@]}"; do
         [ -z "$skill" ] && continue
-        local dir="$target/.claude/skills/$skill"
-        if [ ! -e "$dir/SKILL.md" ]; then
-            echo "  ✗ $skill: SKILL.md not found at $dir" >&2
-            failed=1
-            continue
-        fi
-        echo "  ✓ $skill: SKILL.md present"
-        local broken=0
-        while IFS= read -r link; do
-            if [ ! -e "$link" ]; then
-                echo "  ✗ $skill: broken bundled-resource link: $link" >&2
+        for dest_subdir in "${SKILL_DEST_SUBDIRS[@]}"; do
+            local dir="$target/$dest_subdir/$skill"
+            if [ ! -e "$dir/SKILL.md" ]; then
+                echo "  ✗ $skill: SKILL.md not found at $dir" >&2
                 failed=1
-                broken=1
+                continue
             fi
-        done < <(find -L "$dir" -type l 2>/dev/null)
-        [ "$broken" -eq 0 ] && echo "  ✓ $skill: bundled resources resolve"
+            echo "  ✓ $skill: SKILL.md present ($dest_subdir)"
+            local broken=0
+            while IFS= read -r link; do
+                if [ ! -e "$link" ]; then
+                    echo "  ✗ $skill: broken bundled-resource link: $link" >&2
+                    failed=1
+                    broken=1
+                fi
+            done < <(find -L "$dir" -type l 2>/dev/null)
+            [ "$broken" -eq 0 ] && echo "  ✓ $skill: bundled resources resolve ($dest_subdir)"
+        done
     done
 
     local with_hook
@@ -1308,33 +1318,38 @@ cmd_update() {
     confirm "$yes" "Apply this update?" || { echo "Aborted."; return 1; }
 
     for name in "${to_remove[@]}"; do
-        local dst="$target/.claude/skills/$name"
-        if [ -L "$dst" ] || [ -d "$dst" ]; then
-            rm -rf "$dst"
-        fi
+        for dest_subdir in "${SKILL_DEST_SUBDIRS[@]}"; do
+            local dst="$target/$dest_subdir/$name"
+            if [ -L "$dst" ] || [ -d "$dst" ]; then
+                rm -rf "$dst"
+            fi
+        done
         echo "  Removed: $name"
     done
 
     for name in "${current[@]}"; do
-        local src="$source_path/.claude/skills/$name"
-        local dst="$target/.claude/skills/$name"
-        case "$mode" in
-            link|submodule|npm)
-                [ -e "$dst" ] && [ ! -L "$dst" ] && continue
-                [ -L "$dst" ] && rm "$dst"
-                ln -s "$src" "$dst"
-                ;;
-            copy)
-                rm -rf "$dst"
-                # -L: dereference symlinks instead of copying them as
-                # symlinks. Skills bundle relative symlinks back to
-                # patterns/<name>/ (see P1-03) that only resolve from
-                # inside this checkout; a plain `cp -r` would copy those
-                # links literally into the target, where they point at a
-                # patterns/ directory copy mode never creates.
-                cp -rL "$src" "$dst"
-                ;;
-        esac
+        for dest_subdir in "${SKILL_DEST_SUBDIRS[@]}"; do
+            mkdir -p "$target/$dest_subdir"
+            local src="$source_path/.claude/skills/$name"
+            local dst="$target/$dest_subdir/$name"
+            case "$mode" in
+                link|submodule|npm)
+                    [ -e "$dst" ] && [ ! -L "$dst" ] && continue
+                    [ -L "$dst" ] && rm "$dst"
+                    ln -s "$src" "$dst"
+                    ;;
+                copy)
+                    rm -rf "$dst"
+                    # -L: dereference symlinks instead of copying them as
+                    # symlinks. Skills bundle relative symlinks back to
+                    # patterns/<name>/ (see P1-03) that only resolve from
+                    # inside this checkout; a plain `cp -r` would copy those
+                    # links literally into the target, where they point at a
+                    # patterns/ directory copy mode never creates.
+                    cp -rL "$src" "$dst"
+                    ;;
+            esac
+        done
     done
     echo "  Re-synced ${#current[@]} skill(s)"
 
@@ -1399,11 +1414,13 @@ cmd_uninstall() {
 
     for name in "${installed[@]}"; do
         [ -z "$name" ] && continue
-        local dst="$target/.claude/skills/$name"
-        if [ -L "$dst" ] || [ -d "$dst" ]; then
-            rm -rf "$dst"
-            echo "  Removed skill: $name"
-        fi
+        for dest_subdir in "${SKILL_DEST_SUBDIRS[@]}"; do
+            local dst="$target/$dest_subdir/$name"
+            if [ -L "$dst" ] || [ -d "$dst" ]; then
+                rm -rf "$dst"
+            fi
+        done
+        echo "  Removed skill: $name"
     done
 
     if [ -f "$target/.gitignore" ] && grep -qF "$GITIGNORE_MARKER" "$target/.gitignore"; then
