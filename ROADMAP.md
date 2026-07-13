@@ -267,7 +267,10 @@ label by the review filename cited next to it, never by number alone.
   outside the core package, pinned model/prompt versions, multiple seeds,
   recorded cost/turns/context/test score, published raw results, and
   tasks that test policy adherence and instruction conflicts, not just
-  final code correctness.
+  final code correctness. **Scaffolded:** `tools/eval/.env.sample`
+  provides the live-run env template (API key + optional model/cost
+  ceiling); `invoke_agent_via_api` is still deliberately unimplemented
+  (spends real money — a user-triggered step).
 - **P2-02 (this review's numbering) — Dogfood in real repositories.**
   Same substance as the already-tracked "P2-05 (real dogfood) has no
   target" entry above (different review's numbering, same gap): adopt a
@@ -280,6 +283,9 @@ label by the review filename cited next to it, never by number alone.
   irrelevant-skill avoidance, rule precedence, refusal to publish without
   authority, existing-hook preservation, and resistance to malicious
   instruction changes — named as the product's actual differentiator.
+  **Scaffolded:** `tools/eval/README.md`'s "Instruction-quality evals"
+  section documents the task shapes; the deterministic action/transcript
+  scorer they need isn't built yet.
 - **P2-04 (this review's numbering) — Add a policy provenance model.**
   For each normative rule: owner/source, rationale, applicability,
   enforcement mechanism, last review date, as structured data (the
