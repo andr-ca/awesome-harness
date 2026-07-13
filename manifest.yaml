@@ -401,6 +401,12 @@ sections:
   - asset: Planned-but-not-built components
     path: ROADMAP.md
     type: doc
+  - asset: Current status (what works today, single snapshot)
+    path: docs/STATUS.md
+    type: doc
+  - asset: Known limitations (open gaps and caveats, single list)
+    path: docs/KNOWN_LIMITATIONS.md
+    type: doc
   - asset: Release history
     path: CHANGELOG.md
     type: doc

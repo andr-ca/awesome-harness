@@ -145,6 +145,8 @@ they drift (`check_manifest_md_sync()` in `tools/verify-content-quality.py`).
 | Client compatibility matrix (always-on instructions + on-demand skills, per agentic tool) | `docs/CLIENT_COMPATIBILITY.md` | doc |
 | 5-minute scripted demo (real commands, real output) | `docs/DEMO.md` | doc |
 | Planned-but-not-built components | `ROADMAP.md` | doc |
+| Current status (what works today, single snapshot) | `docs/STATUS.md` | doc |
+| Known limitations (open gaps and caveats, single list) | `docs/KNOWN_LIMITATIONS.md` | doc |
 | Release history | `CHANGELOG.md` | doc |
 | Release policy (versioning, checklist, pin/upgrade/rollback) | `docs/RELEASING.md` | doc |
 | Security / secrets procedure | `SECURITY.md` | doc |

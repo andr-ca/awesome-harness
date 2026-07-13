@@ -8,6 +8,8 @@ Guides for understanding and using the agentharness repository.
 - **[CLAUDE.md](../CLAUDE.md)** – agent-facing router and mandatory rules
 - **[MANIFEST.md](../MANIFEST.md)** – full index of every real asset
 - **[ROADMAP.md](../ROADMAP.md)** – what's planned but not built
+- **[STATUS.md](./STATUS.md)** – current state at a glance (what works today)
+- **[KNOWN_LIMITATIONS.md](./KNOWN_LIMITATIONS.md)** – open gaps and caveats
 - **[CHANGELOG.md](../CHANGELOG.md)** – release history
 - **[SECURITY.md](../SECURITY.md)** – secrets-in-history procedure
 - **[INTEGRATION.md](./INTEGRATION.md)** – symlink/copy/submodule methods, per-component steps
