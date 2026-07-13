@@ -31,6 +31,12 @@
 #             make that a failure instead (for a CI job that must cover
 #             every project). Not wired into pre-push automatically;
 #             invoke it explicitly, same as audit/doctor.
+#   generate-clients
+#             Run the client-adapter generators into the target so one
+#             command produces the router/instruction files for the tools
+#             it uses (--client codex|gemini|copilot|cursor|kilo|all).
+#             Standalone, like enforce-profile; not yet wired into
+#             init/update or tracked in state for uninstall (P1-01).
 #   update    Re-sync an existing install to the current harness state.
 #   uninstall Reverse everything 'init' recorded.
 #
@@ -79,7 +85,7 @@ usage() {
 Usage: $(basename "$0") <subcommand> [target-project-dir] [OPTIONS]
        $(basename "$0") <target-project-dir> [OPTIONS]   (legacy: same as init)
 
-Subcommands: init, plan, status, doctor, audit, enforce-profile, update, uninstall
+Subcommands: init, plan, status, doctor, audit, enforce-profile, generate-clients, update, uninstall
 
 init options:
   --mode link|copy|submodule|npm
@@ -111,6 +117,12 @@ enforce-profile options:
                                 runner enforcement doesn't support, instead
                                 of the default non-blocking exit 0
 
+generate-clients options:
+  --client codex|gemini|copilot|cursor|kilo|all
+                                Which client router/instruction files to
+                                generate into the target (default: all).
+                                Comma-separated list also accepted.
+
 Examples:
   $(basename "$0") init ~/my-project --with-hook
   $(basename "$0") init ~/my-project --mode copy --skills committing,branching
@@ -119,6 +131,7 @@ Examples:
   $(basename "$0") audit ~/my-project --json
   $(basename "$0") enforce-profile ~/my-project
   $(basename "$0") enforce-profile ~/my-project --strict
+  $(basename "$0") generate-clients ~/my-project --client copilot,cursor
   $(basename "$0") update ~/my-project --yes
   $(basename "$0") uninstall ~/my-project
 EOF
@@ -1639,6 +1652,75 @@ cmd_uninstall() {
 }
 
 # ----------------------------------------------------------------------------
+# generate-clients (P1-01, first increment)
+# ----------------------------------------------------------------------------
+#
+# Run this repo's client-adapter generators against a consumer project, so
+# a single command produces the routing/instruction files for the agentic
+# tools it uses — instead of the per-generator manual steps in
+# docs/INTEGRATION.md. Ships standalone (same posture as enforce-profile):
+# it does NOT yet wire generation into init/update or record generated
+# files in state for uninstall — that managed-block lifecycle integration
+# is the larger, still-open part of P1-01 (see ROADMAP.md). Claude Code
+# isn't a target here: CLAUDE.md is the hand-authored source every one of
+# these files is generated *from*, not something to generate.
+
+cmd_generate_clients() {
+    local target="" clients="all"
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            -h|--help) usage; exit 0 ;;
+            --client|--clients) clients="${2:-}"; shift 2 ;;
+            *) if [ -z "$target" ]; then target="$1"; shift; else echo "Unexpected argument: $1" >&2; exit 1; fi ;;
+        esac
+    done
+    target="${target:-.}"
+    if [ ! -d "$target" ]; then
+        echo "Error: target '$target' is not a directory." >&2
+        exit 1
+    fi
+    target="$(cd "$target" && pwd)"
+
+    local selected
+    if [ "$clients" = all ]; then
+        selected="codex gemini copilot cursor kilo"
+    else
+        selected="${clients//,/ }"
+    fi
+
+    local gen="$HARNESS_DIR/tools"
+    local -a client_list
+    read -ra client_list <<< "$selected"
+
+    echo "generate-clients: $target"
+    local c
+    for c in "${client_list[@]}"; do
+        case "$c" in
+            codex)
+                bash "$gen/generate-agents-md.sh" "$HARNESS_DIR" --output "$target/AGENTS.md"
+                echo "  codex/opencode/zed -> AGENTS.md" ;;
+            gemini)
+                bash "$gen/generate-gemini-md.sh" "$HARNESS_DIR" --output "$target/GEMINI.md"
+                echo "  gemini/antigravity -> GEMINI.md" ;;
+            copilot)
+                bash "$gen/generate-copilot-instructions.sh" "$HARNESS_DIR" --output-dir "$target"
+                echo "  copilot -> .github/copilot-instructions.md (+ .github/instructions/)" ;;
+            cursor)
+                bash "$gen/generate-cursor-rules.sh" "$HARNESS_DIR" --output-dir "$target"
+                echo "  cursor -> .cursor/rules/" ;;
+            kilo)
+                mkdir -p "$target/.kilo/rules"
+                bash "$gen/generate-kilo-rules.sh" "$HARNESS_DIR" --output "$target/.kilo/rules/agentharness.md"
+                echo "  kilo -> .kilo/rules/agentharness.md" ;;
+            *)
+                echo "Error: unknown client '$c' (valid: codex, gemini, copilot, cursor, kilo, all)." >&2
+                exit 1 ;;
+        esac
+    done
+    echo "generate-clients: done"
+}
+
+# ----------------------------------------------------------------------------
 # Dispatch
 # ----------------------------------------------------------------------------
 #
@@ -1648,7 +1730,7 @@ cmd_uninstall() {
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     case "${1:-}" in
-        init|plan|status|doctor|audit|enforce-profile|update|uninstall)
+        init|plan|status|doctor|audit|enforce-profile|generate-clients|update|uninstall)
             cmd="$1"; shift
             ;;
         -h|--help)
@@ -1670,6 +1752,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     # renaming the function to something inconsistent with the rest.
     case "$cmd" in
         enforce-profile) cmd_fn="cmd_enforce_profile" ;;
+        generate-clients) cmd_fn="cmd_generate_clients" ;;
         *) cmd_fn="cmd_$cmd" ;;
     esac
     "$cmd_fn" "$@"

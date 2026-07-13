@@ -172,20 +172,16 @@ label by the review filename cited next to it, never by number alone.
 
 ### P1 — coherence and maintainability
 
-- **P1-01 — Client entry point beyond skill directories.** `init` never
-  installs/generates a project `CLAUDE.md`/`AGENTS.md`/`GEMINI.md`/etc.
-  router or wires language/framework/pattern guides into a consumer
-  project — only skills, `.gitignore`, hooks, profile, and state. The
-  cross-platform-parity work (`docs/CLIENT_COMPATIBILITY.md`) already
-  built the reusable building blocks this item would call —
-  `tools/generate-{agents,gemini}-md.sh`, `generate-copilot-instructions.sh`,
-  `generate-kilo-rules.sh`, `generate-cursor-rules.sh` — each currently a
-  manual, per-project regeneration step (see `docs/INTEGRATION.md`), not
-  wired into `init`/`update` itself. Proposed: `--client
-  claude|codex|gemini|copilot|kilo|cursor|all` invoking the matching
-  generator(s) into the consumer project with stable relative references,
-  tracked through state/update/doctor/uninstall via marked managed blocks
-  so user-owned project instructions are never overwritten.
+- **P1-01 — Client entry point beyond skill directories.** **First
+  increment done:** a `harness-link.sh generate-clients <project>
+  [--client codex|gemini|copilot|cursor|kilo|all]` subcommand now runs the
+  matching adapter generators into a consumer project in one command
+  (previously a per-generator manual step — see `docs/INTEGRATION.md`).
+  Ships standalone, the same posture `enforce-profile` did. Still open
+  (the larger managed-block part): wiring generation into `init`/`update`
+  itself, tracking generated files through state/doctor/uninstall via
+  marked managed blocks so user-owned project instructions are never
+  overwritten, and wiring language/framework/pattern guides in too.
 - **P1-02 — Complete profile enforcement for mainstream projects.**
   Largely **done**: `enforce-profile` now has real runner adapters for
   **Go** (`go test -coverprofile` + `go tool cover`) and **Vitest**

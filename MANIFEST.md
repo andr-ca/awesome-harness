@@ -96,7 +96,7 @@ they drift (`check_manifest_md_sync()` in `tools/verify-content-quality.py`).
 
 | Asset | Path | Type | When to use |
 |---|---|---|---|
-| Harness lifecycle CLI | `tools/setup/harness-link.sh` | script | init/plan/status/doctor/audit/enforce-profile/update/uninstall; link/copy/submodule modes; state tracked in `<project>/.agentharness-state.json` |
+| Harness lifecycle CLI | `tools/setup/harness-link.sh` | script | init/plan/status/doctor/audit/enforce-profile/generate-clients/update/uninstall; link/copy/submodule modes; state tracked in `<project>/.agentharness-state.json` |
 | Local check entrypoint | `tools/check.sh` | script | Runs every check CI runs (shellcheck, bats, ruff, mypy, pytest+coverage, manifest verify, skill-symlink integrity) in one command (P1-06) |
 | Skill-symlink verifier | `tools/verify-skill-symlinks.sh` | script | Verifies `.agents/skills/` stays 1:1 with `.claude/skills/` — every Agent-Skills-standard tool (Codex, Copilot, Gemini, ...) reads the symlinks, so drift silently hides a skill from them while Claude still sees it |
 | Pinned dev/CI toolchain | `requirements-dev.txt` | config | Exact pinned versions of pytest/ruff/mypy/etc. — `pip install -r requirements-dev.txt` (P1-06) |

@@ -249,7 +249,7 @@ sections:
   - asset: Harness lifecycle CLI
     path: tools/setup/harness-link.sh
     type: script
-    when_to_use: init/plan/status/doctor/audit/enforce-profile/update/uninstall; link/copy/submodule modes; state tracked in `<project>/.agentharness-state.json`
+    when_to_use: init/plan/status/doctor/audit/enforce-profile/generate-clients/update/uninstall; link/copy/submodule modes; state tracked in `<project>/.agentharness-state.json`
   - asset: Local check entrypoint
     path: tools/check.sh
     type: script

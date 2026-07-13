@@ -96,6 +96,8 @@ jobs:
         run: bats tools/tests/publish-authority.bats
       - name: Run enforce-profile tests
         run: bats tools/tests/enforce-profile.bats
+      - name: Run generate-clients tests
+        run: bats tools/tests/generate-clients.bats
 
   python-tests:
     runs-on: ubuntu-latest

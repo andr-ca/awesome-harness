@@ -46,6 +46,10 @@ just what's generated and committed here today.
 | Kilo Code | `.kilo/rules/agentharness.md` | `.agents/skills/` |
 | OpenCode / Zed | `AGENTS.md` (their own convention) | `.agents/skills/` |
 
+Generate these into a consumer project in one command with
+`harness-link.sh generate-clients <project> --client all` (P1-01 first
+increment).
+
 Every generated file is drift-checked in CI against its `CLAUDE.md` /
 `CONVENTIONS.md` / skill source. **One custom sub-agent**
 (`coding-guidelines-reviewer`) and its per-tool ports are tracked

@@ -36,12 +36,12 @@ noted — resolve any label against the review filename cited next to it in
 
 ## Client integration
 
-- **Client adapters are a manual, per-project regeneration step.**
-  `init`/`update` install skills, hooks, profile, and state, but do **not**
-  generate a consumer project's `CLAUDE.md`/`AGENTS.md`/`GEMINI.md`/
-  Copilot/Cursor/Kilo router — you re-run the matching
-  `tools/generate-*.sh` by hand (see [INTEGRATION.md](./INTEGRATION.md)).
-  → ROADMAP P1-01 (a proposed `--client` flag).
+- **Client-adapter generation isn't wired into `init`/`update` yet.**
+  `harness-link.sh generate-clients <project> --client all` now produces
+  the router/instruction files in one command, but generation is still a
+  separate step from `init`/`update`, and generated files aren't tracked
+  in state for `doctor`/`uninstall` via managed blocks. → ROADMAP P1-01
+  (first increment shipped; managed-block lifecycle integration open).
 - **Custom sub-agent tool/permission scoping is not ported.** The
   agent generators carry `name`/`description`/`model` and the body
   verbatim, but not Claude Code's `tools:` allow-list or any target
