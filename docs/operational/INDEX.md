@@ -14,16 +14,7 @@ Currently being researched, developed, or planned:
 
 Items currently under development:
 
-- `reviews/gpt-5.6-sol-3rdpass-2026-07-13T134419Z.md` — third-pass
-  independent review at `9d32ddc`, scoring the repo 7.3/10 (up from 7.0).
-  6 P0, 10 P1, 8 P2 findings. P0-01 (hook ownership through the
-  lifecycle), P0-04 (atomic install on invalid `--skills`), P0-05 (gate
-  release publication on ancestry/CI/artifact, not just version match),
-  P0-02 (npm/npx install durability, PR #20) and P0-03 (coverage-hook
-  contract, PR #21) are all fixed and merged to `main`. P0-06 (Codex
-  adapter redesign) is user-confirmed ("redesign now, trusting the
-  review's account") and in progress. All P1/P2 items remain an
-  unconfirmed backlog, not yet scoped for a decision.
+- (none yet)
 
 ## ✅ Completed & Ready
 
@@ -70,6 +61,17 @@ Documents ready to be promoted to harness or archived:
   findings that were missed on PRs #9–#15 (merged on CI status alone,
   before `CLAUDE.md` required checking comments too) plus the one Copilot
   found on PR #16 itself, which added that requirement.
+- `reviews/gpt-5.6-sol-3rdpass-2026-07-13T134419Z.md` — third-pass
+  independent review at `9d32ddc`, scoring the repo 7.3/10 (up from 7.0).
+  6 P0, 10 P1, 8 P2 findings; disposition of all of them recorded in
+  `reviews/gpt-5.6-sol-3rdpass-status.md` below.
+- `reviews/gpt-5.6-sol-3rdpass-status.md` — disposition of the review
+  above. All six P0 items fixed and merged (P0-01/04/05 directly;
+  P0-02/03/06 were product-direction decisions, confirmed by the user,
+  and shipped as PR #20, #21, #22). The 18 P1/P2 items are tracked,
+  not implemented, in `ROADMAP.md`'s "Third-Pass Review Backlog" section
+  (PR #23) — each still needs its own scoping decision before work
+  starts.
 
 ## 📚 Archives
 
