@@ -46,6 +46,15 @@ verifies the generated script is present, executable, and hasn't been
 hand-edited (a marker comment identifies it); `uninstall` removes it
 along with everything else.
 
+The generated script hardcodes the absolute path to the
+`harness-link.sh` this repo was installed *from* at generation time —
+for `--mode link`/`copy`, that's this harness checkout's own path, not
+a copy inside the project. If that checkout moves or is deleted,
+coverage enforcement fails on the next push. `update` never touches
+hooks (same convention as `--with-hook`), so recovering requires
+re-running `init --with-coverage-hook` to regenerate the script against
+a valid `harness-link.sh` path.
+
 `harness-link.sh /path/to/your-project [options]` (no subcommand) still
 works — it's sugar for `init` with those same options, kept for anything
 that already calls it that way.

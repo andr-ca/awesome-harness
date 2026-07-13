@@ -443,7 +443,7 @@ cmd_init() {
         resolve_wanted_skills "$skills_src_root" "$skills_filter" | sed 's/^/    - /'
         echo "  .gitignore: merge $HARNESS_DIR/.github/.gitignore.template (additive)"
         if [ "$coverage_hook" = true ]; then
-            echo "  Hook: install trunk-protection + a generated coverage-aware pre-push hook (mode: $mode)"
+            echo "  Hook: install trunk-protection + a generated coverage-aware pre-push hook (real files under .github/hooks, regardless of --mode)"
         elif [ "$with_hook" = true ]; then
             echo "  Hook: install trunk-protection hook only — not coverage (mode: $mode; see --with-coverage-hook)"
         fi

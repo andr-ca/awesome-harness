@@ -742,10 +742,12 @@ with open('$TEST_PROJECT/.agentharness-state.json') as f:
 import json
 with open('$TEST_PROJECT/.agentharness-state.json') as f:
     d = json.load(f)
-print(d['with_hook'])
-print(d['coverage_hook'])
+assert d['with_hook'] is True, d
+assert d['coverage_hook'] is True, d
+print('ok')
 "
-    [[ "$output" =~ "True" ]]
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "ok" ]]
 
     run bash "$SCRIPT" doctor "$TEST_PROJECT"
     [ "$status" -eq 0 ]
