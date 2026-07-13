@@ -99,21 +99,21 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements-dev.txt
       - name: Ruff (lint)
-        run: ruff check patterns/logging/config_loader.py patterns/logging/test_config_loader.py patterns/agentic-loops/agent_loop.py patterns/agentic-loops/test_agent_loop.py tools/eval/score.py tools/eval/run.py tools/verify-content-quality.py tools/tests/test_verify_content_quality.py tools/generate-manifest.py
+        run: ruff check patterns/logging/config_loader.py patterns/logging/test_config_loader.py patterns/agentic-loops/agent_loop.py patterns/agentic-loops/test_agent_loop.py tools/eval/score.py tools/eval/run.py tools/verify-content-quality.py tools/tests/test_verify_content_quality.py tools/generate-manifest.py tools/release/materialize-skill-symlinks.py
       - name: mypy (type check the non-test modules)
-        run: mypy patterns/logging/config_loader.py patterns/agentic-loops/agent_loop.py tools/eval/score.py tools/eval/run.py tools/verify-content-quality.py tools/generate-manifest.py
+        run: mypy patterns/logging/config_loader.py patterns/agentic-loops/agent_loop.py tools/eval/score.py tools/eval/run.py tools/verify-content-quality.py tools/generate-manifest.py tools/release/materialize-skill-symlinks.py
       - name: Run config_loader tests (>=80% coverage required)
         run: |
           cd patterns/logging
-          pytest test_config_loader.py --cov=config_loader --cov-fail-under=80 -v
+          pytest test_config_loader.py --cov=config_loader --cov-branch --cov-fail-under=80 -v
       - name: Run agent_loop tests (>=80% coverage required)
         run: |
           cd patterns/agentic-loops
-          pytest test_agent_loop.py --cov=agent_loop --cov-fail-under=80 -v
+          pytest test_agent_loop.py --cov=agent_loop --cov-branch --cov-fail-under=80 -v
       - name: Run eval suite tests (score.py + run.py, >=80% coverage required)
         run: |
           cd tools/eval
-          pytest tests/ --cov=score --cov=run --cov-fail-under=80 -v
+          pytest tests/ --cov=score --cov=run --cov-branch --cov-fail-under=80 -v
       - name: Run duplicate-policy detection tests (B7, no coverage gate — see tools/check.sh's comment)
         run: pytest tools/tests/test_verify_content_quality.py -v
 

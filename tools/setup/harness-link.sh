@@ -636,6 +636,7 @@ cmd_audit() {
         "tools/verify-manifest.sh"
         "tools/verify-content-quality.py"
         "tools/generate-agents-md.sh"
+        "tools/generate-manifest.py"
     )
     local validation_report=""
     local cmd_path full exists executable
@@ -779,7 +780,12 @@ enforce_js_ts_profile() {
     fi
 
     local test_script
-    test_script="$(node -p "(require('$target/package.json').scripts || {}).test || ''" 2>/dev/null)"
+    # $target is passed as an argv argument, not interpolated into the JS
+    # source string — avoids both module-resolution pitfalls (a relative
+    # path like "my-project" would otherwise be treated as a package name,
+    # not a file path, unless it happens to start with ./ or /) and
+    # string-injection risk from unusual path characters (quotes, etc.).
+    test_script="$(node -p "(require(process.argv[1] + '/package.json').scripts || {}).test || ''" "$target" 2>/dev/null)"
 
     if [ -z "$test_script" ]; then
         echo "Error: no 'test' script defined in package.json — cannot enforce the '$profile_name' tier's test requirement." >&2
@@ -814,7 +820,7 @@ enforce_js_ts_profile() {
         return 1
     fi
 
-    if (( $(echo "$pct < $coverage_min" | bc -l) )); then
+    if awk -v pct="$pct" -v min="$coverage_min" 'BEGIN { exit !(pct < min) }'; then
         echo "Coverage $pct% is below the '$profile_name' tier's minimum of $coverage_min%."
         return 1
     fi
@@ -866,7 +872,7 @@ cmd_enforce_profile() {
         echo "  Python project detected; tests.required: true, coverage_min: ${coverage_min:-none}"
         local pytest_args=(-q)
         if [ -n "$coverage_min" ]; then
-            pytest_args+=("--cov=$target" "--cov-fail-under=$coverage_min")
+            pytest_args+=("--cov=$target" "--cov-branch" "--cov-fail-under=$coverage_min")
         fi
         (cd "$target" && python3 -m pytest "${pytest_args[@]}")
         return

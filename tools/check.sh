@@ -68,21 +68,22 @@ ruff check patterns/logging/config_loader.py patterns/logging/test_config_loader
     patterns/agentic-loops/agent_loop.py patterns/agentic-loops/test_agent_loop.py \
     tools/eval/score.py tools/eval/run.py \
     tools/verify-content-quality.py tools/tests/test_verify_content_quality.py \
-    tools/generate-manifest.py
+    tools/generate-manifest.py tools/release/materialize-skill-symlinks.py
 
 step "mypy"
 mypy patterns/logging/config_loader.py patterns/agentic-loops/agent_loop.py \
     tools/eval/score.py tools/eval/run.py tools/verify-content-quality.py \
+    tools/release/materialize-skill-symlinks.py \
     tools/generate-manifest.py
 
 step "pytest: config_loader (>=80% coverage)"
-(cd patterns/logging && python3 -m pytest test_config_loader.py --cov=config_loader --cov-fail-under=80 -q)
+(cd patterns/logging && python3 -m pytest test_config_loader.py --cov=config_loader --cov-branch --cov-fail-under=80 -q)
 
 step "pytest: agent_loop (>=80% coverage)"
-(cd patterns/agentic-loops && python3 -m pytest test_agent_loop.py --cov=agent_loop --cov-fail-under=80 -q)
+(cd patterns/agentic-loops && python3 -m pytest test_agent_loop.py --cov=agent_loop --cov-branch --cov-fail-under=80 -q)
 
 step "pytest: eval suite score.py + run.py (>=80% coverage; requires go for the go-error-handling task)"
-(cd tools/eval && python3 -m pytest tests/ --cov=score --cov=run --cov-fail-under=80 -q)
+(cd tools/eval && python3 -m pytest tests/ --cov=score --cov=run --cov-branch --cov-fail-under=80 -q)
 
 step "pytest: duplicate-policy detection (tools/tests/test_verify_content_quality.py)"
 # No --cov-fail-under here: this file tests only check_duplicate_policy_
