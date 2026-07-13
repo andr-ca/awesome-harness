@@ -144,14 +144,22 @@ EOF
 }
 
 write_undercovered_js_project() {
-    # add() is tested; subtract() is not — coverage lands well under 80%.
+    # add() is tested; subtract/multiply/divide are not — Node's exact
+    # per-version coverage-counting methodology (V8 internals) shifts the
+    # precise percentage a couple of points either way, so this needs a
+    # wide margin below 80%, not just barely under it (a 1-of-2-function
+    # fixture measured 66.67% on Node 24 locally but landed >=80% on the
+    # CI runner's pinned Node 20 — same lesson as the Python fixture's
+    # 1-of-4 ratio above).
     cat > "$TEST_PROJECT/package.json" <<'EOF'
 {"name": "fixture", "scripts": {"test": "node --test --experimental-test-coverage"}}
 EOF
     cat > "$TEST_PROJECT/mod.js" <<'EOF'
 function add(a, b) { return a + b; }
 function subtract(a, b) { return a - b; }
-module.exports = { add, subtract };
+function multiply(a, b) { return a * b; }
+function divide(a, b) { return a / b; }
+module.exports = { add, subtract, multiply, divide };
 EOF
     cat > "$TEST_PROJECT/mod.test.js" <<'EOF'
 const test = require('node:test');
