@@ -148,3 +148,152 @@ follow the same template.
   authorization — see `docs/DECISIONS.md` and
   `docs/operational/reviews/gpt-5.6-completion-reaudit-status.md` for the
   scoping question this resolved.
+
+## Third-Pass Review Backlog (P1/P2, 2026-07-13)
+
+Tracked here per the user's explicit choice ("turn the whole set into a
+tracked roadmap") after
+`docs/operational/reviews/gpt-5.6-sol-3rdpass-2026-07-13T134419Z.md`'s
+P0 items were fixed (P0-01, P0-04, P0-05 directly; P0-02, P0-03, P0-06
+were product-direction decisions, confirmed by the user, and shipped —
+see the review's own P0-06 section and
+`docs/operational/reviews/gpt-5.6-sol-3rdpass-status.md` for what each
+one changed).
+This is a documentation-only pass — none of the following is scoped or
+authorized for implementation yet; each still needs its own scoping
+decision before work starts, per `CLAUDE.md`'s Recommendation Assessment
+mandate. **These P1-XX/P2-XX labels are this specific review's own
+numbering** — they collide with unrelated P1-XX/P2-XX labels cited
+elsewhere in this file from earlier review rounds (e.g. `P1-05`, `P1-08`,
+`P2-05` above refer to a different, older review); always resolve a
+label by the review filename cited next to it, never by number alone.
+
+### P1 — coherence and maintainability
+
+- **P1-01 — Client entry point beyond skill directories.** `init` never
+  installs/generates a project `CLAUDE.md`/`AGENTS.md` router or wires
+  language/framework/pattern guides — only skills, `.gitignore`, hooks,
+  profile, and state. Proposed: `--client claude|codex|both` generating a
+  small repo-local router with stable relative references, tracked
+  through state/update/doctor/uninstall via marked managed blocks so
+  user-owned project instructions are never overwritten.
+- **P1-02 — Complete profile enforcement for mainstream projects.** Go
+  and non-`node --test` JS/TS runners (Vitest/Jest/Mocha) still exit 0 as
+  unsupported. Proposed: runner adapters with explicit commands and
+  machine-readable results for Go plus one mainstream JS runner, and a
+  `--strict` flag so CI can fail on "unsupported" instead of passing.
+- **P1-03 — Fix profile/workflow documentation drift.** Several concrete
+  contradictions found: `.github/CODING_GUIDELINES.md` calls profile
+  enforcement "advisory only" (false — see `enforce-profile`);
+  `docs/DEMO.md` calls the authority model an "open question" (settled,
+  see B1 above); `docs/RELEASING.md` names `v0.1.0` as current (superseded
+  by `v0.2.0`); `docs/DECISIONS.md` describes npm publishing as
+  simultaneously "in progress" and completed. Proposed: a generated
+  current-capabilities table (client × install mode × enforcement ×
+  distribution × verification) plus targeted contradiction tests — the
+  numeric-only duplicate detector (B7) can't catch these semantic
+  conflicts.
+- **P1-04 — Decouple package materialization from writable Git
+  metadata.** `materialize-skill-symlinks.py restore` uses `git
+  checkout`, so it fails (and can leave file-type changes behind) in a
+  restricted or non-Git source package. Proposed: restore from an
+  on-disk backup `materialize` itself creates, not from Git, and test
+  against an isolated fixture.
+- **P1-05 (this review's numbering) — Make tests hermetic by default.**
+  Submodule lifecycle tests clone the checkout's configured `origin`
+  (live SSH GitHub dependency in the shared checkout); the Go scorer
+  assumes a writable default Go cache; markdown lint may invoke `npx`
+  network resolution. Proposed: a local bare fixture remote for submodule
+  tests, temporary language caches inside the harness, and a
+  `check:offline` split from any check that genuinely needs the network.
+- **P1-06 — Test lifecycle transitions, not just happy-state snapshots.**
+  The hook-ownership defect (fixed as P0-01) survived because tests
+  checked init and uninstall in isolation, not sequences with external
+  state changes between them. Proposed: state-machine tests for install
+  → user modification → doctor → update → uninstall across hook
+  conflict, moved source, partial install, removed skill, profile edit,
+  package upgrade, and repeated uninstall.
+- **P1-07 — Make `update` previews match the documentation.** Docs claim
+  copy-mode `update` "shows a diff"; current output only lists changed
+  skill names (`~ content changed upstream`), no content diff. Proposed:
+  `update --diff`/`plan` with bounded diffs, confirmation operating on
+  the exact previewed plan, and separate detection of consumer-local
+  edits vs. upstream changes instead of one generic "changed" label.
+- **P1-08 (this review's numbering) — Reconcile universal policy with
+  language/product reality.** The "universal" coding guide mandates
+  camelCase functions, global UI capitalization rules, and JS-specific
+  arrow-function style — preferences, not cross-language invariants, and
+  they can conflict with a consuming project's own formatters/design
+  system. Proposed: shrink the universal policy to genuine cross-language
+  invariants; move naming/UI/style/testing-framework/logging-stack
+  choices into language/framework/profile modules with explicit
+  precedence and conflict examples.
+- **P1-09 (this review's numbering) — Give managed state a
+  compatibility/migration contract.** The state file declares `version:
+  1` with no migration machinery or test matrix proving a newer CLI can
+  read/update/uninstall older released state. Proposed: keep state
+  fixtures from every release, add forward migration plus clear
+  unsupported-version errors, and exercise v0.1/v0.2 → current
+  update/uninstall in CI.
+- **P1-10 — Consolidate operational review history.** The review/status
+  chain is valuable but long, repetitive, and easy to read out of
+  chronological context; several current docs link deep into old status
+  reports just to describe present behavior. Proposed: one maintained
+  `docs/STATUS.md`/`KNOWN_LIMITATIONS.md` with current capabilities and
+  open gaps, archiving completed review cycles under dated directories
+  (immutable history, off the normal onboarding route).
+
+### P2 — prove usefulness and improve adoption
+
+- **P2-01 — Run real baseline/treatment GPT-5 evaluations.** The
+  deterministic eval-suite infrastructure already shipped this session
+  (an earlier review round's own "P2-04" — unrelated to this review's
+  P2-04 label below) is infrastructure, not evidence the harness helps.
+  Proposed: a pluggable live runner
+  outside the core package, pinned model/prompt versions, multiple seeds,
+  recorded cost/turns/context/test score, published raw results, and
+  tasks that test policy adherence and instruction conflicts, not just
+  final code correctness.
+- **P2-02 (this review's numbering) — Dogfood in real repositories.**
+  Same substance as the already-tracked "P2-05 (real dogfood) has no
+  target" entry above (different review's numbering, same gap): adopt a
+  pinned release in at least two non-fixture repos with a different
+  stack and a user other than the author, tracking install time,
+  overrides, false positives, update friction, context cost, and
+  abandoned features.
+- **P2-03 (this review's numbering) — Measure instruction quality, not
+  just file correctness.** Proposed evals: correct skill triggering,
+  irrelevant-skill avoidance, rule precedence, refusal to publish without
+  authority, existing-hook preservation, and resistance to malicious
+  instruction changes — named as the product's actual differentiator.
+- **P2-04 (this review's numbering) — Add a policy provenance model.**
+  For each normative rule: owner/source, rationale, applicability,
+  enforcement mechanism, last review date, as structured data (the
+  semantic equivalent of the already-shipped generated-`MANIFEST.md`
+  work, `manifest.yaml` + `tools/generate-manifest.py`). Human guides
+  would be generated from, or validated against, that catalog.
+- **P2-05 (this review's numbering) — Composable presets instead of one
+  global opinion set.** Proposed: a minimal safety core plus opt-in
+  modules (`git-safe`, `python-production`, `typescript-node`,
+  `observability`, `agent-runtime-reference`) so a team can adopt one
+  useful slice without inheriting UI capitalization, publication
+  workflow, or unrelated language preferences.
+- **P2-06 (this review's numbering) — Improve distribution fit for agent
+  ecosystems.** Evaluate a native Claude plugin and native Codex
+  skill/plugin distribution against npm — npm is a convenient launcher
+  but an unusual delivery channel for Markdown policy content, and
+  requires Node plus Bash plus Python. Choose channels based on measured
+  onboarding success, not ubiquity alone.
+- **P2-07 — Add telemetry-free local adoption diagnostics.** Extend
+  `audit --json` (already reports `publish_mode_active`/`selected_profile`/
+  `validation_commands` — see `tools/tests/harness-lifecycle.bats`'s
+  `audit --json reports publish_mode_active, selected_profile, and
+  validation_commands` tests) to also report client adapter freshness,
+  managed router state (once P1-01 exists), unsupported profile runner,
+  broken/stale package source, hook ownership, and state-schema version —
+  local and deterministic, no remote telemetry.
+- **P2-08 — Publish a concise comparison and migration story.** Explain
+  when to use agentharness versus a single `CLAUDE.md`/`AGENTS.md`, a
+  native agent plugin, dotfiles, a submodule of policy docs, or an
+  organization template — including the smallest migration from one
+  existing project and its ongoing maintenance cost.
