@@ -45,27 +45,33 @@ account/org, the `agentharness` name confirmed available, and an
 `NPM_TOKEN` repo secret, none of which this repo's own tooling can
 create for itself. See `docs/RELEASING.md#npm-distribution`.
 
-## Mandatory commit/push/PR as the default agent workflow completion
+## Publish authority split from workflow completion, gated by an opt-in flag
 
-**Status:** Open question, not settled — see
-`docs/operational/reviews/gpt-5.6-completion-reaudit-status.md`.
+**Status:** Settled (resolved 2026-07-13; previously open, see
+`docs/operational/reviews/gpt-5.6-completion-reaudit-status.md`).
 
 **Context:** `CLAUDE.md`'s "Agent Workflow Completion (MANDATORY)"
-section directs an agent to always finish a task by committing, pushing,
-and opening a PR, and (per the Recommendation Assessment section)
-implement scoped/low-risk recommendations without asking first. This
-was written to stop "work in progress that isn't pushed is work that
-doesn't exist" — silently-abandoned agent work — but it also means the
-harness's *default* posture grants an agent standing write/publish
-authority, with no built-in opt-out for a reviewer who wants an agent to
-stop at inspection.
+section used to direct an agent to always finish a task by committing,
+pushing, and opening a PR, and (per the Recommendation Assessment
+section) implement scoped/low-risk recommendations without asking
+first. This was written to stop "work in progress that isn't pushed is
+work that doesn't exist" — silently-abandoned agent work — but it also
+meant the harness's *default* posture granted an agent standing
+write/publish authority, with no built-in opt-out for a reviewer who
+wanted an agent to stop at inspection. The 2026-07-13 re-audit named
+this the one unresolved P0-level trust-model gap in the repo; the user
+confirmed splitting it into an opt-in profile.
 
-**Consequences:** every agent session that loads this `CLAUDE.md` starts
-with remote-write authority by default. The 2026-07-13 re-audit named
-this the one unresolved P0-level trust-model gap in the repo. Whether to
-split "inspect/edit" from "commit/push/publish" into a separate opt-in
-profile is a product-direction decision, not a bug fix — pending user
-confirmation before any change.
+**Consequences:** the default is now verify-and-stage-only — an agent
+commits locally but stops before push/PR/auto-implement and asks first.
+Full publish authority (the original always-on behavior) now requires
+either a local, gitignored `.agentharness-publish-mode` flag file at the
+repo root, or explicit standing authorization in the current
+conversation (which always overrides the flag, matching the existing
+rigor-tier precedence pattern). See `CLAUDE.md`'s "Agent Workflow
+Completion" and "Publish authority" sections, and
+`docs/INTEGRATION.md`'s "Publish Authority" section for how to grant or
+revoke it in a given repo.
 
 ## Hand-maintained MANIFEST.md with a bidirectional verifier, not a generated one
 

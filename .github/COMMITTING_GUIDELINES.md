@@ -9,17 +9,20 @@ Standards for git commits that maintain clean history, respect project configura
 
 ## Core Rules
 
-### For Agents: Workflow Completion is MANDATORY
+### For Agents: Workflow Completion
 
-**An agent must always complete the full workflow—no partial work.**
+See `CLAUDE.md`'s "Agent Workflow Completion" section for the current
+default (verify + stage locally, then stop and ask before publishing)
+and what grants full publish authority (commit → push → PR, in that
+order). Not restated here — this file just adds the mechanics once
+publish authority applies:
 
-- ✅ Work is NOT done until pushed to remote with a PR created
-- ✅ Every task ends with: commit → push → PR (in that order)
-- ✅ Never claim work is complete without a PR link in the response
 - ✅ Commits must be on a feature branch, never directly on trunk
 - ✅ PR must have clear title, body, and reference to the task/issue
-
-If an agent says "work is complete" but there's no PR, the work is incomplete.
+- ✅ Never claim work is "complete" (in the full-publish sense) without a
+  PR link in the response — under the default (no publish authority),
+  "complete" means verified and staged, and the response should say so
+  explicitly rather than implying a PR exists
 
 **When implementing recommendations:**
 - Create a `{recommendations}-status.md` file documenting what was implemented

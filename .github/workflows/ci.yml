@@ -73,6 +73,8 @@ jobs:
         run: bats tools/tests/generate-agents-md.bats
       - name: Run symlink materializer tests
         run: bats tools/tests/materialize-skill-symlinks.bats
+      - name: Run publish-authority flag tests
+        run: bats tools/tests/publish-authority.bats
 
   python-tests:
     runs-on: ubuntu-latest

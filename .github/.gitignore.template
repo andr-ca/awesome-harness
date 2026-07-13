@@ -195,6 +195,16 @@ logs/
 *.db-journal
 
 # ============================================================================
+# AGENTHARNESS
+# ============================================================================
+# .agentharness-profile (rigor tier) IS committed — a project's declared
+# tier is repo policy, not a secret. .agentharness-publish-mode is NOT —
+# it's a per-operator/per-machine grant of standing commit/push/PR
+# authority to an agent reading this repo's CLAUDE.md (see CLAUDE.md's
+# "Publish authority" section). Never commit it.
+.agentharness-publish-mode
+
+# ============================================================================
 # VERSION PIN FILES — DO NOT IGNORE (commit these)
 # ============================================================================
 # .nvmrc, .python-version, .ruby-version, .node-version document the exact
