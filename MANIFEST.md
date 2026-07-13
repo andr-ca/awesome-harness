@@ -35,7 +35,7 @@ generator script yet (see ROADMAP.md).
 | Asset | Path | Type | When to use |
 |---|---|---|---|
 | Rigor tiers | `.github/CODING_GUIDELINES.md#rigor-tiers` | policy | **Read first** — decides which mandates below actually apply to the code you're writing |
-| Rigor-tier profiles | `patterns/profiles/README.md` | guide | Selecting a tier via `.agentharness-profile`, precedence order, current state of enforcement (advisory only) |
+| Rigor-tier profiles | `patterns/profiles/README.md` | guide | Selecting a tier via `.agentharness-profile`, precedence order, current enforcement state (Python-only via `enforce-profile`, advisory for other project types) |
 | Prototype profile | `patterns/profiles/prototype.yaml` | config | Machine-readable form of the Rigor Tiers table's Prototype column |
 | Internal profile | `patterns/profiles/internal.yaml` | config | Machine-readable form of the Rigor Tiers table's Internal Tool column |
 | Production profile | `patterns/profiles/production.yaml` | config | Machine-readable form of the Rigor Tiers table's Production Service column |
@@ -93,7 +93,7 @@ generator script yet (see ROADMAP.md).
 
 | Asset | Path | Type | When to use |
 |---|---|---|---|
-| Harness lifecycle CLI | `tools/setup/harness-link.sh` | script | init/plan/status/doctor/audit/update/uninstall; link/copy/submodule modes; state tracked in `<project>/.agentharness-state.json` |
+| Harness lifecycle CLI | `tools/setup/harness-link.sh` | script | init/plan/status/doctor/audit/enforce-profile/update/uninstall; link/copy/submodule modes; state tracked in `<project>/.agentharness-state.json` |
 | Local check entrypoint | `tools/check.sh` | script | Runs every check CI runs (shellcheck, bats, ruff, mypy, pytest+coverage, manifest verify) in one command (P1-06) |
 | Pinned dev/CI toolchain | `requirements-dev.txt` | config | Exact pinned versions of pytest/ruff/mypy/etc. — `pip install -r requirements-dev.txt` (P1-06) |
 | Sample project | `examples/sample-project/` | project | Blank/generic fixture; demonstrates harness integration, validates INTEGRATION.md commands work |

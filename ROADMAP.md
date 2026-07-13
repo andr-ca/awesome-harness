@@ -91,15 +91,19 @@ follow the same template.
   environment variable interpolation. Documentation integrated into
   `LOGGING_STANDARDS.md`.
 
-- **Profile-enforcement wiring in `.github/hooks/pre-push`.** Not started.
-  `patterns/profiles/` defines `.agentharness-profile` (prototype/internal/
-  production) as a lookup a project or agent can consult, but no script
-  reads it yet. The hook currently only ever runs *this* repo's own
-  hardcoded test suites and no-ops for a consumer's push, so there's
-  nothing for a profile to gate there today. Wiring this up depends on
-  the hook (or a successor lifecycle CLI) first learning to discover and
-  run a *consumer's own* test suite — do both together, not the gate
-  alone with nothing real to enforce.
+- **Profile-enforcement wiring in `.github/hooks/pre-push`, and
+  non-Python enforcement.** Partially done. `harness-link.sh
+  enforce-profile` (B4) reads `.agentharness-profile` and gates on it
+  for real, but only for detected Python projects
+  (`pytest --cov-fail-under` at the selected tier's `coverage_min`) —
+  Go, TypeScript, and other project types still get "not implemented
+  yet" and a clean exit 0. Also still not started: wiring
+  `enforce-profile` into `.github/hooks/pre-push` itself. The hook
+  currently only ever runs *this* repo's own hardcoded test suites and
+  no-ops for a consumer's push; changing that default for every project
+  that already has `--with-hook` installed is its own decision, kept
+  separate from shipping the enforcement logic itself (see
+  `patterns/profiles/README.md`'s "Current state").
 
 - **Duplicate-policy detection in CI (part of P1-08).** Not started.
   The rest of P1-08's content-quality gate is implemented (`git diff

@@ -57,6 +57,9 @@ bats tools/tests/materialize-skill-symlinks.bats
 step "bats: tools/tests/publish-authority.bats"
 bats tools/tests/publish-authority.bats
 
+step "bats: tools/tests/enforce-profile.bats"
+bats tools/tests/enforce-profile.bats
+
 step "ruff"
 ruff check patterns/logging/config_loader.py patterns/logging/test_config_loader.py \
     patterns/agentic-loops/agent_loop.py patterns/agentic-loops/test_agent_loop.py \
