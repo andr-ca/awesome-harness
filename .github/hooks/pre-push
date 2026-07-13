@@ -66,7 +66,7 @@ echo ""
 export AGENTHARNESS_PRE_PUSH_RUNNING=1
 
 if command -v bats >/dev/null 2>&1; then
-    for suite in .github/hooks/tests/ tools/tests/harness-link.bats tools/tests/harness-lifecycle.bats tools/tests/generate-agents-md.bats tools/tests/materialize-skill-symlinks.bats; do
+    for suite in .github/hooks/tests/ tools/tests/harness-link.bats tools/tests/harness-lifecycle.bats tools/tests/generate-agents-md.bats tools/tests/generate-manifest.bats tools/tests/materialize-skill-symlinks.bats tools/tests/publish-authority.bats tools/tests/enforce-profile.bats; do
         [ -e "$suite" ] || continue
         echo "-> bats: $suite"
         if ! bats "$suite"; then

@@ -91,30 +91,33 @@ follow the same template.
   environment variable interpolation. Documentation integrated into
   `LOGGING_STANDARDS.md`.
 
-- **Profile-enforcement wiring in `.github/hooks/pre-push`.** Not started.
-  `patterns/profiles/` defines `.agentharness-profile` (prototype/internal/
-  production) as a lookup a project or agent can consult, but no script
-  reads it yet. The hook currently only ever runs *this* repo's own
-  hardcoded test suites and no-ops for a consumer's push, so there's
-  nothing for a profile to gate there today. Wiring this up depends on
-  the hook (or a successor lifecycle CLI) first learning to discover and
-  run a *consumer's own* test suite — do both together, not the gate
-  alone with nothing real to enforce.
+- **Profile-enforcement wiring in `.github/hooks/pre-push`, and
+  non-Python enforcement.** Partially done. `harness-link.sh
+  enforce-profile` (B4) reads `.agentharness-profile` and gates on it
+  for real, but only for detected Python projects
+  (`pytest --cov-fail-under` at the selected tier's `coverage_min`) —
+  Go, TypeScript, and other project types still get "not implemented
+  yet" and a clean exit 0. Also still not started: wiring
+  `enforce-profile` into `.github/hooks/pre-push` itself. The hook
+  currently only ever runs *this* repo's own hardcoded test suites and
+  no-ops for a consumer's push; changing that default for every project
+  that already has `--with-hook` installed is its own decision, kept
+  separate from shipping the enforcement logic itself (see
+  `patterns/profiles/README.md`'s "Current state").
 
-- **Duplicate-policy detection in CI (part of P1-08).** Not started.
-  The rest of P1-08's content-quality gate is implemented (`git diff
-  --check`, markdownlint, YAML/frontmatter validation, tested-snippet
-  syntax checks — see `.github/workflows/ci.yml`'s `content-quality` job).
-  Automated detection of the *same rule restated with a different number*
-  across docs (this repo's actual "one source of truth per rule" bug
-  class) was originally deferred until after P1-10 consolidated the
-  testing/logging policy docs. P1-10 and P2-06 (the encyclopedia-reduction
-  pass) are both now done, so the blocking condition is resolved, but the
-  detector itself is still unbuilt — see
-  `docs/operational/reviews/gpt-5.6-completion-reaudit-status.md` for the
-  scoping question this needs before work starts (still needs to avoid
-  hard-failing on legitimate cross-references vs. an allow-list too
-  narrow to catch anything new).
+- ~~Duplicate-policy detection in CI (part of P1-08).~~ — **IMPLEMENTED**
+  (B7). `check_duplicate_policy_numbers()` in
+  `tools/verify-content-quality.py` flags a numeric mandate (currently:
+  the test-coverage percentage) restated with a *different* number
+  outside its source of truth, using a small extensible registry rather
+  than general-purpose duplicate-content detection. Deliberately does
+  **not** flag every restatement of the *same* number (e.g.
+  `patterns/testing/COMPLETION_CHECKLIST.md`'s dozen legitimate "80%"
+  mentions) — only a genuine conflict, which is unambiguous regardless of
+  phrasing. Non-numeric policy-restatement detection (e.g. the
+  trunk/main-commit prohibition) remains unbuilt; a "different number"
+  isn't a meaningful concept for a binary rule, so it needs a different
+  detection approach, not an extension of this one.
 
 - **P2-05 (real dogfood) has no target.** Confirmed still not done as of
   the 2026-07-13 re-audit (`gpt-5.6-completion-reaudit.md`): no evidence

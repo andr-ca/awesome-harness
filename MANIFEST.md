@@ -4,8 +4,9 @@ Machine-readable-ish index of every real asset in this repo. One line per
 item: what it is, where it lives, when to read it. If it's not listed here,
 it doesn't exist yet — check [ROADMAP.md](ROADMAP.md) for planned work.
 
-Regenerate mentally whenever you add/remove a top-level doc; there's no
-generator script yet (see ROADMAP.md).
+Generated from `manifest.yaml` by `tools/generate-manifest.py` — edit
+that file, not this one, and run the generator to regenerate. CI fails if
+they drift (`check_manifest_md_sync()` in `tools/verify-content-quality.py`).
 
 ## Git / Workflow
 
@@ -35,7 +36,7 @@ generator script yet (see ROADMAP.md).
 | Asset | Path | Type | When to use |
 |---|---|---|---|
 | Rigor tiers | `.github/CODING_GUIDELINES.md#rigor-tiers` | policy | **Read first** — decides which mandates below actually apply to the code you're writing |
-| Rigor-tier profiles | `patterns/profiles/README.md` | guide | Selecting a tier via `.agentharness-profile`, precedence order, current state of enforcement (advisory only) |
+| Rigor-tier profiles | `patterns/profiles/README.md` | guide | Selecting a tier via `.agentharness-profile`, precedence order, current enforcement state (Python-only via `enforce-profile`, advisory for other project types) |
 | Prototype profile | `patterns/profiles/prototype.yaml` | config | Machine-readable form of the Rigor Tiers table's Prototype column |
 | Internal profile | `patterns/profiles/internal.yaml` | config | Machine-readable form of the Rigor Tiers table's Internal Tool column |
 | Production profile | `patterns/profiles/production.yaml` | config | Machine-readable form of the Rigor Tiers table's Production Service column |
@@ -93,7 +94,7 @@ generator script yet (see ROADMAP.md).
 
 | Asset | Path | Type | When to use |
 |---|---|---|---|
-| Harness lifecycle CLI | `tools/setup/harness-link.sh` | script | init/plan/status/doctor/audit/update/uninstall; link/copy/submodule modes; state tracked in `<project>/.agentharness-state.json` |
+| Harness lifecycle CLI | `tools/setup/harness-link.sh` | script | init/plan/status/doctor/audit/enforce-profile/update/uninstall; link/copy/submodule modes; state tracked in `<project>/.agentharness-state.json` |
 | Local check entrypoint | `tools/check.sh` | script | Runs every check CI runs (shellcheck, bats, ruff, mypy, pytest+coverage, manifest verify) in one command (P1-06) |
 | Pinned dev/CI toolchain | `requirements-dev.txt` | config | Exact pinned versions of pytest/ruff/mypy/etc. — `pip install -r requirements-dev.txt` (P1-06) |
 | Sample project | `examples/sample-project/` | project | Blank/generic fixture; demonstrates harness integration, validates INTEGRATION.md commands work |
@@ -104,6 +105,8 @@ generator script yet (see ROADMAP.md).
 | npm package manifest | `package.json` | config | `files` allowlist for `npm publish`; `bin.agentharness` entry point; see `docs/RELEASING.md#npm-distribution` for what's built vs. not-yet-published |
 | npm CLI shim | `bin/cli.js` | script | Execs `tools/setup/harness-link.sh` from an npm/npx install; fails clearly if `bash`/`python3` are missing |
 | Symlink materializer | `tools/release/materialize-skill-symlinks.py` | script | `prepack`/`postpack` hook — npm tarballs don't preserve symlinks, so bundled-resource symlinks (e.g. `agentic-loops`'s) are copied to real files before packing, then restored via `git checkout` |
+| Manifest source of truth | `manifest.yaml` | config | Structured source MANIFEST.md is generated from (B2) — edit this, not MANIFEST.md directly |
+| MANIFEST.md generator | `tools/generate-manifest.py` | script | Renders MANIFEST.md from manifest.yaml; drift-checked in CI the same way tools/generate-agents-md.sh is (B2) |
 
 ## GitHub Configuration
 
@@ -114,7 +117,8 @@ generator script yet (see ROADMAP.md).
 | Scheduled link check | `.github/workflows/link-check-scheduled.yml` | workflow | Weekly online external-link validation, separate from the offline PR gate (P1-08) |
 | Release workflow | `.github/workflows/release.yml` | workflow | Runs `npm publish` on a `v*` tag push; inert until `NPM_TOKEN` secret exists (P2-03) |
 | Markdownlint config | `.markdownlint-cli2.yaml` | config | Rules enforced in CI's content-quality job; documents why purely-stylistic rules are off (P1-08) |
-| Content-quality checker | `tools/verify-content-quality.py` | script | YAML validity, skill frontmatter schema, tested-snippet syntax (P1-08); also checks `AGENTS.md` sync (P2-02) |
+| Content-quality checker | `tools/verify-content-quality.py` | script | YAML validity, skill frontmatter schema, tested Python/bash/console-snippet syntax (P1-08, B3); `AGENTS.md` sync (P2-02); duplicate-policy number detection (B7); `MANIFEST.md` sync (B2) |
+| Content-quality checker tests | `tools/tests/test_verify_content_quality.py` | tests | Tests for `check_duplicate_policy_numbers()` (real conflicts vs. measured-result/cross-reference/fenced-example false positives, B7) and `check_bash_snippets()`/`check_console_snippets()` (real syntax errors caught, B3) |
 | AGENTS.md generator | `tools/generate-agents-md.sh` | script | Builds the Codex adapter from `CLAUDE.md` + `.claude/skills/` (P2-02) |
 
 ## Meta

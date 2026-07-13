@@ -138,6 +138,95 @@ print('ok')
     [[ "$output" =~ "ok" ]]
 }
 
+@test "lifecycle: audit --json reports publish_mode_active, selected_profile, and validation_commands (B5)" {
+    bash "$SCRIPT" init "$TEST_PROJECT" --skills committing --profile internal
+    touch "$TEST_PROJECT/.agentharness-publish-mode"
+
+    run bash "$SCRIPT" audit "$TEST_PROJECT" --json
+    [ "$status" -eq 0 ]
+
+    run python3 -c "
+import json
+d = json.loads('''$output''')
+assert d['publish_mode_active'] is True, d
+assert d['selected_profile'] == 'internal', d
+cmds = {c['command']: c for c in d['validation_commands']}
+assert cmds['tools/check.sh']['exists'] is True, d
+assert cmds['tools/check.sh']['executable'] is True, d
+print('ok')
+"
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "ok" ]]
+}
+
+@test "lifecycle: audit --json reports publish_mode_active false and profile default when neither is set" {
+    bash "$SCRIPT" init "$TEST_PROJECT" --skills committing
+
+    run bash "$SCRIPT" audit "$TEST_PROJECT" --json
+    [ "$status" -eq 0 ]
+
+    run python3 -c "
+import json
+d = json.loads('''$output''')
+assert d['publish_mode_active'] is False, d
+assert d['selected_profile'] == 'none (defaults to production)', d
+print('ok')
+"
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "ok" ]]
+}
+
+@test "lifecycle: audit --json flags a validation command as missing when the harness checkout is missing it" {
+    bash "$SCRIPT" init "$TEST_PROJECT" --skills committing
+    source_path="$(python3 -c "
+import json
+print(json.load(open('$TEST_PROJECT/.agentharness-state.json'))['source']['path'])
+")"
+    # Point the recorded source at a fake harness checkout that's missing
+    # one of the validation commands, without touching the real one.
+    fake_source=$(mktemp -d)
+    cp -r "$source_path/.claude" "$source_path/patterns" "$source_path/languages" "$source_path/frameworks" "$fake_source/" 2>/dev/null || true
+    mkdir -p "$fake_source/tools/setup"
+    cp "$source_path/tools/check.sh" "$fake_source/tools/check.sh"
+    cp "$source_path/tools/setup/harness-link.sh" "$fake_source/tools/setup/harness-link.sh"
+    # Deliberately omit verify-manifest.sh, verify-content-quality.py, generate-agents-md.sh
+    python3 -c "
+import json
+p = '$TEST_PROJECT/.agentharness-state.json'
+d = json.load(open(p))
+d['source']['path'] = '$fake_source'
+json.dump(d, open(p, 'w'))
+"
+
+    run bash "$SCRIPT" audit "$TEST_PROJECT" --json
+    [ "$status" -eq 0 ]
+
+    run python3 -c "
+import json
+d = json.loads('''$output''')
+cmds = {c['command']: c for c in d['validation_commands']}
+assert cmds['tools/verify-manifest.sh']['exists'] is False, d
+assert cmds['tools/check.sh']['exists'] is True, d
+print('ok')
+"
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "ok" ]]
+    rm -rf "$fake_source"
+}
+
+@test "lifecycle: audit text mode shows selected profile, publish-authority flag, and validation commands" {
+    bash "$SCRIPT" init "$TEST_PROJECT" --skills committing --profile production
+    touch "$TEST_PROJECT/.agentharness-publish-mode"
+
+    run bash "$SCRIPT" audit "$TEST_PROJECT"
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "Selected profile: production" ]]
+    [[ "$output" =~ "Publish-authority flag active: true" ]]
+    [[ "$output" =~ "Validation commands" ]]
+    [[ "$output" =~ "tools/check.sh" ]]
+    [[ "$output" =~ "verify-content-quality.py" ]]
+}
+
 @test "lifecycle: update adds newly-in-scope skills and refreshes the state file" {
     bash "$SCRIPT" init "$TEST_PROJECT" --skills committing
     # Simulate "install was set to track all skills, and a new one has since

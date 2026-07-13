@@ -71,8 +71,14 @@ jobs:
         run: bats tools/tests/harness-lifecycle.bats
       - name: Run AGENTS.md generator tests
         run: bats tools/tests/generate-agents-md.bats
+      - name: Run MANIFEST.md generator tests
+        run: bats tools/tests/generate-manifest.bats
       - name: Run symlink materializer tests
         run: bats tools/tests/materialize-skill-symlinks.bats
+      - name: Run publish-authority flag tests
+        run: bats tools/tests/publish-authority.bats
+      - name: Run enforce-profile tests
+        run: bats tools/tests/enforce-profile.bats
 
   python-tests:
     runs-on: ubuntu-latest
@@ -88,9 +94,9 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements-dev.txt
       - name: Ruff (lint)
-        run: ruff check patterns/logging/config_loader.py patterns/logging/test_config_loader.py patterns/agentic-loops/agent_loop.py patterns/agentic-loops/test_agent_loop.py tools/eval/score.py tools/eval/run.py
+        run: ruff check patterns/logging/config_loader.py patterns/logging/test_config_loader.py patterns/agentic-loops/agent_loop.py patterns/agentic-loops/test_agent_loop.py tools/eval/score.py tools/eval/run.py tools/verify-content-quality.py tools/tests/test_verify_content_quality.py tools/generate-manifest.py
       - name: mypy (type check the non-test modules)
-        run: mypy patterns/logging/config_loader.py patterns/agentic-loops/agent_loop.py tools/eval/score.py tools/eval/run.py
+        run: mypy patterns/logging/config_loader.py patterns/agentic-loops/agent_loop.py tools/eval/score.py tools/eval/run.py tools/verify-content-quality.py tools/generate-manifest.py
       - name: Run config_loader tests (>=80% coverage required)
         run: |
           cd patterns/logging
@@ -103,6 +109,8 @@ jobs:
         run: |
           cd tools/eval
           pytest tests/ --cov=score --cov=run --cov-fail-under=80 -v
+      - name: Run duplicate-policy detection tests (B7, no coverage gate — see tools/check.sh's comment)
+        run: pytest tools/tests/test_verify_content_quality.py -v
 
   markdown-links:
     runs-on: ubuntu-latest

@@ -22,7 +22,8 @@ subcommands can act on it later:
 | `init` | Install (see modes below). `--dry-run` (or the `plan` alias) shows what would happen without changing anything. |
 | `status` | What's installed, from where, and whether the source has moved on since. |
 | `doctor` | Validate the install is healthy (skills present, bundled resources resolve, hook configured); nonzero exit if not — usable as a CI check. |
-| `audit` | Report drift: skills available upstream but not installed, installed skills no longer available, commits since your recorded revision. `--json` for machine-readable output (CI/scripting). |
+| `audit` | Report drift: skills available upstream but not installed, installed skills no longer available, commits since your recorded revision; your selected profile, whether `.agentharness-publish-mode` is active, and whether the recorded harness checkout's own validation commands still exist. `--json` for machine-readable output (CI/scripting). Doesn't run policy-conflict detection itself — points at `tools/verify-content-quality.py` instead. |
+| `enforce-profile` | Read `.agentharness-profile` and, for a detected Python project, gate on it for real (`pytest --cov-fail-under` at the selected tier's floor). Not wired into `pre-push` automatically — invoke it explicitly. |
 | `update` | Re-sync to the current harness state; shows a diff and asks for confirmation (`--yes` to skip it) before changing anything. |
 | `uninstall` | Reverse everything `init` recorded — skills, gitignore block, hook, profile file, state file (and the submodule, in that mode). |
 
@@ -213,6 +214,27 @@ git config core.hooksPath .githooks
 ```bash
 cp ~/agentharness/.github/.gitignore.template .gitignore
 ```
+
+### Publish Authority
+
+`CLAUDE.md`'s "Agent Workflow Completion" section defaults an agent to
+verify-and-stage-only: it commits locally but stops before pushing,
+opening a PR, or auto-implementing recommendations, and asks first.
+
+To grant an agent standing commit/push/PR authority for a repo you
+control (skip the per-task confirmation), create the flag file at that
+repo's root:
+
+```bash
+touch .agentharness-publish-mode
+```
+
+It's gitignored by `.github/.gitignore.template` — never commit it; it's
+a per-operator/per-machine grant, not a repo-wide policy. Remove the
+file (`rm .agentharness-publish-mode`) to drop back to the safer default.
+This doesn't override an explicit instruction in a given request either
+way — telling an agent "commit and push this" (or "just stage this,
+don't push") always wins for that one task regardless of the flag.
 
 ## Project-Specific CLAUDE.md Template
 

@@ -125,6 +125,13 @@ happens if you asked for that mode.
   suites when pushing to *this* repo (see `.github/hooks/pre-push`'s
   own comments for how it detects and no-ops for a borrowing consumer).
 
+**Agent publish authority is opt-in, not default.** `CLAUDE.md` has an
+agent verify and stage work locally, then stop and ask before pushing,
+opening a PR, or auto-implementing a recommendation — full authority to
+do those requires a local `.agentharness-publish-mode` flag file (never
+committed) or explicit per-task instruction. See
+[docs/INTEGRATION.md](docs/INTEGRATION.md)'s "Publish Authority" section.
+
 **Non-goals** — this project deliberately does not:
 - Orchestrate or run agents itself (no agent loop, scheduler, or runtime
   lives here beyond the one tested reference example in

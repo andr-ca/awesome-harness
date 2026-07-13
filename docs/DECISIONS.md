@@ -45,50 +45,65 @@ account/org, the `agentharness` name confirmed available, and an
 `NPM_TOKEN` repo secret, none of which this repo's own tooling can
 create for itself. See `docs/RELEASING.md#npm-distribution`.
 
-## Mandatory commit/push/PR as the default agent workflow completion
+## Publish authority split from workflow completion, gated by an opt-in flag
 
-**Status:** Open question, not settled — see
-`docs/operational/reviews/gpt-5.6-completion-reaudit-status.md`.
+**Status:** Settled (resolved 2026-07-13; previously open, see
+`docs/operational/reviews/gpt-5.6-completion-reaudit-status.md`).
 
 **Context:** `CLAUDE.md`'s "Agent Workflow Completion (MANDATORY)"
-section directs an agent to always finish a task by committing, pushing,
-and opening a PR, and (per the Recommendation Assessment section)
-implement scoped/low-risk recommendations without asking first. This
-was written to stop "work in progress that isn't pushed is work that
-doesn't exist" — silently-abandoned agent work — but it also means the
-harness's *default* posture grants an agent standing write/publish
-authority, with no built-in opt-out for a reviewer who wants an agent to
-stop at inspection.
+section used to direct an agent to always finish a task by committing,
+pushing, and opening a PR, and (per the Recommendation Assessment
+section) implement scoped/low-risk recommendations without asking
+first. This was written to stop "work in progress that isn't pushed is
+work that doesn't exist" — silently-abandoned agent work — but it also
+meant the harness's *default* posture granted an agent standing
+write/publish authority, with no built-in opt-out for a reviewer who
+wanted an agent to stop at inspection. The 2026-07-13 re-audit named
+this the one unresolved P0-level trust-model gap in the repo; the user
+confirmed splitting it into an opt-in profile.
 
-**Consequences:** every agent session that loads this `CLAUDE.md` starts
-with remote-write authority by default. The 2026-07-13 re-audit named
-this the one unresolved P0-level trust-model gap in the repo. Whether to
-split "inspect/edit" from "commit/push/publish" into a separate opt-in
-profile is a product-direction decision, not a bug fix — pending user
-confirmation before any change.
+**Consequences:** the default is now verify-and-stage-only — an agent
+commits locally but stops before push/PR/auto-implement and asks first.
+Full publish authority (the original always-on behavior) now requires
+either a local, gitignored `.agentharness-publish-mode` flag file at the
+repo root, or explicit standing authorization in the current
+conversation (which always overrides the flag, matching the existing
+rigor-tier precedence pattern). See `CLAUDE.md`'s "Agent Workflow
+Completion" and "Publish authority" sections, and
+`docs/INTEGRATION.md`'s "Publish Authority" section for how to grant or
+revoke it in a given repo.
 
-## Hand-maintained MANIFEST.md with a bidirectional verifier, not a generated one
+## MANIFEST.md generated from a structured manifest.yaml source
 
-**Status:** Open question, not settled — see
-`docs/operational/reviews/gpt-5.6-completion-reaudit-status.md`.
+**Status:** Settled (resolved 2026-07-13; previously open, see
+`docs/operational/reviews/gpt-5.6-completion-reaudit-status.md`).
 
 **Context:** The original review asked for a generated, bidirectionally
 accurate inventory so `MANIFEST.md` couldn't silently drift from the
 repo the way several other docs were found to have drifted (P1-13).
-`tools/verify-manifest.sh` was built to check that every file `MANIFEST.md`
-claims exists on disk, and flag (a configurable allow-list aside)
-anything on disk that isn't listed — but it verifies a hand-written file
-against reality; it doesn't generate the file from a structured source
-of truth.
+`tools/verify-manifest.sh` was already checking that every file
+`MANIFEST.md` claims exists on disk, and flagging anything unlisted —
+but it verified a hand-written file against reality; it didn't generate
+the file from a structured source of truth, so `MANIFEST.md` could still
+drift *in prose* (wrong one-line description, wrong "when to use"
+guidance) even though missing/unlisted *files* were caught. The user
+confirmed building an actual generator.
 
-**Consequences:** `MANIFEST.md` can still drift *in prose* (wrong
-one-line description, wrong "when to use" guidance) even though the
-verifier catches missing/unlisted *files*. Building an actual generator
-would mean designing a structured schema (likely YAML frontmatter per
-asset, or a single manifest-source file) and rewiring the verifier to
-diff against generated output — a real subsystem, not a fix to the
-existing script. Pending user confirmation on whether that's worth the
-investment now.
+**Consequences:** `manifest.yaml` is now the structured source (one
+entry per asset: `path`, `type`, `when_to_use`/`purpose`, grouped under
+the same 11 section headers `MANIFEST.md` always used) —
+`tools/generate-manifest.py` renders `MANIFEST.md` from it, mirroring
+`tools/generate-agents-md.sh`'s existing generated-file pattern exactly,
+including a CI drift-check (`check_manifest_md_sync()` in
+`tools/verify-content-quality.py`) that fails the build if someone edits
+`MANIFEST.md` by hand instead of `manifest.yaml`. The migration was
+verified byte-for-byte: the generator's output against the pre-migration
+`MANIFEST.md` differed only in the one paragraph that was deliberately
+rewritten (the old "no generator script yet" line), across all 83
+pre-existing rows. `tools/verify-manifest.sh` (the file-existence
+checker) was left as-is — it still validates the rendered `MANIFEST.md`
+against the filesystem, which remains exactly correct once `MANIFEST.md`
+is generated-but-committed.
 
 ## Claude-first client scope, not multi-agent from day one
 

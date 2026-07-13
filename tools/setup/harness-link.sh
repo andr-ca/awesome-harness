@@ -14,7 +14,20 @@
 #   status    Show what's currently installed (from .agentharness-state.json).
 #   doctor    Validate the current install is healthy; nonzero exit if not.
 #   audit     Report drift: newly available/removed skills, source commits
-#             since install. --json for machine-readable output (CI/scripting).
+#             since install; the target's selected profile and whether
+#             its publish-authority flag is active (B5); whether the
+#             recorded harness checkout's own validation commands still
+#             exist. --json for machine-readable output (CI/scripting).
+#             Does not run policy-conflict detection itself — points at
+#             'python3 tools/verify-content-quality.py' instead (B7).
+#   enforce-profile
+#             Read .agentharness-profile and, for a detected Python
+#             project, gate on it for real (pytest --cov-fail-under at
+#             the selected tier's coverage_min; skips entirely if the
+#             tier doesn't require tests). Python-only v1 — other project
+#             types report "not implemented yet" and exit 0 rather than
+#             falsely passing or blocking. Not wired into pre-push
+#             automatically; invoke it explicitly, same as audit/doctor.
 #   update    Re-sync an existing install to the current harness state.
 #   uninstall Reverse everything 'init' recorded.
 #
@@ -50,7 +63,7 @@ usage() {
 Usage: $(basename "$0") <subcommand> [target-project-dir] [OPTIONS]
        $(basename "$0") <target-project-dir> [OPTIONS]   (legacy: same as init)
 
-Subcommands: init, plan, status, doctor, audit, update, uninstall
+Subcommands: init, plan, status, doctor, audit, enforce-profile, update, uninstall
 
 init options:
   --mode link|copy|submodule   Install mode (default: link)
@@ -73,6 +86,7 @@ Examples:
   $(basename "$0") status ~/my-project
   $(basename "$0") doctor ~/my-project
   $(basename "$0") audit ~/my-project --json
+  $(basename "$0") enforce-profile ~/my-project
   $(basename "$0") update ~/my-project --yes
   $(basename "$0") uninstall ~/my-project
 EOF
@@ -595,18 +609,57 @@ cmd_audit() {
         commits_since="$(git -C "$source_path" log --oneline "$source_rev..$current_rev" -- .claude/skills patterns languages 2>/dev/null | head -20 || true)"
     fi
 
-    # --json (P2-01): machine-readable form of the same drift this
-    # subcommand already computes, for CI or scripted consumption instead
-    # of parsing the human-readable text below.
+    # B5: expanded audit scope, reusing B1/B4/B7 rather than building new
+    # detection logic for each.
+    #
+    # unsafe-authority: is the *audited target's own* .agentharness-
+    # publish-mode flag (B1) present — same file, same directory scope
+    # enforce-profile (B4) already reads its profile file from.
+    local publish_mode_active=false
+    [ -f "$target/.agentharness-publish-mode" ] && publish_mode_active=true
+
+    # selected-profile: same file/precedence enforce-profile (B4) uses.
+    local selected_profile="none (defaults to production)"
+    if [ -f "$target/$PROFILE_FILE_NAME" ]; then
+        selected_profile="$(tr -d '[:space:]' < "$target/$PROFILE_FILE_NAME")"
+    fi
+
+    # validation-commands: does the *recorded harness checkout's* own
+    # tooling still exist where docs claim it does — catches a doc
+    # referencing a script that was renamed/deleted upstream. Checked
+    # against source_path (the harness), not target (the consumer
+    # project), matching how skill availability above is also computed
+    # from source_path.
+    local validation_cmds=(
+        "tools/check.sh"
+        "tools/setup/harness-link.sh"
+        "tools/verify-manifest.sh"
+        "tools/verify-content-quality.py"
+        "tools/generate-agents-md.sh"
+    )
+    local validation_report=""
+    local cmd_path full exists executable
+    for cmd_path in "${validation_cmds[@]}"; do
+        full="$source_path/$cmd_path"
+        exists="false"; executable="false"
+        [ -e "$full" ] && exists="true"
+        [ -x "$full" ] && executable="true"
+        validation_report+="$cmd_path|$exists|$executable"$'\n'
+    done
+
+    # --json (P2-01, expanded for P2-01/B5): machine-readable form of the
+    # same drift this subcommand already computes, for CI or scripted
+    # consumption instead of parsing the human-readable text below.
     if [ "$json" = true ]; then
         python3 - "$target" "$source_path" "$source_rev" "$current_rev" "$rev_comparable" \
             "$(printf '%s\n' "${not_installed[@]}")" "$(printf '%s\n' "${no_longer_available[@]}")" \
-            "$commits_since" <<'PYEOF'
+            "$commits_since" "$publish_mode_active" "$selected_profile" "$validation_report" <<'PYEOF'
 import json
 import sys
 
 target, source_path, source_rev, current_rev, rev_comparable = sys.argv[1:6]
 not_installed_raw, no_longer_available_raw, commits_raw = sys.argv[6:9]
+publish_mode_active, selected_profile, validation_raw = sys.argv[9:12]
 
 
 def lines(s):
@@ -615,6 +668,16 @@ def lines(s):
 
 not_installed = lines(not_installed_raw)
 no_longer_available = lines(no_longer_available_raw)
+
+validation_commands = []
+for line in lines(validation_raw):
+    cmd_path, exists, executable = line.split("|")
+    validation_commands.append({
+        "command": cmd_path,
+        "exists": exists == "true",
+        "executable": executable == "true",
+    })
+
 print(json.dumps({
     "target": target,
     "source_path": source_path,
@@ -625,6 +688,9 @@ print(json.dumps({
     "installed_not_available": no_longer_available,
     "drift": bool(not_installed or no_longer_available),
     "commits_since_install": lines(commits_raw),
+    "publish_mode_active": publish_mode_active == "true",
+    "selected_profile": selected_profile,
+    "validation_commands": validation_commands,
 }, indent=2))
 PYEOF
         return
@@ -649,6 +715,103 @@ PYEOF
     else
         echo "Source revision unchanged or not comparable ($source_rev)."
     fi
+
+    echo ""
+    echo "Selected profile: $selected_profile"
+    echo "Publish-authority flag active: $publish_mode_active"
+
+    echo ""
+    echo "Validation commands (in the recorded harness checkout):"
+    while IFS='|' read -r v_path v_exists v_executable; do
+        [ -z "$v_path" ] && continue
+        if [ "$v_exists" != "true" ]; then
+            echo "  ✗ MISSING: $v_path"
+        elif [ "$v_executable" != "true" ]; then
+            echo "  ⚠ $v_path (exists, not executable)"
+        else
+            echo "  ✓ $v_path"
+        fi
+    done <<< "$validation_report"
+
+    echo ""
+    echo "Policy-conflict check: run 'python3 tools/verify-content-quality.py' in the harness checkout (not duplicated here — see B7)."
+}
+
+# ----------------------------------------------------------------------------
+# enforce-profile (B4) — makes .agentharness-profile do something
+# mechanical instead of being a lookup table nothing reads. Python-only
+# v1, deliberately: this repo's own tooling only has full, consistent
+# conventions for pytest+coverage today. Never falsely blocks or falsely
+# passes something it can't actually check — a project type this doesn't
+# recognize gets a clear "not implemented yet" and exit 0, not a silent
+# pass framed as a real check. Reads the profile file directly (works for
+# any project with one, not just projects initialized via this CLI's
+# `init --profile`) and always falls back to production (fail-safe) for a
+# missing or unrecognized profile, matching patterns/profiles/README.md's
+# documented precedence rule.
+# ----------------------------------------------------------------------------
+
+profile_field() {
+    # $1=profile.yaml path $2=field name under the top-level 'tests:' key
+    awk -v field="$2" '
+        /^tests:/ { intests=1; next }
+        intests && $0 ~ "^  " field ":" { print $2; exit }
+        /^[a-zA-Z]/ { intests=0 }
+    ' "$1"
+}
+
+cmd_enforce_profile() {
+    local target=""
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            -h|--help) usage; exit 0 ;;
+            *) if [ -z "$target" ]; then target="$1"; else echo "Unexpected argument: $1" >&2; exit 1; fi; shift ;;
+        esac
+    done
+    target="${target:-.}"
+    [ -d "$target" ] && target="$(cd "$target" && pwd)"
+
+    local profile_name="production"
+    if [ -f "$target/$PROFILE_FILE_NAME" ]; then
+        profile_name="$(tr -d '[:space:]' < "$target/$PROFILE_FILE_NAME")"
+    fi
+
+    local profile_yaml="$HARNESS_DIR/patterns/profiles/$profile_name.yaml"
+    if [ ! -f "$profile_yaml" ]; then
+        echo "Warning: unrecognized profile '$profile_name' from $PROFILE_FILE_NAME — falling back to production (fail-safe, never silently relaxes enforcement)." >&2
+        profile_name="production"
+        profile_yaml="$HARNESS_DIR/patterns/profiles/production.yaml"
+    fi
+
+    echo "enforce-profile: $target"
+    echo "  selected profile: $profile_name"
+
+    local tests_required coverage_min
+    tests_required="$(profile_field "$profile_yaml" required)"
+    coverage_min="$(profile_field "$profile_yaml" coverage_min)"
+    [ "$coverage_min" = "null" ] && coverage_min=""
+
+    if [ "$tests_required" != "true" ]; then
+        echo "  tests.required: false at '$profile_name' tier — nothing to enforce, skipping."
+        return 0
+    fi
+
+    if [ ! -f "$target/pyproject.toml" ] && [ ! -f "$target/setup.py" ] && [ ! -f "$target/requirements.txt" ]; then
+        echo "  Profile enforcement isn't implemented yet for this project type (Python-only v1) — see ROADMAP.md."
+        return 0
+    fi
+
+    if ! python3 -m pytest --version >/dev/null 2>&1; then
+        echo "Error: pytest not available — cannot enforce the '$profile_name' tier's test requirement." >&2
+        return 1
+    fi
+
+    echo "  Python project detected; tests.required: true, coverage_min: ${coverage_min:-none}"
+    local pytest_args=(-q)
+    if [ -n "$coverage_min" ]; then
+        pytest_args+=("--cov=$target" "--cov-fail-under=$coverage_min")
+    fi
+    (cd "$target" && python3 -m pytest "${pytest_args[@]}")
 }
 
 # ----------------------------------------------------------------------------
@@ -866,7 +1029,7 @@ cmd_uninstall() {
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     case "${1:-}" in
-        init|plan|status|doctor|audit|update|uninstall)
+        init|plan|status|doctor|audit|enforce-profile|update|uninstall)
             cmd="$1"; shift
             ;;
         -h|--help)
@@ -883,5 +1046,12 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
             ;;
     esac
 
-    "cmd_$cmd" "$@"
+    # cmd_$cmd would break for "enforce-profile" (hyphen doesn't match the
+    # underscore-named function) — translate explicitly instead of
+    # renaming the function to something inconsistent with the rest.
+    case "$cmd" in
+        enforce-profile) cmd_fn="cmd_enforce_profile" ;;
+        *) cmd_fn="cmd_$cmd" ;;
+    esac
+    "$cmd_fn" "$@"
 fi
