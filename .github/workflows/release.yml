@@ -12,6 +12,7 @@ on:
 permissions:
   contents: read
   checks: read
+  actions: read
 
 jobs:
   publish:
@@ -56,19 +57,28 @@ jobs:
           fi
           echo "Ancestry OK: $GITHUB_SHA is on main."
 
+          # Exclude this exact workflow run's own check run (Copilot review
+          # caught this on the first pass: the commit's check-runs list
+          # includes THIS release job itself, still in_progress with
+          # conclusion: null, at the moment this step runs — treating that
+          # as a failure would make the gate refuse to publish 100% of the
+          # time). Filtered by check_suite.id, not by name, so it's robust
+          # to the job/workflow being renamed later.
+          own_check_suite_id="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" --jq '.check_suite_id')"
           runs_json="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/check-runs" --jq '.check_runs')"
-          total="$(echo "$runs_json" | jq 'length')"
+          other_runs="$(echo "$runs_json" | jq --argjson suite "$own_check_suite_id" '[.[] | select(.check_suite.id != $suite)]')"
+          total="$(echo "$other_runs" | jq 'length')"
           if [ "$total" -eq 0 ]; then
-            echo "No CI check runs found for $GITHUB_SHA — refusing to publish an unverified commit." >&2
+            echo "No CI check runs found for $GITHUB_SHA (other than this release run) — refusing to publish an unverified commit." >&2
             exit 1
           fi
-          not_success="$(echo "$runs_json" | jq '[.[] | select(.conclusion != "success")] | length')"
+          not_success="$(echo "$other_runs" | jq '[.[] | select(.conclusion != "success")] | length')"
           if [ "$not_success" -ne 0 ]; then
             echo "$not_success of $total check run(s) for $GITHUB_SHA did not pass — refusing to publish." >&2
-            echo "$runs_json" | jq -r '.[] | select(.conclusion != "success") | "  - \(.name): \(.conclusion)"' >&2
+            echo "$other_runs" | jq -r '.[] | select(.conclusion != "success") | "  - \(.name): \(.conclusion // .status)"' >&2
             exit 1
           fi
-          echo "CI OK: all $total check run(s) for $GITHUB_SHA passed."
+          echo "CI OK: all $total other check run(s) for $GITHUB_SHA passed."
 
       # P0-05: prove the artifact itself works, not just that its version
       # string matches — same pack/unpack/CLI-smoke-test CI already runs on
