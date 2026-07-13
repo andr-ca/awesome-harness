@@ -3,7 +3,9 @@
 # adapter-common.sh — shared helpers for this repo's client-adapter
 # generators (generate-agents-md.sh, generate-gemini-md.sh,
 # generate-copilot-instructions.sh, generate-kilo-rules.sh,
-# generate-cursor-rules.sh).
+# generate-cursor-rules.sh, generate-codex-agents.sh,
+# generate-opencode-agents.sh, generate-cursor-agents.sh,
+# generate-kilo-agents.sh).
 # ============================================================================
 #
 # Every "routing-rules-only" adapter (AGENTS.md, GEMINI.md, Kilo's rules
@@ -80,6 +82,29 @@ render_skill_index() {
         description="$(skill_description "$local_skill_md")"
         echo "- \`.agents/skills/$skill/SKILL.md\` — $description"
     done < <(list_available_skills "$harness_dir" | sort)
+}
+
+# Lists every custom subagent defined in .claude/agents/*.md (basename
+# minus extension) — the source-of-truth directory for Claude Code's
+# Task/Agent tool subagent dispatch. Mirrors list_available_skills()'s
+# shape in tools/setup/harness-link.sh, adjusted for single files instead
+# of per-skill directories (an agent is one .md file, not a directory).
+list_available_agents() {
+    local src="$1/.claude/agents"
+    [ -d "$src" ] || return 0
+    for f in "$src"/*.md; do
+        [ -f "$f" ] && basename "$f" .md
+    done
+}
+
+# Thin wrapper over frontmatter_field() naming the fields every
+# custom-agent-porting generator actually uses: name, description,
+# model. Deliberately NOT `tools` — cross-tool tool-name/permission
+# vocabulary is unverified against a live session of any target
+# platform, so no generator here translates it (see
+# docs/CLIENT_COMPATIBILITY.md's custom-agent section for why).
+agent_field() {
+    frontmatter_field "$1" "$2"
 }
 
 # Parses the common `[harness-dir] [--output <path>]` CLI shape shared by
