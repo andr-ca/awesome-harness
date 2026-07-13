@@ -81,20 +81,52 @@ print('importable')
     [[ "$output" =~ "importable" ]]
 }
 
-@test "harness-link.sh: --skills rejects path traversal instead of symlinking outside skills dir" {
+@test "harness-link.sh: --skills rejects path traversal atomically instead of installing a partial set (P0-04)" {
     # Regression test: "../../patterns" (or an absolute path) used to
     # resolve straight through to SRC="$SKILLS_SRC/../../patterns",
     # symlinking an arbitrary harness path into the target project's
     # .claude/skills/. See docs/operational/reviews/gpt-5.6-review-status.md.
+    #
+    # Originally fixed by silently skipping the bad name (exit 0, partial
+    # install) — the gpt-5.6 third-pass review correctly flagged that as its
+    # own problem: automation can't distinguish "everything requested was
+    # installed" from "one bad name got silently dropped." Now the whole
+    # command aborts before touching the filesystem, and nothing traversal-
+    # shaped should exist anywhere.
     run bash "$SCRIPT" "$TEST_PROJECT" --skills "../../patterns,committing"
 
+    [ "$status" -ne 0 ]
+    [[ "$output" =~ "invalid skill name: '../../patterns'" ]]
+    [ ! -e "$TEST_PROJECT/.claude/skills" ]
+}
+
+@test "harness-link.sh: --skills with a typo fails atomically instead of producing an empty 'successful' install (P0-04)" {
+    run bash "$SCRIPT" "$TEST_PROJECT" --skills "definitely-not-a-skill"
+
+    [ "$status" -ne 0 ]
+    [[ "$output" =~ "unknown skill: 'definitely-not-a-skill'" ]]
+    [ ! -f "$TEST_PROJECT/.agentharness-state.json" ]
+    [ ! -e "$TEST_PROJECT/.claude" ]
+}
+
+@test "harness-link.sh: --skills none is the sanctioned way to install zero skills (P0-04)" {
+    run bash "$SCRIPT" "$TEST_PROJECT" --skills none
     [ "$status" -eq 0 ]
-    [[ "$output" =~ "Skipping invalid skill name: ../../patterns" ]]
-    [ -L "$TEST_PROJECT/.claude/skills/committing" ]
-    [ ! -e "$TEST_PROJECT/.claude/skills/patterns" ]
-    # Nothing traversal-shaped should exist anywhere under .claude/skills/
-    run find "$TEST_PROJECT/.claude/skills" -mindepth 1 -maxdepth 1 -name '..*'
-    [ -z "$output" ]
+
+    run python3 -c "
+import json
+with open('$TEST_PROJECT/.agentharness-state.json') as f:
+    d = json.load(f)
+print(len(d['skills']))
+"
+    [ "$output" = "0" ]
+}
+
+@test "harness-link.sh: plan (--dry-run) reports the same invalid-skill failure init would, before mutating anything" {
+    run bash "$SCRIPT" plan "$TEST_PROJECT" --skills "definitely-not-a-skill"
+    [ "$status" -ne 0 ]
+    [[ "$output" =~ "unknown skill: 'definitely-not-a-skill'" ]]
+    [ ! -e "$TEST_PROJECT/.claude" ]
 }
 
 @test "harness-link.sh: merges .gitignore.template into .gitignore" {
