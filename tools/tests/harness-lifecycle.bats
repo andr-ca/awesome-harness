@@ -5,13 +5,13 @@
 # legacy-invocation behavior (harness-link.sh <target> [options]) is covered
 # by tools/tests/harness-link.bats and is unchanged by this file.
 #
-# The submodule-mode tests clone this repo's real 'origin' remote (a public
-# GitHub repo) and therefore need outbound network access — consistent with
-# this repo's existing CI, which already clones bats-core from GitHub and
-# pip-installs packages.
+# The submodule-mode tests are hermetic: they clone this checkout into a
+# local bare remote (setup_local_bare_remote) and point submodule mode at
+# it via AGENTHARNESS_SUBMODULE_REMOTE, so they need no network (P1-05).
 
 setup() {
     SCRIPT="$BATS_TEST_DIRNAME/../setup/harness-link.sh"
+    HARNESS_ROOT="$(cd "$BATS_TEST_DIRNAME/../.." && pwd)"
     TEST_PROJECT=$(mktemp -d)
     cd "$TEST_PROJECT"
 }
@@ -24,6 +24,11 @@ teardown() {
     # here so a failed assertion mid-test (which skips the rest of the
     # test body) can't leave it behind in the real checkout.
     [ -n "${DOGFOOD_TARGET:-}" ] && rm -rf "$DOGFOOD_TARGET"
+    # Hermetic submodule tests create a local bare remote (P1-05) — clean
+    # it up and drop the override so it can't leak into another test.
+    [ -n "${BARE_REMOTE_PARENT:-}" ] && rm -rf "$BARE_REMOTE_PARENT"
+    unset AGENTHARNESS_SUBMODULE_REMOTE
+    unset GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0
     true
 }
 
@@ -41,6 +46,23 @@ try:
 except subprocess.TimeoutExpired:
     sys.exit(124)
 " "$seconds" "$@"
+}
+
+# Point submodule mode at a local bare clone of this checkout instead of
+# the network 'origin' (P1-05 hermeticity). A --bare clone carries every
+# commit and tag (incl. v0.1.0, which the pin/rollback test rolls back
+# to), so both `git submodule add` and the tag checkout resolve fully
+# offline.
+setup_local_bare_remote() {
+    BARE_REMOTE_PARENT=$(mktemp -d)
+    git clone --bare --quiet "$HARNESS_ROOT" "$BARE_REMOTE_PARENT/agentharness.git"
+    export AGENTHARNESS_SUBMODULE_REMOTE="$BARE_REMOTE_PARENT/agentharness.git"
+    # git blocks the 'file' transport for submodules by default
+    # (CVE-2022-39253); re-allow it for this local-path remote via env so
+    # every git the harness spawns in this test inherits it.
+    export GIT_CONFIG_COUNT=1
+    export GIT_CONFIG_KEY_0=protocol.file.allow
+    export GIT_CONFIG_VALUE_0=always
 }
 
 @test "lifecycle: init writes a state file with mode, source, and skills" {
@@ -493,6 +515,7 @@ print('importable')
 @test "lifecycle: --mode submodule adds this harness as a real submodule and symlinks from it" {
     git -C "$TEST_PROJECT" init --quiet
     git -C "$TEST_PROJECT" -c user.email=test@example.com -c user.name=Test commit --quiet --allow-empty -m "init"
+    setup_local_bare_remote
 
     run bash "$SCRIPT" init "$TEST_PROJECT" --mode submodule --skills committing
     [ "$status" -eq 0 ]
@@ -530,6 +553,7 @@ with open('$TEST_PROJECT/.agentharness-state.json') as f: print(json.load(f)['so
     # didn't, and reported phantom drift.
     git -C "$TEST_PROJECT" init --quiet
     git -C "$TEST_PROJECT" -c user.email=test@example.com -c user.name=Test commit --quiet --allow-empty -m "init"
+    setup_local_bare_remote
 
     run bash "$SCRIPT" init "$TEST_PROJECT" --mode submodule
     [ "$status" -eq 0 ]
@@ -542,6 +566,7 @@ with open('$TEST_PROJECT/.agentharness-state.json') as f: print(json.load(f)['so
 @test "lifecycle: --mode submodule uninstall removes the submodule cleanly" {
     git -C "$TEST_PROJECT" init --quiet
     git -C "$TEST_PROJECT" -c user.email=test@example.com -c user.name=Test commit --quiet --allow-empty -m "init"
+    setup_local_bare_remote
     bash "$SCRIPT" init "$TEST_PROJECT" --mode submodule --skills committing
 
     run bash "$SCRIPT" uninstall "$TEST_PROJECT" --yes
@@ -559,6 +584,7 @@ with open('$TEST_PROJECT/.agentharness-state.json') as f: print(json.load(f)['so
     # resolves at any ancestor commit we roll back to.
     git -C "$TEST_PROJECT" init --quiet
     git -C "$TEST_PROJECT" -c user.email=test@example.com -c user.name=Test commit --quiet --allow-empty -m "init"
+    setup_local_bare_remote
 
     bash "$SCRIPT" init "$TEST_PROJECT" --mode submodule --skills committing
     submodule="$TEST_PROJECT/.agentharness"

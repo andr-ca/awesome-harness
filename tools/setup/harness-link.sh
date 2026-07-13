@@ -484,10 +484,15 @@ cmd_init() {
             echo "Error: --mode submodule requires $target to be a git repo." >&2
             exit 1
         fi
+        # The submodule remote defaults to this checkout's own 'origin',
+        # but AGENTHARNESS_SUBMODULE_REMOTE overrides it — used by the
+        # hermetic tests to point at a local bare clone instead of the
+        # network origin (P1-05), and usable by a consumer who wants to
+        # pin against a mirror rather than the canonical remote.
         local harness_remote
-        harness_remote="$(git -C "$HARNESS_DIR" remote get-url origin 2>/dev/null || true)"
+        harness_remote="${AGENTHARNESS_SUBMODULE_REMOTE:-$(git -C "$HARNESS_DIR" remote get-url origin 2>/dev/null || true)}"
         if [ -z "$harness_remote" ]; then
-            echo "Error: --mode submodule requires this harness checkout to have an 'origin' remote." >&2
+            echo "Error: --mode submodule requires this harness checkout to have an 'origin' remote (or AGENTHARNESS_SUBMODULE_REMOTE set)." >&2
             exit 1
         fi
         if [ ! -e "$target/$SUBMODULE_PATH/.git" ]; then

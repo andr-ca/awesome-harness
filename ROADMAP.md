@@ -215,12 +215,12 @@ label by the review filename cited next to it, never by number alone.
   on-disk backup `materialize` itself creates, not from Git, and test
   against an isolated fixture.
 - **P1-05 (this review's numbering) — Make tests hermetic by default.**
-  Submodule lifecycle tests clone the checkout's configured `origin`
-  (live SSH GitHub dependency in the shared checkout); the Go scorer
-  assumes a writable default Go cache; markdown lint may invoke `npx`
-  network resolution. Proposed: a local bare fixture remote for submodule
-  tests, temporary language caches inside the harness, and a
-  `check:offline` split from any check that genuinely needs the network.
+  **Done:** submodule lifecycle tests now clone a local bare remote
+  (`setup_local_bare_remote`, via the new `AGENTHARNESS_SUBMODULE_REMOTE`
+  override) instead of the network `origin`; the Go eval scorer pins
+  `GOCACHE`/`GOPATH` inside its scratch dir; and `tools/check.sh
+  --offline` (or `CHECK_OFFLINE=1`) skips the one `npx`-fetching step. The
+  enforce-profile Go tests also pin `GOCACHE` per-test.
 - **P1-06 — Test lifecycle transitions, not just happy-state snapshots.**
   **Started:** `tools/tests/lifecycle-transitions.bats` adds state-machine
   sequences — the full init→status→doctor→update→doctor→uninstall→status

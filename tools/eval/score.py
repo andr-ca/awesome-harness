@@ -16,6 +16,7 @@ overall_score is the fraction of those four criteria met.
 """
 import argparse
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -83,17 +84,26 @@ def _score_python(task: dict, task_dir: Path, scratch: Path) -> dict:
 
 
 def _score_go(task: dict, task_dir: Path, scratch: Path) -> dict:
+    # Isolate the Go build/module caches inside the task scratch so scoring
+    # never depends on (or pollutes) a shared, possibly-read-only default
+    # cache (P1-05 hermeticity).
+    go_env = {
+        **os.environ,
+        "GOCACHE": str(scratch / ".gocache"),
+        "GOPATH": str(scratch / ".gopath"),
+    }
     # `.` not `./...`: scope vet/test to this task's own package root, not
     # anything a treatment-condition harness install may have dropped
     # alongside it in scratch.
     vet = subprocess.run(
-        ["go", "vet", "."], cwd=scratch, capture_output=True, text=True
+        ["go", "vet", "."], cwd=scratch, capture_output=True, text=True, env=go_env
     )
     test_run = subprocess.run(
         ["go", "test", ".", "-v", "-cover"],
         cwd=scratch,
         capture_output=True,
         text=True,
+        env=go_env,
     )
     output = test_run.stdout + test_run.stderr
 
