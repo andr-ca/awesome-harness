@@ -105,15 +105,28 @@ Each generator is a manual-regeneration script
 
 The table above is always-on instructions + on-demand skills only. A
 third, separate dimension — **custom agents that a primary agent can
-delegate a task to** (Claude Code's own `.claude/agents/*.md` + Task
-tool is the origin case) — isn't covered by any of the generators above
-and isn't built here at all yet: `.claude/agents/` is listed in
-`ROADMAP.md` as not started. Five of the nine researched tools (Claude
-Code, Codex CLI, OpenCode, Cursor, Kilo Code) support genuine
-delegation to a separate agent instance; Copilot, Gemini CLI, and Zed
-only offer persona/tool-scope switching for the same agent, not
-delegation. See `docs/CLIENT_COMPATIBILITY.md`'s "Custom agents /
-sub-agent delegation" section for the full per-tool table and sources.
+delegate a task to**, rather than content the current agent loads
+inline — has its own set of generators. This repo defines one real
+subagent, `.claude/agents/coding-guidelines-reviewer.md` (a read-only
+reviewer scoped to `.github/CODING_GUIDELINES.md`'s rigor tiers), and
+ports it to every tool that supports genuine delegation:
+
+| Target | Generator | Produces |
+|---|---|---|
+| Codex CLI | `tools/generate-codex-agents.sh` | `.codex/agents/*.toml` |
+| OpenCode | `tools/generate-opencode-agents.sh` | `.opencode/agents/*.md` |
+| Cursor | `tools/generate-cursor-agents.sh` | `.cursor/agents/*.md` (distinct from `.cursor/rules/*.mdc` above — a different Cursor feature) |
+| Kilo Code | `tools/generate-kilo-agents.sh` | `.kilo/agents/*.md` |
+
+Copilot, Gemini CLI, and Zed only offer persona/tool-scope switching for
+the same agent, not true delegation — nothing to port to there. **None
+of these four generators translate tool/permission scoping** (Claude
+Code's `tools:` field, Cursor's `readonly`/`is_background`, Kilo's
+`permission`) — that vocabulary is unverified per platform, so ported
+files carry only `name`/`description`/`model`/body; re-specify the
+tool/permission scope by hand for the target platform. See
+`docs/CLIENT_COMPATIBILITY.md`'s "Custom agents / sub-agent delegation"
+section for the full per-tool table and sources.
 
 **Supported platforms:** Linux and macOS (Bash scripts, POSIX shell
 conditionals, `bats-core` for shell tests). Windows is untested; WSL
