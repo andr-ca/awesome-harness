@@ -267,6 +267,22 @@ sections:
     path: .claude/skills/security-review/SKILL.md
     type: skill
     when_to_use: Loads on demand for security audits, OWASP Top 10 checks, code review for vulnerabilities
+  - asset: Planning with files
+    path: .claude/skills/planning-with-files/SKILL.md
+    type: skill
+    when_to_use: Loads on demand when starting complex multi-step tasks requiring persistent state across context resets
+  - asset: Requirements clarification
+    path: .claude/skills/requirements-clarification/SKILL.md
+    type: skill
+    when_to_use: Loads on demand before implementing ambiguous or underspecified features
+  - asset: Code review
+    path: .claude/skills/code-review/SKILL.md
+    type: skill
+    when_to_use: Loads on demand when reviewing a diff or pull request
+  - asset: API design
+    path: .claude/skills/api-design/SKILL.md
+    type: skill
+    when_to_use: Loads on demand when designing or reviewing REST or GraphQL APIs
 - name: Custom Agents (task delegation to a separate agent instance — a different mechanism from skills, ported to Codex/OpenCode/Cursor/Kilo Code/Copilot/Gemini CLI)
   columns:
   - Asset

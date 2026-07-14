@@ -1,0 +1,119 @@
+---
+name: requirements-clarification
+description: Use before implementing a significant feature or change when requirements are ambiguous, underspecified, or likely to have multiple reasonable interpretations — covers structured discovery, one question at a time, edge-case probing, and writing a brief requirements summary before coding starts.
+metadata:
+  type: skills
+  complexity: medium
+  scope: [all]
+---
+
+# Requirements Clarification
+
+Gather requirements before writing code. A few minutes of structured
+discovery prevents hours of rework. Use this skill when a request is
+ambiguous, underspecified, or likely to have non-obvious edge cases.
+
+**When NOT to clarify:** The request is a single, well-scoped bug fix
+with one clear resolution. Don't block on questions you can resolve by
+reading the existing code.
+
+---
+
+## One question at a time
+
+Ask one focused question, wait for the answer, then ask the next. Don't
+front-load 8 questions at once — it overwhelms and produces vague answers.
+Stop when you have enough to write the success criteria.
+
+---
+
+## Discovery sequence
+
+Work through these categories in order. Stop as soon as you have enough
+context; you don't need to ask about every category for every request.
+
+### 1. Goal
+
+> "What does 'done' look like? Describe the end state in one sentence."
+
+If the user says "add search to the app" — done means search results are
+displayed, or the search index is built, or both? The answer changes the
+scope entirely.
+
+### 2. Scope boundary
+
+> "What's explicitly out of scope for this change?"
+
+Users often know what they *don't* want but don't say it. A scope boundary
+question surfaces hidden constraints (no backend changes, no schema
+migration, no change to the mobile app).
+
+### 3. Edge cases and error paths
+
+> "What should happen when [most obvious failure scenario]?"
+
+Pick the single most likely failure mode for the feature and ask about it.
+Common examples: empty input, duplicate submission, concurrent updates,
+missing permissions, network timeout, very large data set.
+
+### 4. Priority
+
+> "If you had to cut half this feature for time, which half stays?"
+
+This reveals the MVP from the full vision — useful for scoping a first PR.
+
+### 5. Acceptance criteria
+
+> "How will you test that this is working correctly?"
+
+If the user describes a manual test, write it down as a criterion. If they
+describe an automated assertion, that becomes a test case.
+
+---
+
+## Requirements summary (write before coding)
+
+After the conversation, write a short summary. Keep it in the chat or as
+a `requirements.md` in `docs/operational/` for long tasks:
+
+```markdown
+## Requirements: <feature name>
+
+**Goal:** One sentence.
+
+**In scope:**
+- Item A
+- Item B
+
+**Out of scope:**
+- Item X (explicitly excluded by user on <date>)
+
+**Edge cases / error handling:**
+- Empty input → show placeholder, not an error
+- Duplicate submission → idempotent; return existing record
+
+**Acceptance criteria:**
+- [ ] User can search by name and email
+- [ ] Results appear within 300ms for the p95 case
+- [ ] Empty search shows all records (not zero results)
+
+**Open questions:**
+- Does pagination apply to search results? (unblocks: API design)
+```
+
+Share the summary with the user and get explicit sign-off before
+starting implementation.
+
+---
+
+## Pitfalls to avoid
+
+- **Implementing then asking.** Write the requirements summary before
+  writing a single line of code.
+- **Vague criteria.** "Fast" is not a criterion. "Loads in < 1s on a
+  100-row dataset" is.
+- **Scope creep during discovery.** If the user adds a new capability
+  mid-conversation, note it separately and decide whether it's in or out
+  of scope for this PR — don't silently expand scope.
+- **Skipping "out of scope."** The most valuable question is often "what
+  are you *not* asking for?"

@@ -1,0 +1,186 @@
+---
+name: api-design
+description: Use when designing, reviewing, or evolving a REST or GraphQL API — resource naming, HTTP status codes, versioning strategy, error response shapes, pagination, and authentication patterns.
+metadata:
+  type: skills
+  complexity: medium
+  scope: [all]
+---
+
+# API Design
+
+Design choices for HTTP APIs (REST-style and GraphQL). The goal is an
+API that is consistent, predictable, and easy to evolve without breaking
+callers.
+
+Reference: [Google API Design Guide](https://cloud.google.com/apis/design),
+[JSON:API](https://jsonapi.org/), [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457)
+(Problem Details for HTTP APIs).
+
+---
+
+## Resource naming (REST)
+
+Use nouns, not verbs. Collections are plural.
+
+```
+GET    /users              → list users
+POST   /users              → create a user
+GET    /users/{id}         → get one user
+PATCH  /users/{id}         → partial update
+PUT    /users/{id}         → full replace
+DELETE /users/{id}         → delete
+
+GET    /users/{id}/posts   → posts belonging to a user
+POST   /users/{id}/posts   → create a post for a user
+```
+
+Actions that don't map cleanly to CRUD go on a sub-resource with a verb:
+```
+POST   /users/{id}/activate
+POST   /payments/{id}/refund
+```
+
+**Naming rules:**
+- `kebab-case` for multi-word path segments (`/user-profiles`, not
+  `/userProfiles` or `/user_profiles`)
+- `camelCase` for JSON field names (consistent with most JS/TS clients)
+- IDs in path, filters/pagination in query string
+
+---
+
+## HTTP status codes — use them correctly
+
+| Code | Meaning | Use for |
+|---|---|---|
+| 200 | OK | Successful GET, PATCH, PUT |
+| 201 | Created | Successful POST that creates a resource |
+| 204 | No Content | Successful DELETE or action with no response body |
+| 400 | Bad Request | Client sent invalid data (validation failure) |
+| 401 | Unauthorized | Not authenticated (no or invalid token) |
+| 403 | Forbidden | Authenticated but not permitted for this resource |
+| 404 | Not Found | Resource doesn't exist (or is hidden for auth reasons) |
+| 409 | Conflict | Duplicate creation, optimistic lock failure |
+| 422 | Unprocessable Entity | Syntactically valid but semantically invalid input |
+| 429 | Too Many Requests | Rate limit exceeded |
+| 500 | Internal Server Error | Unexpected server failure (never expose details) |
+
+**Common mistakes:**
+- `200` with `{"success": false}` in the body — use a 4xx status code
+- `404` for auth failures — use `401`/`403` (don't leak resource existence
+  only when that itself is sensitive)
+- `500` for business logic failures — use a 4xx
+
+---
+
+## Error response shape
+
+Use [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457):
+
+```json
+{
+  "type": "https://api.example.com/errors/validation-failed",
+  "title": "Validation Failed",
+  "status": 400,
+  "detail": "The request body contains invalid fields.",
+  "instance": "/requests/abc-123",
+  "errors": [
+    { "field": "email", "message": "must be a valid email address" },
+    { "field": "age",   "message": "must be a positive integer" }
+  ]
+}
+```
+
+- `type` — a stable URI identifying the error class (not a URL that must
+  resolve, but it should if possible)
+- `title` — human-readable, stable label for the error class
+- `detail` — human-readable description of *this specific* error instance
+- `errors` — field-level validation failures (your extension, not in the spec)
+
+Never include: stack traces, internal IDs, raw database errors.
+
+---
+
+## Versioning
+
+Prefer URL versioning for public APIs: `/v1/users`. It's explicit and easy
+to route at the infrastructure level.
+
+```
+/v1/users     → current stable version
+/v2/users     → new version (breaking changes)
+```
+
+**Rules:**
+- Additive changes (new fields, new endpoints) are non-breaking — deploy
+  without a version bump.
+- Breaking changes (removed fields, changed types, removed endpoints)
+  require a new version.
+- Maintain at least one previous major version for a published deprecation
+  window (typically 6–12 months).
+- Never break a version in place. Even a "fix" that changes a field type
+  is a breaking change.
+
+---
+
+## Pagination
+
+Use cursor-based pagination for large or frequently-updated collections.
+Offset pagination is simpler but breaks under concurrent writes.
+
+```json
+// Request
+GET /users?cursor=eyJpZCI6MTAwfQ&limit=20
+
+// Response
+{
+  "data": [...],
+  "pagination": {
+    "next_cursor": "eyJpZCI6MTIwfQ",
+    "has_more": true
+  }
+}
+```
+
+- `limit` has a server-enforced maximum (e.g. 100); clients can request
+  smaller pages but not larger.
+- `next_cursor` is opaque — clients must not parse it.
+- Return `has_more: false` and omit `next_cursor` on the last page.
+
+---
+
+## Authentication
+
+- **Bearer tokens** in the `Authorization` header:
+  `Authorization: Bearer <token>` — never in the URL.
+- **API keys** in a custom header (`X-Api-Key`) or Bearer — never in
+  query params (they appear in server logs).
+- Return `401` for missing/invalid credentials; `403` for valid credentials
+  that lack permission for the specific resource.
+
+---
+
+## GraphQL-specific notes
+
+- Use `input` types for mutations — don't accept scalar arguments directly
+  on mutations that take more than one field.
+- Implement [cursor-based connection pagination](https://relay.dev/graphql/connections.htm)
+  for lists (Relay connection spec).
+- Don't expose internal database IDs directly — use opaque, base64-encoded
+  global IDs (`User:123` → `VXNlcjoxMjM=`).
+- Rate-limit by query complexity or depth, not just request count.
+
+---
+
+## Review checklist
+
+Before shipping a new API endpoint or changing an existing one:
+
+- [ ] Nouns used for resource names; collections plural; `kebab-case` paths
+- [ ] Correct HTTP method and status codes for each operation
+- [ ] Error responses follow RFC 9457 shape; no stack traces in responses
+- [ ] Additive changes do not bump the version; breaking changes do
+- [ ] Pagination implemented for any list endpoint that could return > 100 items
+- [ ] Authentication tokens sent in headers only (not URL or body)
+- [ ] Sensitive fields not exposed (passwords, internal IDs, PII beyond what's needed)
+- [ ] New endpoints documented (OpenAPI / README)

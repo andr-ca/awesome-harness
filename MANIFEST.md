@@ -98,6 +98,10 @@ they drift (`check_manifest_md_sync()` in `tools/verify-content-quality.py`).
 | Logging | `.claude/skills/logging/SKILL.md` | skill | Loads on demand when adding or reviewing logging |
 | Accessibility | `.claude/skills/accessibility/SKILL.md` | skill | Loads on demand when building or reviewing web UIs for accessibility |
 | Security review | `.claude/skills/security-review/SKILL.md` | skill | Loads on demand for security audits, OWASP Top 10 checks, code review for vulnerabilities |
+| Planning with files | `.claude/skills/planning-with-files/SKILL.md` | skill | Loads on demand when starting complex multi-step tasks requiring persistent state across context resets |
+| Requirements clarification | `.claude/skills/requirements-clarification/SKILL.md` | skill | Loads on demand before implementing ambiguous or underspecified features |
+| Code review | `.claude/skills/code-review/SKILL.md` | skill | Loads on demand when reviewing a diff or pull request |
+| API design | `.claude/skills/api-design/SKILL.md` | skill | Loads on demand when designing or reviewing REST or GraphQL APIs |
 
 ## Custom Agents (task delegation to a separate agent instance — a different mechanism from skills, ported to Codex/OpenCode/Cursor/Kilo Code/Copilot/Gemini CLI)
 
