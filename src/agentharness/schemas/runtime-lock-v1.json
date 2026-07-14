@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentharness.dev/schemas/runtime-lock-v1.json",
+  "title": "Agentharness consumer runtime lock v1",
+  "type": "object",
+  "required": ["schema_version", "package", "zipapp", "runtimes", "acquisition"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {"const": 1},
+    "package": {"$ref": "#/$defs/package"},
+    "zipapp": {"$ref": "#/$defs/zipapp"},
+    "runtimes": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/runtime"},
+      "allOf": [
+        {"contains": {"properties": {"target": {"const": "x86_64-unknown-linux-gnu"}}, "required": ["target"]}},
+        {"contains": {"properties": {"target": {"const": "aarch64-unknown-linux-gnu"}}, "required": ["target"]}},
+        {"contains": {"properties": {"target": {"const": "x86_64-apple-darwin"}}, "required": ["target"]}},
+        {"contains": {"properties": {"target": {"const": "aarch64-apple-darwin"}}, "required": ["target"]}}
+      ]
+    },
+    "acquisition": {"$ref": "#/$defs/acquisition"}
+  },
+  "$defs": {
+    "httpsUrl": {"type": "string", "pattern": "^https://[^\\s]+$"},
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "sha512": {"type": "string", "pattern": "^[0-9a-f]{128}$"},
+    "version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$"},
+    "package": {
+      "type": "object",
+      "required": ["name", "version", "registry_url", "tarball_url", "registry_sri", "sha512", "allowed_mirror_url"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {"const": "agentharness-toolkit"},
+        "version": {"$ref": "#/$defs/version"},
+        "registry_url": {"$ref": "#/$defs/httpsUrl"},
+        "tarball_url": {"$ref": "#/$defs/httpsUrl"},
+        "registry_sri": {"type": "string", "pattern": "^sha512-[A-Za-z0-9+/]+={0,2}$"},
+        "sha512": {"$ref": "#/$defs/sha512"},
+        "allowed_mirror_url": {"$ref": "#/$defs/httpsUrl"}
+      }
+    },
+    "zipapp": {
+      "type": "object",
+      "required": ["path", "sha512", "core_version", "schema_version", "bundled_plugins", "compatibility_provider_version"],
+      "additionalProperties": false,
+      "properties": {
+        "path": {"const": "package/dist/agentharness.pyz"},
+        "sha512": {"$ref": "#/$defs/sha512"},
+        "core_version": {"$ref": "#/$defs/version"},
+        "schema_version": {"const": 1},
+        "bundled_plugins": {
+          "type": "object",
+          "additionalProperties": {"$ref": "#/$defs/version"}
+        },
+        "compatibility_provider_version": {"$ref": "#/$defs/version"}
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "required": ["target", "url", "sha256", "sha512", "archive_prefix", "interpreter_path"],
+      "additionalProperties": false,
+      "properties": {
+        "target": {"enum": ["x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu", "x86_64-apple-darwin", "aarch64-apple-darwin"]},
+        "url": {"$ref": "#/$defs/httpsUrl"},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "sha512": {"$ref": "#/$defs/sha512"},
+        "archive_prefix": {"const": "python/"},
+        "interpreter_path": {"const": "python/bin/python3"}
+      },
+      "oneOf": [
+        {"properties": {"target": {"const": "x86_64-unknown-linux-gnu"}, "url": {"const": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz"}}},
+        {"properties": {"target": {"const": "aarch64-unknown-linux-gnu"}, "url": {"const": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-aarch64-unknown-linux-gnu-install_only_stripped.tar.gz"}}},
+        {"properties": {"target": {"const": "x86_64-apple-darwin"}, "url": {"const": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-x86_64-apple-darwin-install_only_stripped.tar.gz"}}},
+        {"properties": {"target": {"const": "aarch64-apple-darwin"}, "url": {"const": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-aarch64-apple-darwin-install_only_stripped.tar.gz"}}}
+      ]
+    },
+    "acquisition": {
+      "type": "object",
+      "required": ["selected_target", "selected_source", "mirror_policy", "limits", "bootstrap_protocol_version"],
+      "additionalProperties": false,
+      "properties": {
+        "selected_target": {"enum": ["x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu", "x86_64-apple-darwin", "aarch64-apple-darwin"]},
+        "selected_source": {"enum": ["upstream", "mirror"]},
+        "mirror_policy": {
+          "type": "object",
+          "required": ["require_https", "require_matching_digest", "allowed_runtime_mirror_hosts"],
+          "additionalProperties": false,
+          "properties": {
+            "require_https": {"const": true},
+            "require_matching_digest": {"const": true},
+            "allowed_runtime_mirror_hosts": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {"type": "string", "pattern": "^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z]{2,63}$"}
+            }
+          }
+        },
+        "limits": {
+          "type": "object",
+          "required": ["max_compressed_bytes", "max_expanded_bytes", "max_member_bytes", "max_members", "max_redirects", "max_path_bytes"],
+          "additionalProperties": false,
+          "properties": {
+            "max_compressed_bytes": {"const": 268435456},
+            "max_expanded_bytes": {"const": 1073741824},
+            "max_member_bytes": {"const": 268435456},
+            "max_members": {"const": 100000},
+            "max_redirects": {"const": 3},
+            "max_path_bytes": {"const": 4096}
+          }
+        },
+        "bootstrap_protocol_version": {"const": 1}
+      }
+    }
+  }
+}

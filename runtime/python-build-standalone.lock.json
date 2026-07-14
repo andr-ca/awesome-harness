@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "python_version": "3.12.13",
+  "release": "20260510",
+  "artifact_flavor": "install_only_stripped.tar.gz",
+  "runtimes": [
+    {
+      "target": "x86_64-unknown-linux-gnu",
+      "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz",
+      "sha256": "d480f5d5878910ecbae212bf23bd7c25d7b209eb8cf5e98823c977384d272e88",
+      "sha512": "470070d982d31b448830258a2f4ebddf9c9fad6443ed48b3f1cd0d597eed8892b566e389cd5acfffce7491fc44aea2886ab6d7a32d272299de57ec573bc3ad4e",
+      "archive_prefix": "python/",
+      "interpreter_path": "python/bin/python3"
+    },
+    {
+      "target": "aarch64-unknown-linux-gnu",
+      "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-aarch64-unknown-linux-gnu-install_only_stripped.tar.gz",
+      "sha256": "8e2907baca8b08ae43f366e65f09fda6337d3543f322c399d8800cf689c79973",
+      "sha512": "e925d9280a5579f628222d30381f1ea65856697dff9b783abbecfc46202bde59fcbbdde8fd4a9ec7003c8cf391f6c4dff357f9dd51d4b4d582a5ed897c63dc5f",
+      "archive_prefix": "python/",
+      "interpreter_path": "python/bin/python3"
+    },
+    {
+      "target": "x86_64-apple-darwin",
+      "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-x86_64-apple-darwin-install_only_stripped.tar.gz",
+      "sha256": "6bab7fa97d4f2ddba86da0e05acff66c53b5edaca1df8edcf00ddca785a9c59b",
+      "sha512": "7b3bf26337e5fb3ec177d0f279154bd544841aedfaabbb17bfbc60417cfef443c6e66d12c36dad8097f528e49e9a76f1abe6adde1f5de91bb98fa0c8a282fd2a",
+      "archive_prefix": "python/",
+      "interpreter_path": "python/bin/python3"
+    },
+    {
+      "target": "aarch64-apple-darwin",
+      "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260510/cpython-3.12.13%2B20260510-aarch64-apple-darwin-install_only_stripped.tar.gz",
+      "sha256": "55bc1a5edbc8ac4da0081f4f5731ed2d1ed10c57cb37a820b2a0dbc7cad742e9",
+      "sha512": "41a301919d248ad7d4cdcae4c26129d5754f4f2eb947b5b1c2d5831597bd5cf060b67c15dd95bb9212f602a37d19554fc09aa32d62945d989cce73252e3cae09",
+      "archive_prefix": "python/",
+      "interpreter_path": "python/bin/python3"
+    }
+  ]
+}

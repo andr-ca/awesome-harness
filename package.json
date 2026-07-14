@@ -16,11 +16,14 @@
     "agentharness": "bin/cli.js"
   },
   "scripts": {
-    "prepack": "python3 tools/release/materialize-skill-symlinks.py materialize",
+    "build:runtime": "python3 tools/runtime/build-zipapp.py --check-reproducible",
+    "prepack": "npm run build:runtime && python3 tools/release/materialize-skill-symlinks.py materialize",
     "postpack": "python3 tools/release/materialize-skill-symlinks.py restore"
   },
   "files": [
     "bin/",
+    "dist/agentharness.pyz",
+    "runtime/python-build-standalone.lock.json",
     ".claude/skills/",
     "languages/",
     "patterns/",
