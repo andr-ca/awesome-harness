@@ -44,7 +44,11 @@ interface UserCardProps {
 }
 
 export function UserCard({ user, onSelect }: UserCardProps): JSX.Element {
-  return <div onClick={() => onSelect?.(user)}>{user.name}</div>;
+  return (
+    <button type="button" onClick={() => onSelect?.(user)}>
+      {user.name}
+    </button>
+  );
 }
 ```
 

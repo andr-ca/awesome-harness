@@ -62,8 +62,8 @@ npm audit fix
 npm audit fix --force
 ```
 
-For CI, prefer `npm audit --audit-level=high --json` so the exit code
-gates the build on high/critical findings:
+For CI, prefer `npm audit --audit-level=high` so the exit code gates
+the build on high/critical findings:
 
 ```bash
 npm audit --audit-level=high || { echo "High/critical vulnerabilities found"; exit 1; }
