@@ -6,8 +6,6 @@ repository_commit: "4f3e94b"
 previous_review: "docs/operational/reviews/gpt-5.6-sol-3rdpass-2026-07-13T134419Z.md"
 ---
 
-# agentharness — fourth-pass repository review
-
 ## Executive verdict
 
 **Overall: 7.4/10 — a strong engineering prototype and useful Claude-first

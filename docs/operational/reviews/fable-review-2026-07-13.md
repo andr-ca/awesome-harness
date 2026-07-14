@@ -8,8 +8,6 @@ previous_fable_review: "docs/operational/reviews/fable-review.md (2026-07-11)"
 concurrent_review: "docs/gpt-5.6-sol-4th-2026-07-14T021052Z.md (same commit, independent)"
 ---
 
-# agentharness — full repository review (idea, docs, implementation, usefulness)
-
 ## Executive verdict
 
 **Overall: 7.2/10.** The idea is strong and the engineering culture around it
