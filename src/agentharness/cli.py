@@ -2,6 +2,7 @@ import argparse
 import json
 import sys
 from collections.abc import Mapping, Sequence
+from pathlib import Path
 from typing import Never, TextIO
 
 from agentharness.errors import CommandUsageError
@@ -11,6 +12,11 @@ from agentharness.models import (
     Outcome,
     ResultCode,
     SupportedJsonValue,
+)
+from agentharness.runtime_upgrade import (
+    UpgradePlanningError,
+    load_upgrade_request,
+    plan_upgrade,
 )
 
 
@@ -24,6 +30,16 @@ def create_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True)
     status_parser = subparsers.add_parser("status", add_help=False)
     status_parser.add_argument("--json", action="store_true", dest="as_json")
+    runtime_parser = subparsers.add_parser("runtime", add_help=False)
+    runtime_subparsers = runtime_parser.add_subparsers(
+        dest="runtime_command", required=True
+    )
+    plan_upgrade_parser = runtime_subparsers.add_parser(
+        "plan-upgrade", add_help=False
+    )
+    plan_upgrade_parser.add_argument("--base-lock", type=Path, required=True)
+    plan_upgrade_parser.add_argument("--request", type=Path, required=True)
+    plan_upgrade_parser.add_argument("--json", action="store_true", dest="as_json")
     return parser
 
 
@@ -34,6 +50,41 @@ def execute_status() -> CommandResult:
         summary="Project is not configured.",
         remediation="Run 'agentharness bootstrap' to configure this project.",
         details={"state": "not_configured"},
+    )
+
+
+def execute_runtime_plan_upgrade(
+    request_path: Path, trusted_base_lock: Path
+) -> CommandResult:
+    try:
+        plan = plan_upgrade(
+            load_upgrade_request(
+                request_path,
+                trusted_base_lock=trusted_base_lock,
+            )
+        )
+    except UpgradePlanningError:
+        return CommandResult(
+            code=ResultCode.RUNTIME_UPGRADE_REJECTED,
+            outcome=Outcome.ERROR,
+            summary="Runtime upgrade is not admissible under the base lock.",
+            remediation=(
+                "Inspect the base-authoritative upgrade evidence and keep the "
+                "base lock."
+            ),
+        )
+    return CommandResult(
+        code=ResultCode.RUNTIME_UPGRADE_PLANNED,
+        outcome=Outcome.SUCCESS,
+        summary="Runtime upgrade is admissible under the base lock.",
+        remediation="Review and commit the protected runtime lock diff.",
+        details={
+            "evaluator_core_version": plan.evaluator.core_version,
+            "candidate_core_version": plan.candidate.core_version,
+            "candidate_schema_version": plan.candidate.schema_version,
+            "contracts": plan.contracts,
+            "lock_diff": plan.lock_diff,
+        },
     )
 
 
@@ -70,7 +121,13 @@ def main(argv: Sequence[str] | None = None, output: TextIO | None = None) -> int
     destination = output if output is not None else sys.stdout
     try:
         arguments = create_parser().parse_args(argv)
-        result = execute_status()
+        if arguments.command == "status":
+            result = execute_status()
+        else:
+            result = execute_runtime_plan_upgrade(
+                arguments.request,
+                arguments.base_lock,
+            )
     except CommandUsageError:
         result = CommandResult(
             code=ResultCode.INVALID_COMMAND,
@@ -83,4 +140,4 @@ def main(argv: Sequence[str] | None = None, output: TextIO | None = None) -> int
 
     rendered = render_json(result) if arguments.as_json else render_human(result)
     print(rendered, file=destination)
-    return 0
+    return 0 if result.outcome is Outcome.SUCCESS else 1

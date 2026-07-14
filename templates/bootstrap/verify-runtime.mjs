@@ -244,8 +244,8 @@ function httpsUrl(value, label) {
 
 function validateIdentity(value, label) {
     const identity = exactObject(value, label, ["bundled_plugins", "compatibility_provider_version", "core_version", "schema_version"]);
-    if (identity.schema_version !== 1) {
-        fail(`${label}.schema_version must be 1`);
+    if (!Number.isInteger(identity.schema_version) || identity.schema_version < 1 || identity.schema_version > 2) {
+        fail(`${label}.schema_version is not supported by bootstrap protocol v1`);
     }
     stringField(identity.core_version, `${label}.core_version`, VERSION_PATTERN);
     stringField(identity.compatibility_provider_version, `${label}.compatibility_provider_version`, VERSION_PATTERN);
@@ -1094,10 +1094,12 @@ async function promoteArtifact(cacheRoot, kind, digest, archivePayload, members,
 }
 
 async function acquireArchive(options, lock, runtime, kind, temporaryRoot) {
-    const local = kind === "npm" ? options.npmArchive : options.runtimeArchive;
+    const authenticatedLocal = kind === "npm" ? options.authenticatedNpmArchive : options.authenticatedRuntimeArchive;
+    const testLocal = kind === "npm" ? options.npmArchive : options.runtimeArchive;
+    const local = authenticatedLocal ?? testLocal;
     const destination = join(temporaryRoot, `${kind}.tar.gz`);
     if (local !== null) {
-        if (process.env.AGENTHARNESS_BOOTSTRAP_TEST_MODE !== "1") {
+        if (testLocal !== null && process.env.AGENTHARNESS_BOOTSTRAP_TEST_MODE !== "1") {
             fail("local artifacts are available only in explicit bootstrap test mode");
         }
     } else {
@@ -1168,7 +1170,7 @@ async function launchVerified(options, lock, runtime, npmCache, runtimeCache) {
 }
 
 function parseArguments(arguments_) {
-    const result = { lock: null, cache: null, npmArchive: null, runtimeArchive: null, verifyOnly: false, forwarded: [] };
+    const result = { lock: null, cache: null, npmArchive: null, runtimeArchive: null, authenticatedNpmArchive: null, authenticatedRuntimeArchive: null, verifyOnly: false, forwarded: [] };
     for (let index = 0; index < arguments_.length; index += 1) {
         const argument = arguments_[index];
         if (argument === "--") {
@@ -1179,14 +1181,17 @@ function parseArguments(arguments_) {
             result.verifyOnly = true;
             continue;
         }
-        const key = { "--lock": "lock", "--cache": "cache", "--npm-archive": "npmArchive", "--runtime-archive": "runtimeArchive" }[argument];
+        const key = { "--lock": "lock", "--cache": "cache", "--npm-archive": "npmArchive", "--runtime-archive": "runtimeArchive", "--authenticated-npm-archive": "authenticatedNpmArchive", "--authenticated-runtime-archive": "authenticatedRuntimeArchive" }[argument];
         if (key === undefined || index + 1 >= arguments_.length) {
             fail("usage: verify-runtime.mjs --lock PATH --cache PATH [-- ARGS...]");
         }
         result[key] = arguments_[index + 1];
         index += 1;
     }
-    if (result.lock === null || result.cache === null || (result.npmArchive === null) !== (result.runtimeArchive === null)) {
+    const testPairInvalid = (result.npmArchive === null) !== (result.runtimeArchive === null);
+    const authenticatedPairInvalid = (result.authenticatedNpmArchive === null) !== (result.authenticatedRuntimeArchive === null);
+    const mixedLocalModes = result.npmArchive !== null && result.authenticatedNpmArchive !== null;
+    if (result.lock === null || result.cache === null || testPairInvalid || authenticatedPairInvalid || mixedLocalModes) {
         fail("both lock/cache and paired test archives are required");
     }
     return result;

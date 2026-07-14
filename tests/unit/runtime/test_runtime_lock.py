@@ -1308,10 +1308,14 @@ def test_real_npm_pack_builds_and_verifies_consumer_lock(tmp_path: Path) -> None
             "package/bin/cli.js",
             "package/dist/agentharness.pyz",
             "package/runtime/python-build-standalone.lock.json",
+            "package/templates/bootstrap/verify-runtime.mjs",
             "package/.claude/skills/agentic-loops/agent_loop.py",
         }
         assert expected <= set(members)
         assert all(members[name].isfile() for name in expected)
+        assert {
+            name for name in members if name.startswith("package/templates/")
+        } == {"package/templates/bootstrap/verify-runtime.mjs"}
         zipapp_member = archive.extractfile("package/dist/agentharness.pyz")
         assert zipapp_member is not None
         zipapp_bytes = zipapp_member.read()

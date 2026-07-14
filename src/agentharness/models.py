@@ -109,6 +109,8 @@ def _freeze_json(
 
 class ResultCode(StrEnum):
     STATUS_AVAILABLE = "status_available"
+    RUNTIME_UPGRADE_PLANNED = "runtime_upgrade_planned"
+    RUNTIME_UPGRADE_REJECTED = "runtime_upgrade_rejected"
     INVALID_COMMAND = "invalid_command"
 
 

@@ -24,6 +24,7 @@
     "bin/",
     "dist/agentharness.pyz",
     "runtime/python-build-standalone.lock.json",
+    "templates/bootstrap/verify-runtime.mjs",
     ".claude/skills/",
     "languages/",
     "patterns/",
