@@ -49,6 +49,45 @@ setup() {
     rm -rf "$consumer_repo"
 }
 
+@test "pre-push: strips repository-local Git environment before fixture suites" {
+    repo_root="$(cd "$(dirname "$HOOK")/../.." && pwd)"
+    git_dir="$(git -C "$repo_root" rev-parse --absolute-git-dir)"
+    stub_dir="$(mktemp -d)"
+
+    cat > "$stub_dir/bats" <<'STUB'
+#!/bin/bash
+for name in GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES; do
+    if [ -n "${!name+x}" ]; then
+        echo "repository-local Git variable leaked into bats: $name" >&2
+        exit 1
+    fi
+done
+exit 0
+STUB
+    cat > "$stub_dir/python3" <<'STUB'
+#!/bin/bash
+for name in GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES; do
+    if [ -n "${!name+x}" ]; then
+        echo "repository-local Git variable leaked into python: $name" >&2
+        exit 1
+    fi
+done
+exit 0
+STUB
+    chmod +x "$stub_dir/bats" "$stub_dir/python3"
+
+    run env GIT_DIR="$git_dir" GIT_WORK_TREE="$repo_root" \
+        PATH="$stub_dir:$PATH" bash "$HOOK"
+
+    if [ "$status" -ne 0 ]; then
+        echo "$output" >&2
+    fi
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "All pre-push checks passed" ]]
+
+    rm -rf "$stub_dir"
+}
+
 @test "pre-push: fails clearly when bats is not on PATH" {
     # Exclude every PATH directory that actually contains a `bats`
     # executable — not just pattern-matching "bats" in the directory name

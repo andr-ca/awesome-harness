@@ -46,6 +46,15 @@ if [ "$PUSHED_REPO_ROOT" != "$REPO_ROOT" ]; then
     exit 0
 fi
 
+# Git exports repository-local variables such as GIT_DIR and GIT_WORK_TREE to
+# hooks.  The suites below create disposable repositories; allowing those
+# variables to leak makes `git -C <fixture>` continue operating on this
+# worktree instead of the fixture.  Resolve this repository first, then clear
+# every variable Git itself classifies as local before invoking test tools.
+while IFS= read -r git_var; do
+    unset "$git_var"
+done < <(git rev-parse --local-env-vars)
+
 cd "$REPO_ROOT"
 
 RED='\033[0;31m'
