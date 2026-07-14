@@ -84,6 +84,11 @@ Documents ready to be promoted to harness or archived:
   (safety-relevant), and the review-loop accumulation itself (5 cycles in
   3 days). 13 itemized findings (F-01–F-13); **disposition pending**.
 
+- `reviews/fable-gpt5-sol-disposition-2026-07-14.md` — merged disposition
+  of Fable (7.2/10) + GPT-5.6 fourth-pass (7.4/10 at different commits).
+  Filed 2026-07-14. 5 P0 blockers (1 done, 4 not started), 11 P1
+  improvements, 4 P2 follow-ups. **Requires user scoping for P1+ before implementation.**
+
 ## 📚 Archives
 
 Historical documents kept for reference:
