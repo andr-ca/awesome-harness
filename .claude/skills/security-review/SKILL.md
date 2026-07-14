@@ -238,6 +238,7 @@ GitHub's built-in secret scanning fires automatically; check the
 ## Language-specific quick-reference
 
 ### Python
+
 | Risk | Wrong | Right |
 |---|---|---|
 | SQL | `f"... {val}"` | `cursor.execute(q, (val,))` |
@@ -247,6 +248,7 @@ GitHub's built-in secret scanning fires automatically; check the
 | Secret source | hardcoded | `os.environ["KEY"]` |
 
 ### TypeScript / JavaScript
+
 | Risk | Wrong | Right |
 |---|---|---|
 | XSS | `innerHTML = input` | `textContent = input` |
@@ -256,6 +258,7 @@ GitHub's built-in secret scanning fires automatically; check the
 | HTTPS | `http://` internal call | `https://` always |
 
 ### Go
+
 | Risk | Wrong | Right |
 |---|---|---|
 | SQL | `fmt.Sprintf` in query | `db.Query(q, args...)` |
