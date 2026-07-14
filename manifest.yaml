@@ -135,6 +135,14 @@ sections:
     path: patterns/error-handling/README.md
     type: guide
     when_to_use: Explicit errors, wrapping, retry/circuit-breaker, structured logging
+  - asset: API design overview
+    path: patterns/api-design/README.md
+    type: guide
+    when_to_use: Entry point for HTTP API design — routes to REST_CONVENTIONS.md
+  - asset: REST API conventions
+    path: patterns/api-design/REST_CONVENTIONS.md
+    type: guide
+    when_to_use: Resource naming, HTTP methods/status codes, RFC 9457 errors, versioning, pagination, auth
 - name: Agentic & Autonomous Systems
   columns:
   - Asset

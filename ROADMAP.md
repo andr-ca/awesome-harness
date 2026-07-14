@@ -66,7 +66,12 @@ Go, and Rust are implemented; Java and others are not started.
 ### `patterns/{api-design}/`
 Additional pattern categories, following the shape of the existing
 `patterns/{testing,logging,agentic-loops,error-handling,profiles,accessibility}/`.
-Those six exist today; API design is not started.
+Those six exist today; API design is **now built** —
+`patterns/api-design/README.md` (index) and
+`patterns/api-design/REST_CONVENTIONS.md` (full REST conventions: resource
+naming, HTTP semantics, RFC 9457 errors, versioning, pagination, auth).
+The on-demand skill at `.claude/skills/api-design/SKILL.md` is a condensed
+day-to-day reference that summarises REST_CONVENTIONS.md.
 
 The cross-framework accessibility pattern that used to be a gap here is
 now **built** (`patterns/accessibility/README.md`), written from WCAG 2.2

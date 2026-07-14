@@ -52,6 +52,8 @@ they drift (`check_manifest_md_sync()` in `tools/verify-content-quality.py`).
 | Asset | Path | Type | When to use |
 |---|---|---|---|
 | Error handling patterns | `patterns/error-handling/README.md` | guide | Explicit errors, wrapping, retry/circuit-breaker, structured logging |
+| API design overview | `patterns/api-design/README.md` | guide | Entry point for HTTP API design — routes to REST_CONVENTIONS.md |
+| REST API conventions | `patterns/api-design/REST_CONVENTIONS.md` | guide | Resource naming, HTTP methods/status codes, RFC 9457 errors, versioning, pagination, auth |
 
 ## Agentic & Autonomous Systems
 
