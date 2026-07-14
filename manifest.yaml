@@ -454,6 +454,9 @@ sections:
   - asset: Architecture decision log (compact, retroactive)
     path: docs/DECISIONS.md
     type: doc
+  - asset: Project bootstrap and deterministic policy design (approved; not implemented)
+    path: docs/superpowers/specs/2026-07-14-project-bootstrap-policy-design.md
+    type: design specification
   - asset: Integration instructions
     path: docs/INTEGRATION.md
     type: doc

@@ -14,6 +14,7 @@ Guides for understanding and using the agentharness repository.
 - **[SECURITY.md](../SECURITY.md)** – secrets-in-history procedure
 - **[INTEGRATION.md](./INTEGRATION.md)** – symlink/copy/submodule methods, per-component steps
 - **[ARCHITECTURE.md](./ARCHITECTURE.md)** – design philosophy and target-state layering
+- **[Project bootstrap policy design](./superpowers/specs/2026-07-14-project-bootstrap-policy-design.md)** – approved design for first-use capability discovery, modular profiles, plugins, and deterministic gates (not implemented yet)
 
 ## Finding What You Need
 

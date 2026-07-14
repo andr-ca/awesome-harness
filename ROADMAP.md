@@ -83,6 +83,21 @@ This repo's own tooling is implemented, though: `tools/setup/harness-link.sh`
 `.github/hooks/{prevent-trunk-commit,pre-push}`. See
 [MANIFEST.md](MANIFEST.md) for the complete, current list.
 
+### Project bootstrap and deterministic policy engine
+
+**Designed and approved; implementation not started.** The permanent design
+specification is
+[`docs/superpowers/specs/2026-07-14-project-bootstrap-policy-design.md`](docs/superpowers/specs/2026-07-14-project-bootstrap-policy-design.md).
+It replaces ad-hoc expansion of `enforce-profile` with a planned Python core,
+one committed modular project profile, a plugin contract proven first with
+Python, first-use capability discovery, and the same requirements compiled into
+commit, push, CI, protected-merge, and agent-completion gates. Documentation
+and changelog are first-class diff-aware capabilities in that design.
+
+The approved work is split into six delivery slices in the specification. None
+of those slices should be described as available until its own tests and
+dogfood acceptance criteria pass.
+
 ### `.github/workflows/`
 Reusable CI workflows for consuming projects. Not started. This repo's own
 CI (markdown link check, shellcheck, hook tests) is implemented in `ci.yml`.

@@ -7,6 +7,11 @@ section into a tagged version.
 ## [Unreleased]
 
 ### Added
+- Approved design specification for the planned project-bootstrap and
+  deterministic-policy subsystem: first-use discovery, a modular committed
+  profile, a Python-first plugin contract, documentation/changelog requirements,
+  layered Git/CI/completion gates, and protected policy reductions. This is a
+  design milestone, not a claim that the subsystem is implemented.
 - `harness-link.sh enforce-profile` gates Python, Go, and JS/TS projects.
   JS/TS covers Node's built-in `node --test` and Vitest
   (`coverage-summary.json`); Go uses `go test -coverprofile` and
