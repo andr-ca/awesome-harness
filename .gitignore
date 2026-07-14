@@ -1,61 +1,224 @@
-# Dependencies
-node_modules/
-__pycache__/
-*.pyc
-*.pyo
-*.egg-info/
-# vendor/ and Gemfile.lock are NOT ignored here — see .github/.gitignore.template's
-# policy note: lock files are committed for reproducible builds, and Go's
-# vendor/ is project-specific (committed if vendoring, ignored only if not).
+# ============================================================================
+# COMPREHENSIVE .gitignore TEMPLATE
+# ============================================================================
+# Copy to your project as .gitignore and delete sections that don't apply.
+#
+# Policy notes (read before deleting sections):
+# - Lock files (package-lock.json, yarn.lock, pnpm-lock.yaml, Gemfile.lock,
+#   poetry.lock, go.sum, Cargo.lock for binaries) are COMMITTED, not ignored.
+#   They pin exact dependency versions for reproducible builds.
+# - Version-pin files (.nvmrc, .python-version, .ruby-version, .node-version)
+#   are COMMITTED. They document the toolchain version for every contributor.
+# - `.env.sample` is COMMITTED (sanitized template); `.env` and its local/
+#   environment variants are NEVER committed.
+#
+# DO NOT commit secrets, API keys, passwords, or sensitive data!
+# ============================================================================
 
-# Build artifacts
-dist/
-build/
-*.o
-*.a
-*.so
+# ============================================================================
+# WORKTREES
+# ============================================================================
+.worktrees/
+*.worktree
 
-# Environment
-.env
-.env.local
-.env.*.local
-
-# IDE
+# ============================================================================
+# IDE & EDITORS
+# ============================================================================
 .vscode/
+*.code-workspace
+.history/
 .idea/
+*.iml
+*.iws
+*.ipr
+.sublime-project
+.sublime-workspace
 *.swp
 *.swo
 *~
-.DS_Store
+.\#*
+\#*\#
+.vs/
 
-# OS
+# ============================================================================
+# OPERATING SYSTEM
+# ============================================================================
+.DS_Store
+.AppleDouble
+.Spotlight-V100
+.Trashes
 Thumbs.db
-.DS_Store
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.directory
+.nfs*
 
-# Testing
+# ============================================================================
+# DEPENDENCIES (installed packages — NOT lock files, see policy note above)
+# ============================================================================
+
+# Node.js
+node_modules/
+.npm
+.eslintcache
+.stylelintcache
+.pnp
+.pnp.js
+# package-lock.json / yarn.lock / pnpm-lock.yaml are committed — do not ignore
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.venv/
+venv/
+ENV/
+.tox/
+.nox/
+.pyre/
+# requirements*.txt / poetry.lock / Pipfile.lock are committed — do not ignore
+
+# Ruby
+.bundle/
+vendor/bundle/
+# Gemfile.lock is committed — do not ignore
+
+# Go
+# go.sum and go.mod are committed — do not ignore
+# vendor/ is project-specific: committed if you vendor dependencies,
+# ignored if you rely on the module cache. Uncomment only if NOT vendoring:
+# vendor/
+
+# Rust
+# Cargo.lock is committed for binaries; ignore only for libraries.
+# Uncomment if this is a library crate:
+# Cargo.lock
+
+# Java / Gradle / Maven
+.gradle/
+*.class
+*.jar
+*.war
+
+# PHP / Composer
+# composer.lock is committed — do not ignore
+
+# ============================================================================
+# BUILD & COMPILATION OUTPUT
+# ============================================================================
+dist/
+build/
+out/
+bin/
+obj/
+target/
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+
+# Web framework builds
+.next/
+.nuxt/
+.docusaurus/
+.vuepress/dist/
+
+# ============================================================================
+# ENVIRONMENT & SECRETS (CRITICAL!)
+# ============================================================================
+.env
+.env.local
+.env.*.local
+.env.development
+.env.test
+.env.production
+!.env.sample
+
+# Secret files and credentials — NEVER commit
+*.pem
+*.key
+*.crt
+*.pfx
+*.p12
+*.p8
+id_rsa*
+id_dsa*
+id_ed25519*
+id_ecdsa*
+secrets.json
+credentials.json
+google-credentials.json
+.aws/
+.gcloud/
+.azure/
+.kube/
+
+# ============================================================================
+# TEMPORARY & CACHE FILES
+# ============================================================================
+*.tmp
+*.temp
+*.bak
+tmp/
+.cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+
+# ============================================================================
+# TEST COVERAGE & CI ARTIFACTS
+# ============================================================================
 .coverage
 .coverage.*
 coverage/
-.nyc_output/
 htmlcov/
-.pytest_cache/
+coverage.xml
+.nyc_output/
 
-# Temporary files
-*.tmp
-*.temp
-.tmp/
+# ============================================================================
+# LOGS
+# ============================================================================
+logs/
+*.log
 
-# Tool outputs
-.tool-cache/
+# ============================================================================
+# DATABASE
+# ============================================================================
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
 
-# agentharness: per-operator publish-authority grant — never committed,
-# see CLAUDE.md's "Publish authority" section
+# ============================================================================
+# AGENTHARNESS
+# ============================================================================
+# .agentharness-profile (rigor tier) IS committed — a project's declared
+# tier is repo policy, not a secret. .agentharness-publish-mode is NOT —
+# it's a per-operator/per-machine grant of standing commit/push/PR
+# authority to an agent reading this repo's CLAUDE.md (see CLAUDE.md's
+# "Publish authority" section). Never commit it.
 .agentharness-publish-mode
 
-# --mode npm's durable local package copy (P0-02) — not applicable to this
-# repo's own root normally, ignored for symmetry with the consumer-facing
-# .github/.gitignore.template entry and local test/debug runs.
+# --mode npm's durable local copy of the whole harness package (P0-02) —
+# regenerated by 'init'/'update' from whatever npm/npx package is
+# currently running, never meant to be committed (it would just bloat the
+# repo with a redundant copy that goes stale the moment a new version
+# publishes).
 .agentharness-pkg/
 
-# Git worktrees for isolated development branches
-.worktrees/
+# ============================================================================
+# VERSION PIN FILES — DO NOT IGNORE (commit these)
+# ============================================================================
+# .nvmrc, .python-version, .ruby-version, .node-version document the exact
+# toolchain version and should be committed. Listed here only as a reminder
+# not to add them above by accident.
+
+# ============================================================================
+# PROJECT-SPECIFIC ADDITIONS
+# ============================================================================
+# Add project-specific ignores below this line.
