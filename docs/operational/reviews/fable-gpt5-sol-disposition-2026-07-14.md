@@ -38,7 +38,7 @@ All five require implementation before next release. No additional scoping neede
 
 **Why critical:** Safety issue — the skill is telling consumers to do the opposite of what the trust model mandates.
 
-**Action needed:** 
+**Action needed:**
 1. Update `.claude/skills/committing/SKILL.md` body to reflect verify-and-stage default
 2. Update frontmatter description (currently republished to all platforms, contradicts mandate)
 3. Regenerate `.cursor/rules/committing.mdc`, `.agents/skills/committing/SKILL.md`
