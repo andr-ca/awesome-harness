@@ -124,6 +124,14 @@ sections:
     path: patterns/accessibility/README.md
     type: guide
     when_to_use: Cross-framework WCAG 2.2 AA / ARIA baseline — semantic HTML, keyboard, contrast, custom-widget roles, testing
+  - asset: Mutation testing overview
+    path: patterns/mutation-testing/README.md
+    type: guide
+    when_to_use: Entry point for mutation testing — routes to MUTATION_TESTING.md
+  - asset: Mutation testing guide
+    path: patterns/mutation-testing/MUTATION_TESTING.md
+    type: guide
+    when_to_use: Mutation operators, mutation score thresholds, mutmut/Stryker/gremlins tooling, surviving mutant triage
 - name: Error Handling & Reliability
   columns:
   - Asset
@@ -143,14 +151,6 @@ sections:
     path: patterns/api-design/REST_CONVENTIONS.md
     type: guide
     when_to_use: Resource naming, HTTP methods/status codes, RFC 9457 errors, versioning, pagination, auth
-  - asset: Mutation testing overview
-    path: patterns/mutation-testing/README.md
-    type: guide
-    when_to_use: Entry point for mutation testing — routes to MUTATION_TESTING.md
-  - asset: Mutation testing guide
-    path: patterns/mutation-testing/MUTATION_TESTING.md
-    type: guide
-    when_to_use: Mutation operators, mutation score thresholds, mutmut/Stryker/gremlins tooling, surviving mutant triage
 - name: Agentic & Autonomous Systems
   columns:
   - Asset

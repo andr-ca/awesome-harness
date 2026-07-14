@@ -46,6 +46,8 @@ they drift (`check_manifest_md_sync()` in `tools/verify-content-quality.py`).
 | Completion checklist | `patterns/testing/COMPLETION_CHECKLIST.md` | checklist | Before marking any task done |
 | Playwright UI testing | `patterns/testing/PLAYWRIGHT_UI_TESTING.md` | guide | Web UI work at Production tier only |
 | Accessibility patterns | `patterns/accessibility/README.md` | guide | Cross-framework WCAG 2.2 AA / ARIA baseline — semantic HTML, keyboard, contrast, custom-widget roles, testing |
+| Mutation testing overview | `patterns/mutation-testing/README.md` | guide | Entry point for mutation testing — routes to MUTATION_TESTING.md |
+| Mutation testing guide | `patterns/mutation-testing/MUTATION_TESTING.md` | guide | Mutation operators, mutation score thresholds, mutmut/Stryker/gremlins tooling, surviving mutant triage |
 
 ## Error Handling & Reliability
 
@@ -54,8 +56,6 @@ they drift (`check_manifest_md_sync()` in `tools/verify-content-quality.py`).
 | Error handling patterns | `patterns/error-handling/README.md` | guide | Explicit errors, wrapping, retry/circuit-breaker, structured logging |
 | API design overview | `patterns/api-design/README.md` | guide | Entry point for HTTP API design — routes to REST_CONVENTIONS.md |
 | REST API conventions | `patterns/api-design/REST_CONVENTIONS.md` | guide | Resource naming, HTTP methods/status codes, RFC 9457 errors, versioning, pagination, auth |
-| Mutation testing overview | `patterns/mutation-testing/README.md` | guide | Entry point for mutation testing — routes to MUTATION_TESTING.md |
-| Mutation testing guide | `patterns/mutation-testing/MUTATION_TESTING.md` | guide | Mutation operators, mutation score thresholds, mutmut/Stryker/gremlins tooling, surviving mutant triage |
 
 ## Agentic & Autonomous Systems
 
