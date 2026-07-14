@@ -2,9 +2,9 @@
 # -r requirements-dev.txt` gets the exact versions this repo is tested
 # against, not "whatever's latest today"). Bump deliberately, verify locally
 # (pytest suites + ruff + mypy all still pass) before raising these.
+-r requirements-runtime.lock
 pytest==9.1.1
 pytest-cov==7.1.0
-pyyaml==6.0.3
 jsonschema==4.26.0
 ruff==0.15.8
 mypy==1.19.1
