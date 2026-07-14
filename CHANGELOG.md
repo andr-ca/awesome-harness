@@ -9,9 +9,10 @@ section into a tagged version.
 ### Added
 - `harness-link.sh enforce-profile` gates Python, Go, and JS/TS projects.
   JS/TS covers Node's built-in `node --test` and Vitest
-  (`coverage-summary.json`); Go uses `go test -coverprofile` + `go tool
-  cover`. Jest/Mocha and unrecognized project types get an honest "not
-  implemented" and exit 0 — or fail under the new `--strict` flag, so CI
+  (`coverage-summary.json`); Go uses `go test -coverprofile` and
+  `go tool cover`. Jest/Mocha and unrecognized project types get an
+  honest "not implemented" and exit 0 — or fail under the new `--strict`
+  flag, so CI
   can require full coverage of the projects it gates.
 - `harness-link.sh generate-clients <project> [--client …]` — runs the
   client-adapter generators into a consumer project in one command

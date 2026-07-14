@@ -72,9 +72,8 @@ Copilot's code review). Before merging:
    ignore" on the thread where the reviewer left the finding, not only in
    a commit message or status file, so every decision is auditable next
    to the comment it answers. Use `gh pr comment <n>` for issue-level
-   replies and `gh api --method POST
-   repos/<owner>/<repo>/pulls/<n>/comments/<id>/replies -f body=…` for
-   inline ones.
+   replies and `gh api --method POST repos/<owner>/<repo>/pulls/<n>/comments/<id>/replies -f body=…`
+   for inline ones.
 
 **Never report a push/merge as done while CI is still running or red —
 watch it through to an actual, current green before moving on or telling
