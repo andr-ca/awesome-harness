@@ -36,10 +36,35 @@ Bad: `update`, `Feature/UserAuth`, `fix_everything`.
 
 ### Worktrees
 
-Use when you need two branches checked out simultaneously (comparing
-versions, running tests on one branch while coding another). Skip for a
-single quick edit. Keep them in `.worktrees/{branch-name}/`, one branch
-per worktree directory, and `git worktree remove` when done.
+A worktree is a second working directory backed by the *same* repo, so
+you can have several branches checked out at once without stashing or
+re-cloning.
+
+**Reach for one when:**
+
+- Running long tests/builds on one branch while you keep coding another.
+- Reviewing a PR branch without disturbing your in-progress work.
+- **Running agents in parallel** — give each agent/task its own worktree
+  so concurrent runs never fight over one working tree or index. This is
+  the highest-value case for an agent harness.
+
+Skip it for a single quick edit — a plain branch switch is cheaper.
+
+**The rules that bite:**
+
+- **One branch per worktree** — git refuses to check the same branch out
+  in two worktrees at once.
+- **Keep them in `.worktrees/{branch-name}/`** (gitignored — it's in
+  `.github/.gitignore.template`), not scattered sibling directories.
+- **Hooks are shared by default** — worktrees share one `.git` config and
+  `core.hooksPath`, so trunk protection and the pre-push hook apply in
+  all of them; you won't *accidentally* sidestep them by moving to a
+  worktree (short of deliberately enabling per-worktree config).
+- **Remove with git, not `rm -rf`** — `git worktree remove <dir>` (or
+  `git worktree prune` if you already deleted it by hand), so git's
+  bookkeeping stays consistent.
+
+Full mechanics (submodule caveat, cleanup): `.github/BRANCHING_STRATEGY.md`.
 
 ### If a secret was committed
 

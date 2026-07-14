@@ -35,10 +35,46 @@ Format: `{type}/{description}`, lowercase, hyphens not underscores.
 
 ## Worktrees
 
-If using worktrees, keep them under `.worktrees/` (one directory per
-branch, added to `.gitignore`) rather than scattering sibling
-directories — that's the one convention this repo adds on top of
-standard `git worktree` usage.
+A worktree (`git worktree add`) gives you a second working directory
+backed by the same repository — multiple branches checked out at once,
+sharing one object store, without a second clone. This repo defers the
+generic mechanics to [`git-worktree`](https://git-scm.com/docs/git-worktree)
+and documents only the decisions and the sharp edges.
+
+### When they earn their keep
+
+- Long-running tests or builds on one branch while you keep coding on
+  another.
+- Reviewing or bisecting a branch without stashing your in-progress work.
+- **Parallel agent runs** — the highest-value case here: give each agent
+  or task its own worktree under `.worktrees/{branch}` so concurrent runs
+  never collide on a single working tree, index, or in-flight edit. One
+  agent per worktree, one branch per worktree.
+
+Skip them for a single quick edit; a branch switch is cheaper than the
+directory bookkeeping.
+
+### Conventions and the edges that bite
+
+- **Keep them under `.worktrees/`** (one directory per branch), added to
+  `.gitignore` — the one convention this repo adds on top of standard
+  usage. The `.github/.gitignore.template` already ignores it.
+- **One branch, one worktree.** Git refuses to check the same branch out
+  in two worktrees at once, so a branch lives in exactly one place.
+- **Config and hooks are shared by default.** Worktrees share the common
+  `.git` directory, so `core.hooksPath`, remotes, and config apply to all
+  of them unless you deliberately opt into per-worktree config
+  (`extensions.worktreeConfig`). In practice the trunk-protection and
+  pre-push hooks run in every worktree automatically — you won't
+  *accidentally* bypass them by moving to one.
+- **Remove via git.** `git worktree remove <dir>` when done, or
+  `git worktree prune` if you deleted the directory by hand — never just
+  `rm -rf` and walk away, or git keeps a stale registration.
+  `git worktree list` shows what's currently registered.
+- **Submodules init per worktree.** If you consume this harness in
+  `--mode submodule`, a freshly-added worktree starts with an empty
+  submodule — run `git submodule update --init` inside it before the
+  harness's skills resolve there.
 
 ## .gitignore configuration
 
