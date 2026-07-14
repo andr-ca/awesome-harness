@@ -14,6 +14,7 @@ list):
 - **profiles/** – Rigor-tier profiles (prototype/internal/production)
 - **accessibility/** – Cross-framework WCAG 2.2 AA / ARIA baseline
 - **api-design/** – REST API conventions (resource naming, HTTP semantics, RFC 9457 errors, versioning, pagination, auth)
+- **mutation-testing/** – Mutation testing: operators, score thresholds, mutmut/Stryker/gremlins tooling, surviving mutant triage
 
 Other pattern categories remain unbuilt — see
 [ROADMAP.md](../ROADMAP.md) before assuming one exists.

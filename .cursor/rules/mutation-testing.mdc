@@ -1,0 +1,87 @@
+---
+description: "Use when writing tests for critical business logic, auditing test suite quality beyond line coverage, or interpreting surviving mutants — covers mutation operators, mutation score thresholds, and tooling (mutmut, Stryker, gremlins) for Python, TypeScript/JS, and Go."
+---
+
+## Mutation Testing
+
+Mutation testing verifies whether your tests *detect* bugs, not just
+whether they *execute* code. A "mutant" is a small deliberate change
+(flip `>` to `>=`, delete a `return`) applied to the source. If your
+tests pass with the mutant, they would not have caught that bug.
+
+Deeper reference: `patterns/mutation-testing/MUTATION_TESTING.md`
+(full operator list, equivalent mutants, cost management strategies).
+
+### When to use it
+
+- After reaching line/branch coverage targets but before shipping
+  critical business logic (payment, auth, data validation).
+- When a production bug slips through a test suite that claims high coverage.
+- As a periodic quality audit (weekly/monthly) rather than a per-commit gate.
+
+**When to skip:** Prototype and Internal tiers; generated code; pure
+data classes with no conditional logic; large legacy codebases where the
+cost of triaging hundreds of mutants outweighs the benefit.
+
+### Mutation score
+
+$$\text{mutation score} = \frac{\text{killed}}{\text{total} - \text{equivalent}} \times 100\%$$
+
+| Score | Verdict |
+|---|---|
+| ≥ 80% | Strong; surviving mutants warrant individual inspection |
+| 60–79% | Adequate; identify surviving categories and add targeted tests |
+| Below 60% | Test suite quality is insufficient; line/branch percentages alone are misleading |
+
+### Python — mutmut
+
+```bash
+pip install mutmut
+mutmut run --paths-to-mutate src/billing.py
+mutmut results          # list surviving mutants
+mutmut show 15          # show the diff for mutant #15
+```
+
+### TypeScript / JavaScript — Stryker
+
+```bash
+npm install --save-dev @stryker-mutator/core @stryker-mutator/jest-runner
+npx stryker init
+npx stryker run
+```
+
+`stryker.config.js`:
+
+```javascript
+module.exports = {
+  testRunner: 'jest',
+  coverageAnalysis: 'perTest',  // only test mutants actually covered
+  mutate: ['src/billing/**/*.ts'],
+  thresholds: { high: 80, low: 60, break: 50 },  // break = CI gate
+};
+```
+
+### Go — gremlins
+
+```bash
+go install github.com/go-gremlins/gremlins/cmd/gremlins@latest
+gremlins unleash ./internal/billing/...
+```
+
+### Interpreting surviving mutants
+
+Before writing a new test, categorise the mutant:
+
+| Type | Action |
+|---|---|
+| **True gap** — code path not asserted | Write the missing test |
+| **Weak assertion** — executed but not verified | Strengthen the test (assert the output value) |
+| **Equivalent mutant** — no observable change | Document and exclude |
+| **Acceptable risk** — non-critical path, high test cost | Document the decision |
+
+### Cost management
+
+- Scope to critical modules, not the whole project.
+- Run on a schedule (nightly CI), not on every push.
+- Use `coverageAnalysis: 'perTest'` (Stryker) to skip untouched mutants.
+- Run incrementally against changed files only.

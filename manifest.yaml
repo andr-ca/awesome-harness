@@ -124,6 +124,14 @@ sections:
     path: patterns/accessibility/README.md
     type: guide
     when_to_use: Cross-framework WCAG 2.2 AA / ARIA baseline — semantic HTML, keyboard, contrast, custom-widget roles, testing
+  - asset: Mutation testing overview
+    path: patterns/mutation-testing/README.md
+    type: guide
+    when_to_use: Entry point for mutation testing — routes to MUTATION_TESTING.md
+  - asset: Mutation testing guide
+    path: patterns/mutation-testing/MUTATION_TESTING.md
+    type: guide
+    when_to_use: Mutation operators, mutation score thresholds, mutmut/Stryker/gremlins tooling, surviving mutant triage
 - name: Error Handling & Reliability
   columns:
   - Asset
@@ -311,6 +319,10 @@ sections:
     path: .claude/skills/performance-profiling/SKILL.md
     type: skill
     when_to_use: Loads on demand when diagnosing slow code, high memory, or CPU spikes
+  - asset: Mutation testing
+    path: .claude/skills/mutation-testing/SKILL.md
+    type: skill
+    when_to_use: Loads on demand when auditing test suite quality beyond line coverage or interpreting surviving mutants
 - name: Custom Agents (task delegation to a separate agent instance — a different mechanism from skills, ported to Codex/OpenCode/Cursor/Kilo Code/Copilot/Gemini CLI)
   columns:
   - Asset

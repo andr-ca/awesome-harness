@@ -46,6 +46,8 @@ they drift (`check_manifest_md_sync()` in `tools/verify-content-quality.py`).
 | Completion checklist | `patterns/testing/COMPLETION_CHECKLIST.md` | checklist | Before marking any task done |
 | Playwright UI testing | `patterns/testing/PLAYWRIGHT_UI_TESTING.md` | guide | Web UI work at Production tier only |
 | Accessibility patterns | `patterns/accessibility/README.md` | guide | Cross-framework WCAG 2.2 AA / ARIA baseline — semantic HTML, keyboard, contrast, custom-widget roles, testing |
+| Mutation testing overview | `patterns/mutation-testing/README.md` | guide | Entry point for mutation testing — routes to MUTATION_TESTING.md |
+| Mutation testing guide | `patterns/mutation-testing/MUTATION_TESTING.md` | guide | Mutation operators, mutation score thresholds, mutmut/Stryker/gremlins tooling, surviving mutant triage |
 
 ## Error Handling & Reliability
 
@@ -109,6 +111,7 @@ they drift (`check_manifest_md_sync()` in `tools/verify-content-quality.py`).
 | Docker conventions | `.claude/skills/docker-conventions/SKILL.md` | skill | Loads on demand when writing Dockerfiles or docker-compose files |
 | Dependency audit | `.claude/skills/dependency-audit/SKILL.md` | skill | Loads on demand when checking dependencies for vulnerabilities or updating packages |
 | Performance profiling | `.claude/skills/performance-profiling/SKILL.md` | skill | Loads on demand when diagnosing slow code, high memory, or CPU spikes |
+| Mutation testing | `.claude/skills/mutation-testing/SKILL.md` | skill | Loads on demand when auditing test suite quality beyond line coverage or interpreting surviving mutants |
 
 ## Custom Agents (task delegation to a separate agent instance — a different mechanism from skills, ported to Codex/OpenCode/Cursor/Kilo Code/Copilot/Gemini CLI)
 
