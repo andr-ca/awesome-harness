@@ -61,11 +61,12 @@ directory bookkeeping.
   usage. The `.github/.gitignore.template` already ignores it.
 - **One branch, one worktree.** Git refuses to check the same branch out
   in two worktrees at once, so a branch lives in exactly one place.
-- **Config and hooks are shared.** Worktrees share the common `.git`
-  directory, so `core.hooksPath`, remotes, and config apply to all of
-  them by default — the trunk-protection and pre-push hooks therefore
-  run in every worktree automatically, and can't be bypassed by moving
-  to one.
+- **Config and hooks are shared by default.** Worktrees share the common
+  `.git` directory, so `core.hooksPath`, remotes, and config apply to all
+  of them unless you deliberately opt into per-worktree config
+  (`extensions.worktreeConfig`). In practice the trunk-protection and
+  pre-push hooks run in every worktree automatically — you won't
+  *accidentally* bypass them by moving to one.
 - **Remove via git.** `git worktree remove <dir>` when done, or
   `git worktree prune` if you deleted the directory by hand — never just
   `rm -rf` and walk away, or git keeps a stale registration.

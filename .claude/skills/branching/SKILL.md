@@ -60,9 +60,10 @@ Skip it for a single quick edit — a plain branch switch is cheaper.
   in two worktrees at once.
 - **Keep them in `.worktrees/{branch-name}/`** (gitignored — it's in
   `.github/.gitignore.template`), not scattered sibling directories.
-- **Hooks are shared** — every worktree uses the same `.git` config and
+- **Hooks are shared by default** — worktrees share one `.git` config and
   `core.hooksPath`, so trunk protection and the pre-push hook apply in
-  all of them; you can't sidestep them by moving to a worktree.
+  all of them; you won't *accidentally* sidestep them by moving to a
+  worktree (short of deliberately enabling per-worktree config).
 - **Remove with git, not `rm -rf`** — `git worktree remove <dir>` (or
   `git worktree prune` if you already deleted it by hand), so git's
   bookkeeping stays consistent.
