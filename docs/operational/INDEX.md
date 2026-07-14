@@ -77,6 +77,12 @@ Documents ready to be promoted to harness or archived:
   7.6/10. Revalidates the third-pass P0 work, records three remaining
   installer-safety blockers, and prioritizes live Claude/Codex evidence
   over further unverified client breadth.
+- `reviews/fable-review-2026-07-13.md` — full Fable repository review,
+  7.2/10. Independent concurrent assessment at commit `4f3e94b` (before
+  4th-pass was filed). Confirms that review's four P0s and identifies two
+  additional findings: the `committing` skill contradicts the trust model
+  (safety-relevant), and the review-loop accumulation itself (5 cycles in
+  3 days). 13 itemized findings (F-01–F-13); **disposition pending**.
 
 ## 📚 Archives
 
