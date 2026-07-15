@@ -9,8 +9,7 @@ from agentharness.plugins.python.linting import (
     detect_lint_tools,
 )
 
-_HERE = Path(__file__).parent.parent.parent.parent
-FIXTURES = _HERE / "fixtures" / "python" / "quality"
+FIXTURES = Path(__file__).parent.parent.parent.parent / "fixtures" / "python" / "quality"  # noqa: E501
 
 
 class TestDetectLintTools:

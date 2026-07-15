@@ -73,6 +73,34 @@ def create_parser() -> argparse.ArgumentParser:
     )
     gh_check.add_argument("--json", action="store_true", dest="as_json")
 
+    # profile sub-commands (AC-10)
+    profile_parser = subparsers.add_parser("profile", add_help=False)
+    profile_sub = profile_parser.add_subparsers(dest="profile_command", required=True)
+
+    pf_validate = profile_sub.add_parser("validate", add_help=False)
+    pf_validate.add_argument("file", type=Path, help="Profile YAML to validate")
+    pf_validate.add_argument("--json", action="store_true", dest="as_json")
+
+    pf_explain = profile_sub.add_parser("explain", add_help=False)
+    pf_explain.add_argument("file", type=Path, help="Profile YAML to explain")
+    pf_explain.add_argument("--json", action="store_true", dest="as_json")
+
+    pf_preview = profile_sub.add_parser("preview", add_help=False)
+    pf_preview.add_argument("file", type=Path, help="New profile YAML to preview")
+    pf_preview.add_argument(
+        "--current", type=Path, default=None, dest="current",
+        help="Current profile for diff (default: .agentharness-profile.yaml)"
+    )
+    pf_preview.add_argument("--json", action="store_true", dest="as_json")
+
+    pf_apply = profile_sub.add_parser("apply", add_help=False)
+    pf_apply.add_argument("file", type=Path, help="Profile YAML to apply")
+    pf_apply.add_argument(
+        "--target", type=Path, default=None,
+        help="Target file (default: .agentharness-profile.yaml)"
+    )
+    pf_apply.add_argument("--json", action="store_true", dest="as_json")
+
     return parser
 
 
@@ -257,6 +285,204 @@ def execute_github_completion_check(
     )
 
 
+def execute_profile_validate(file: Path) -> CommandResult:
+    """Validate a profile YAML file against the schema (AC-10)."""
+    from agentharness.profile import ProfileError, load_profile_text
+
+    if not file.exists():
+        return CommandResult(
+            code=ResultCode.INVALID_COMMAND,
+            outcome=Outcome.ERROR,
+            summary=f"Profile file not found: {file}",
+            remediation="Check the file path and try again.",
+            details={"file": str(file)},
+        )
+    try:
+        profile = load_profile_text(file.read_text(encoding="utf-8"))
+        return CommandResult(
+            code=ResultCode.STATUS_AVAILABLE,
+            outcome=Outcome.SUCCESS,
+            summary=f"Profile is valid (schema_version={profile.schema_version}).",
+            remediation="",
+            details={
+                "file": str(file),
+                "schema_version": profile.schema_version,
+                "requirement_count": len(profile.requirements),
+                "rigor": profile.project.rigor,
+            },
+        )
+    except (ProfileError, ValueError) as e:
+        return CommandResult(
+            code=ResultCode.INVALID_COMMAND,
+            outcome=Outcome.ERROR,
+            summary=f"Profile validation failed: {e}",
+            remediation="Fix the YAML schema errors and retry.",
+            details={"file": str(file), "error": str(e)},
+        )
+
+
+def execute_profile_explain(file: Path) -> CommandResult:
+    """Show all requirements with capability/mode/gates (AC-10)."""
+    from agentharness.profile import ProfileError, load_profile_text
+
+    if not file.exists():
+        return CommandResult(
+            code=ResultCode.INVALID_COMMAND,
+            outcome=Outcome.ERROR,
+            summary=f"Profile file not found: {file}",
+            remediation="Check the file path and try again.",
+            details={"file": str(file)},
+        )
+    try:
+        profile = load_profile_text(file.read_text(encoding="utf-8"))
+    except (ProfileError, ValueError) as e:
+        return CommandResult(
+            code=ResultCode.INVALID_COMMAND,
+            outcome=Outcome.ERROR,
+            summary=f"Could not parse profile: {e}",
+            remediation="Run 'agentharness profile validate <file>' to diagnose.",
+            details={"file": str(file), "error": str(e)},
+        )
+    reqs: list[dict[str, object]] = [
+        {
+            "id": r.identifier,
+            "provider": r.provider,
+            "enabled": r.enabled,
+            "gates": [str(g) for g in r.gates],
+            "minimum_coverage": getattr(r, "minimum_coverage", None),
+        }
+        for r in profile.requirements
+    ]
+    return CommandResult(
+        code=ResultCode.STATUS_AVAILABLE,
+        outcome=Outcome.SUCCESS,
+        summary=f"{len(reqs)} requirement(s) in {file}",
+        remediation="",
+        details={
+            "file": str(file),
+            "requirements": reqs,  # type: ignore[dict-item]
+        }
+    )
+
+
+def execute_profile_preview(file: Path, current: Path | None) -> CommandResult:
+    """Show what diff a profile apply would make (AC-10)."""
+    from agentharness.profile import ProfileError, load_profile_text
+
+    if not file.exists():
+        return CommandResult(
+            code=ResultCode.INVALID_COMMAND,
+            outcome=Outcome.ERROR,
+            summary=f"Profile file not found: {file}",
+            remediation="Check the file path and try again.",
+            details={"file": str(file)},
+        )
+    try:
+        load_profile_text(file.read_text(encoding="utf-8"))
+    except (ProfileError, ValueError) as e:
+        return CommandResult(
+            code=ResultCode.INVALID_COMMAND,
+            outcome=Outcome.ERROR,
+            summary=f"Incoming profile is invalid: {e}",
+            remediation="Fix the YAML and retry.",
+            details={"file": str(file), "error": str(e)},
+        )
+    current_path = current or Path(".agentharness-profile.yaml")
+    if not current_path.exists():
+        return CommandResult(
+            code=ResultCode.STATUS_AVAILABLE,
+            outcome=Outcome.SUCCESS,
+            summary=(
+                f"No current profile at {current_path}"
+                " — applying would create a new profile."
+            ),
+            remediation="",
+            details={
+                "current_file": str(current_path),
+                "incoming_file": str(file),
+                "diff": "new_file",
+            },
+        )
+    current_text = current_path.read_text(encoding="utf-8")
+    incoming_text = file.read_text(encoding="utf-8")
+    if current_text == incoming_text:
+        return CommandResult(
+            code=ResultCode.STATUS_AVAILABLE,
+            outcome=Outcome.SUCCESS,
+            summary="No changes — incoming profile is identical to current.",
+            remediation="",
+            details={
+                "current_file": str(current_path),
+                "incoming_file": str(file),
+                "diff": "no_change",
+            },
+        )
+    import difflib
+    diff_lines: list[str] = list(
+        difflib.unified_diff(
+            current_text.splitlines(),
+            incoming_text.splitlines(),
+            fromfile=str(current_path),
+            tofile=str(file),
+            lineterm="",
+        )
+    )
+    return CommandResult(
+        code=ResultCode.STATUS_AVAILABLE,
+        outcome=Outcome.SUCCESS,
+        summary=f"{len(diff_lines)} diff line(s) between current and incoming profile.",
+        remediation="Run 'agentharness profile apply <file>' to apply.",
+        details={
+            "current_file": str(current_path),
+            "incoming_file": str(file),
+            "diff": "changed",
+            "diff_lines": diff_lines,  # type: ignore[dict-item]
+        },
+    )
+
+
+def execute_profile_apply(file: Path, target: Path | None) -> CommandResult:
+    """Write the profile to the target path (AC-10)."""
+    from agentharness.profile import ProfileError, load_profile_text
+
+    if not file.exists():
+        return CommandResult(
+            code=ResultCode.INVALID_COMMAND,
+            outcome=Outcome.ERROR,
+            summary=f"Profile file not found: {file}",
+            remediation="Check the file path and try again.",
+            details={"file": str(file)},
+        )
+    try:
+        load_profile_text(file.read_text(encoding="utf-8"))
+    except (ProfileError, ValueError) as e:
+        return CommandResult(
+            code=ResultCode.INVALID_COMMAND,
+            outcome=Outcome.ERROR,
+            summary=f"Profile validation failed — not applied: {e}",
+            remediation="Fix the YAML errors before applying.",
+            details={"file": str(file), "error": str(e)},
+        )
+    target_path = target or Path(".agentharness-profile.yaml")
+    try:
+        target_path.write_text(file.read_text(encoding="utf-8"), encoding="utf-8")
+    except OSError as e:
+        return CommandResult(
+            code=ResultCode.INVALID_COMMAND,
+            outcome=Outcome.ERROR,
+            summary=f"Could not write profile to {target_path}: {e}",
+            remediation="Check file system permissions.",
+            details={"target": str(target_path), "error": str(e)},
+        )
+    return CommandResult(
+        code=ResultCode.STATUS_AVAILABLE,
+        outcome=Outcome.SUCCESS,
+        summary=f"Profile applied to {target_path}.",
+        remediation="",
+        details={"source": str(file), "target": str(target_path)},
+    )
+
+
 def execute_runtime_plan_upgrade(
     request_path: Path, trusted_base_lock: Path
 ) -> CommandResult:
@@ -329,6 +555,8 @@ def main(argv: Sequence[str] | None = None, output: TextIO | None = None) -> int
             result = execute_status()
         elif arguments.command == "github":
             result = _dispatch_github(arguments)
+        elif arguments.command == "profile":
+            result = _dispatch_profile(arguments)
         else:
             result = execute_runtime_plan_upgrade(
                 arguments.request,
@@ -369,4 +597,16 @@ def _dispatch_github(arguments: argparse.Namespace) -> CommandResult:
                 arguments.expected_head,
                 arguments.token_env,
             )
+    raise CommandUsageError
+
+def _dispatch_profile(arguments: argparse.Namespace) -> CommandResult:
+    """Route profile sub-commands (AC-10)."""
+    if arguments.profile_command == "validate":
+        return execute_profile_validate(arguments.file)
+    if arguments.profile_command == "explain":
+        return execute_profile_explain(arguments.file)
+    if arguments.profile_command == "preview":
+        return execute_profile_preview(arguments.file, arguments.current)
+    if arguments.profile_command == "apply":
+        return execute_profile_apply(arguments.file, arguments.target)
     raise CommandUsageError

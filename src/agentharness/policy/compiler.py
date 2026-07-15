@@ -20,6 +20,19 @@ from agentharness.policy.scope import ScopeExpression
 
 _COMPILER_VERSION = "0.1.0"
 
+# Capability prefixes that are too expensive to run at fast (commit/push) gates.
+# Assigning one of these to COMMIT or PUSH raises CompileError (AC-17).
+_EXPENSIVE_ONLY_PREFIXES: frozenset[str] = frozenset(
+    [
+        "python.mutation",
+    ]
+)
+
+# Gates where expensive-only capabilities are allowed.
+_EXPENSIVE_GATES: frozenset[GateKind] = frozenset(
+    [GateKind.CI, GateKind.COMPLETION]
+)
+
 
 class CompileError(ValueError):
     """Raised when the policy cannot be compiled."""
@@ -55,6 +68,19 @@ def compile_policy(requirements: list[PolicyRequirement]) -> EffectivePolicy:
                 f"duplicate requirement id: {req.requirement_id!r}"
             )
         seen_ids.add(req.requirement_id)
+        # AC-17: expensive-only capabilities must not appear at fast gates.
+        if req.gate not in _EXPENSIVE_GATES:
+            for prefix in _EXPENSIVE_ONLY_PREFIXES:
+                if req.capability_id == prefix or req.capability_id.startswith(
+                    f"{prefix}."
+                ):
+                    raise CompileError(
+                        f"capability {req.capability_id!r} is expensive and "
+                        f"may only be assigned to gates"
+                        f" {sorted(_EXPENSIVE_GATES)} "
+                        f"(assigned to {req.gate!r}"
+                        f" in requirement {req.requirement_id!r})"
+                    )
 
     # Group by gate kind
     by_gate: dict[GateKind, list[PolicyRequirement]] = {
