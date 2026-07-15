@@ -132,6 +132,14 @@ sections:
     path: patterns/mutation-testing/MUTATION_TESTING.md
     type: guide
     when_to_use: Mutation operators, mutation score thresholds, mutmut/Stryker/gremlins tooling, surviving mutant triage
+  - asset: Multi-agent coordination overview
+    path: patterns/multi-agent-coordination/README.md
+    type: guide
+    when_to_use: Entry point for multi-agent lock protocol
+  - asset: Multi-agent coordination guide
+    path: patterns/multi-agent-coordination/COORDINATION.md
+    type: guide
+    when_to_use: Lock-file protocol, stale detection, worktree isolation, and conflict resolution for concurrent agents
 - name: Error Handling & Reliability
   columns:
   - Asset
@@ -323,6 +331,10 @@ sections:
     path: .claude/skills/mutation-testing/SKILL.md
     type: skill
     when_to_use: Loads on demand when auditing test suite quality beyond line coverage or interpreting surviving mutants
+  - asset: Multi-agent coordination
+    path: .claude/skills/multi-agent-coordination/SKILL.md
+    type: skill
+    when_to_use: Loads on demand when two or more agents may work on the same repository concurrently
 - name: Custom Agents (task delegation to a separate agent instance — a different mechanism from skills, ported to Codex/OpenCode/Cursor/Kilo Code/Copilot/Gemini CLI)
   columns:
   - Asset
@@ -349,6 +361,10 @@ sections:
     path: tools/check.sh
     type: script
     when_to_use: Runs every check CI runs (shellcheck, bats, ruff, mypy, pytest+coverage, manifest verify, skill-symlink integrity) in one command (P1-06)
+  - asset: Agent lock manager
+    path: tools/agent-lock.sh
+    type: script
+    when_to_use: Per-feature lock files for concurrent agent sessions — acquire/release/check/list/clean/suggest-branch
   - asset: Skill-symlink verifier
     path: tools/verify-skill-symlinks.sh
     type: script
