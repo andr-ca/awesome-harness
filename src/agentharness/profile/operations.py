@@ -26,7 +26,10 @@ def explain_profile(compiled_policy: Any) -> list[ProfileExplanation]:
                     requirement_id=req.requirement_id,
                     gate=str(gate_plan.gate),
                     mode=req.mode,
-                    rationale=f"{req.mode.capitalize()} requirement for {req.capability_id}",
+                    rationale=(
+                        f"{req.mode.capitalize()} requirement for "
+                        f"{req.capability_id}"
+                    ),
                 )
             )
     return explanations

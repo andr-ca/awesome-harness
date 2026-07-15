@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
-from agentharness.policy.classification import ChangeClass, classify_path, classify_changes
+from agentharness.policy.classification import (
+    ChangeClass,
+    classify_changes,
+    classify_path,
+)
 
 
 class TestClassifyPath:

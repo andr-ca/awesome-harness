@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from agentharness.policy.change_range import (
     ChangedFile,
-    ChangeRange,
     _canonical_sort,
     _empty_range,
     _parse_diff_output,

@@ -1,4 +1,6 @@
-"""Agent source integration — ensures canonical agent files are updated before generation."""
+"""Agent source integration — ensures canonical agent files
+are updated before generation.
+"""
 
 from __future__ import annotations
 

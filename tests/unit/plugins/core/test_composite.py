@@ -5,7 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 
 from agentharness.plugins.core.composite import (
-    CompositeCommand,
     detect_composite_commands,
 )
 

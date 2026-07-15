@@ -29,10 +29,9 @@ def compute_change_range(
     base_ref: str,
     head_ref: str = "HEAD",
 ) -> ChangeRange:
-    """Compute a canonical hash of file changes between *base_ref* and *head_ref*.
+    """Compute a hash of file changes between *base_ref* and *head_ref*.
 
-    Uses `git diff --name-status` to enumerate changes.  Returns an empty
-    range if git is unavailable or the refs are invalid.
+    Uses `git diff --name-status`. Returns an empty range if git is unavailable.
     """
     try:
         result = subprocess.run(
@@ -63,7 +62,8 @@ def _parse_diff_output(output: str) -> list[ChangedFile]:
 
 
 def _canonical_sort(files: list[ChangedFile]) -> str:
-    return "\0".join(f"{f.status}\t{f.path}" for f in sorted(files, key=lambda f: f.path))
+    parts = (f"{f.status}\t{f.path}" for f in sorted(files, key=lambda f: f.path))
+    return "\0".join(parts)
 
 
 def _empty_range() -> ChangeRange:

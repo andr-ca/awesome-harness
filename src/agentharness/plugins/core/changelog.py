@@ -6,11 +6,6 @@ from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 
-try:
-    import tomllib
-except ImportError:  # pragma: no cover
-    import tomli as tomllib  # type: ignore[no-redef]
-
 
 class ChangelogStrategy(StrEnum):
     TOWNCRIER = "towncrier"

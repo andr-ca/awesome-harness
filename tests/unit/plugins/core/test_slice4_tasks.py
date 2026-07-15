@@ -1,17 +1,31 @@
-"""Tests for Tasks 3-7 of Slice 4 (documentation, changelog, integrations, agents, operations)."""
+"""Tests for Tasks 3-7 of Slice 4.
+
+Covers documentation, changelog, integrations, agents, and operations.
+"""
 
 from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
-from agentharness.plugins.core.documentation import DocStrategy, detect_documentation_policy
-from agentharness.plugins.core.changelog import ChangelogStrategy, detect_changelog_policy
-from agentharness.integrations.files import MergeStrategy, plan_create, plan_managed_block
+from agentharness.integrations.agents import (
+    find_canonical_source,
+    list_generated_clients,
+)
+from agentharness.integrations.files import (
+    MergeStrategy,
+    plan_create,
+    plan_managed_block,
+)
 from agentharness.integrations.managed_block import apply_managed_block
 from agentharness.integrations.structured_merge import merge_json_keys
-from agentharness.integrations.agents import find_canonical_source, list_generated_clients
+from agentharness.plugins.core.changelog import (
+    ChangelogStrategy,
+    detect_changelog_policy,
+)
+from agentharness.plugins.core.documentation import (
+    DocStrategy,
+    detect_documentation_policy,
+)
 
 
 class TestDocumentationPolicy:
@@ -33,7 +47,8 @@ class TestDocumentationPolicy:
 
 class TestChangelogPolicy:
     def test_keepachangelog_detected(self, tmp_path: Path) -> None:
-        (tmp_path / "CHANGELOG.md").write_text("# Changelog\nFormat loosely follows [Keep a Changelog].\n")
+        content = "# Changelog\nFormat loosely follows [Keep a Changelog].\n"
+        (tmp_path / "CHANGELOG.md").write_text(content)
         result = detect_changelog_policy(tmp_path)
         assert result.strategy == ChangelogStrategy.KEEPACHANGELOG
 
@@ -65,7 +80,10 @@ class TestManagedBlock:
         assert "content here" in result
 
     def test_replace_existing_block(self) -> None:
-        existing = "prefix\n# BEGIN AGENTHARNESS-MANAGED: x\nold\n# END AGENTHARNESS-MANAGED: x\nsuffix"
+        existing = (
+            "prefix\n# BEGIN AGENTHARNESS-MANAGED: x\nold\n"
+            "# END AGENTHARNESS-MANAGED: x\nsuffix"
+        )
         result = apply_managed_block(existing, "x", "new content")
         assert "old" not in result
         assert "new content" in result

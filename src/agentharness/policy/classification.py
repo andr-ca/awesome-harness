@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import StrEnum
-from pathlib import Path
 
 
 class ChangeClass(StrEnum):
@@ -30,7 +29,8 @@ def classify_path(path: str) -> ChangeClass:
     if any(p.endswith(ext) for ext in (".md", ".rst", ".txt")):
         if "docs/" in p or p.startswith("docs/") or p in ("readme.md", "changelog.md"):
             return ChangeClass.DOCS
-    if any(p.endswith(ext) for ext in (".yaml", ".yml", ".toml", ".json", ".ini", ".cfg")):
+    cfg_exts = (".yaml", ".yml", ".toml", ".json", ".ini", ".cfg")
+    if any(p.endswith(ext) for ext in cfg_exts):
         return ChangeClass.CONFIG
     if any(p.endswith(ext) for ext in (".py", ".ts", ".js", ".go", ".rs")):
         return ChangeClass.CODE

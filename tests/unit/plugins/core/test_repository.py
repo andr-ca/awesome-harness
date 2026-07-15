@@ -5,11 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 
 from agentharness.plugins.core.repository import (
-    RepositoryDetection,
-    RepositoryKind,
     detect_repository,
 )
-from tests.contract.plugin_compliance import assert_plugin_compliant
 
 _HERE = Path(__file__).parent.parent.parent.parent
 FIXTURES = _HERE / "fixtures" / "repository-policy"

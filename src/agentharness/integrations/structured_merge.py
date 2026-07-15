@@ -1,4 +1,6 @@
-"""Structured merge — merge JSON/YAML key paths without overwriting unrelated content."""
+"""Structured merge — merge JSON/YAML key paths without overwriting unrelated
+content.
+"""
 
 from __future__ import annotations
 
@@ -12,10 +14,12 @@ def merge_json_keys(
 ) -> str:
     """Merge *updates* into *existing_json*, preserving unrelated keys.
 
-    Only the keys in *updates* are affected; all other keys remain unchanged.
+    Only the keys in *updates* are affected.
     """
     try:
-        data: dict[str, Any] = json.loads(existing_json) if existing_json.strip() else {}
+        data: dict[str, Any] = (
+            json.loads(existing_json) if existing_json.strip() else {}
+        )
     except json.JSONDecodeError:
         data = {}
 
