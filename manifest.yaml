@@ -384,7 +384,7 @@ sections:
   - asset: File placement check
     path: tools/check-file-placement.sh
     type: script
-    when_to_use: Pre-commit hook check — blocks staged files in guarded paths; called from .github/hooks/pre-commit
+    when_to_use: Pre-commit hook check — blocks staged files in guarded paths; wired into .github/hooks/pre-commit alongside trunk protection
   - asset: Skill-symlink verifier
     path: tools/verify-skill-symlinks.sh
     type: script

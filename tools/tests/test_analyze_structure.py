@@ -1,4 +1,4 @@
-"""Tests for tools/analyze-structure.py."""
+"""Tests for tools/analyze_structure.py"""
 
 from __future__ import annotations
 

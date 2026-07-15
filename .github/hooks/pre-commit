@@ -7,4 +7,15 @@
 # core.hooksPath (as tools/setup/harness-link.sh --with-hook does) actually
 # enables trunk protection instead of silently doing nothing.
 set -euo pipefail
-exec "$(dirname "${BASH_SOURCE[0]}")/prevent-trunk-commit" "$@"
+
+HOOK_DIR="$(dirname "${BASH_SOURCE[0]}")"
+
+# 1. Trunk protection
+"$HOOK_DIR/prevent-trunk-commit" "$@"
+
+# 2. File placement policy (skips silently if no config exists)
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+CHECK_SCRIPT="$REPO_ROOT/tools/check-file-placement.sh"
+if [[ -f "$CHECK_SCRIPT" ]]; then
+    bash "$CHECK_SCRIPT" "$REPO_ROOT"
+fi

@@ -4,13 +4,13 @@
 directories must not be created without explicit permission.
 
 Usage:
-    python3 tools/analyze-structure.py <project-root> [--output <path>]
-    python3 tools/analyze-structure.py <project-root> --recommend
+    python3 tools/analyze_structure.py <project-root> [--output <path>]
+    python3 tools/analyze_structure.py <project-root> --recommend
 
 The analyzer examines the root directory for:
 1. Established top-level directories (docs/, src/, tests/, logs/, conf/, etc.)
 2. Established root-level config files (.gitignore, package.json, etc.)
-3. Whether the project is "early stage" (< 5 meaningful files/dirs)
+3. Whether the project is "early stage" (< 3 meaningful files/dirs)
 
 For established projects it generates guarded-paths rules.
 For new/early-stage projects it outputs recommendations for the user to accept.
@@ -180,8 +180,8 @@ def generate_guarded_paths(report: dict) -> dict:
         "guarded_root_files": sorted(set(guarded_patterns)),
         "message": (
             "New files in guarded paths require explicit user permission. "
-            "Run 'tools/agent-lock.sh check <path>' or ask the user before "
-            "creating files in these locations."
+            "Add the path to .agentharness-allowed-additions.txt or ask the "
+            "user before creating files in these locations."
             if guard_root_level
             else "Project structure not yet established — fewer restrictions apply."
         ),

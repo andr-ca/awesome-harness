@@ -9,7 +9,7 @@
 #   1 — one or more staged files require explicit permission
 #
 # Usage (called from pre-commit hook):
-#   bash tools/check-file-placement.sh [--project-root <dir>]
+#   bash tools/check-file-placement.sh [<project-root>]
 #
 # To generate .agentharness-guarded-paths.json for a project:
 #   python3 tools/analyze_structure.py <project-root> \
@@ -31,27 +31,58 @@ fi
 cd "$PROJECT_ROOT"
 
 # ---------------------------------------------------------------------------
-# Read config
+# Read config — fail CLOSED: any parse error blocks the commit rather than
+# silently allowing guarded files through.
 # ---------------------------------------------------------------------------
+if ! python3 -c "import json; json.load(open('$CONFIG_FILE'))" 2>/dev/null; then
+    echo "FILE PLACEMENT POLICY: could not parse $CONFIG_FILE — aborting." >&2
+    exit 1
+fi
+
 guard_root=$(python3 -c "
-import json, sys
+import json
 d = json.load(open('$CONFIG_FILE'))
 print('true' if d.get('guard_root_level_new_items', False) else 'false')
-" 2>/dev/null || echo "false")
+")
 
 guarded_dirs=$(python3 -c "
-import json, sys
+import json
 d = json.load(open('$CONFIG_FILE'))
 for p in d.get('guarded_dirs', []):
     print(p)
-" 2>/dev/null || true)
+")
 
 guarded_files=$(python3 -c "
-import json, sys
+import json
 d = json.load(open('$CONFIG_FILE'))
 for p in d.get('guarded_root_files', []):
     print(p)
-" 2>/dev/null || true)
+")
+
+# ---------------------------------------------------------------------------
+# Read allowed-additions escape hatch (one path per line, '#' comments ignored)
+# ---------------------------------------------------------------------------
+ALLOWED_FILE="$PROJECT_ROOT/.agentharness-allowed-additions.txt"
+allowed_additions=()
+if [[ -f "$ALLOWED_FILE" ]]; then
+    while IFS= read -r line; do
+        line="${line%%#*}"
+        line="${line#"${line%%[! ]*}"}"
+        line="${line%"${line##*[! ]}"}"
+        [[ -z "$line" ]] && continue
+        allowed_additions+=("$line")
+    done < "$ALLOWED_FILE"
+fi
+
+is_allowed() {
+    local path="$1"
+    for allowed in "${allowed_additions[@]}"; do
+        if [[ "$path" == "$allowed" || "$path" == "$allowed/"* ]]; then
+            return 0
+        fi
+    done
+    return 1
+}
 
 # ---------------------------------------------------------------------------
 # Check staged new files (A = added)
@@ -67,13 +98,15 @@ violations=()
 while IFS= read -r file; do
     [[ -z "$file" ]] && continue
 
+    # Skip explicitly allowed additions
+    is_allowed "$file" && continue
+
     # Check root-level files (no / in path = root level)
     if [[ "$guard_root" == "true" && "$file" != */* ]]; then
-        # Root-level new file — check against known config files
-        if echo "$guarded_files" | grep -qF "$file"; then
+        # Use exact-line match (-x) to avoid false positives (e.g. 'foo' vs 'foobar')
+        if echo "$guarded_files" | grep -qxF "$file"; then
             violations+=("ROOT FILE: $file")
         else
-            # Any new root-level file in an established project requires permission
             violations+=("ROOT LEVEL: $file (new root-level file in established project)")
         fi
         continue
@@ -98,13 +131,13 @@ if [[ ${#violations[@]} -gt 0 ]]; then
     echo "" >&2
     echo "FILE PLACEMENT POLICY: The following staged files require explicit permission:" >&2
     for v in "${violations[@]}"; do
-        echo "  ✗ $v" >&2
+        echo "  x $v" >&2
     done
     echo "" >&2
     echo "Resolution options:" >&2
     echo "  1. Ask the user for explicit permission to create this file/directory." >&2
-    echo "  2. If permission was granted, add the file to .agentharness-allowed-additions.txt" >&2
-    echo "     and re-stage it." >&2
+    echo "  2. If permission was granted, add the path to .agentharness-allowed-additions.txt" >&2
+    echo "     and re-stage the file." >&2
     echo "  3. Move the file to a non-guarded location." >&2
     echo "" >&2
     echo "See patterns/file-placement-policy/POLICY.md for the full protocol." >&2

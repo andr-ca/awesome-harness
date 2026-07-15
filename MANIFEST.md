@@ -133,7 +133,7 @@ they drift (`check_manifest_md_sync()` in `tools/verify-content-quality.py`).
 | Local check entrypoint | `tools/check.sh` | script | Runs every check CI runs (shellcheck, bats, ruff, mypy, pytest+coverage, manifest verify, skill-symlink integrity) in one command (P1-06) |
 | Agent lock manager | `tools/agent-lock.sh` | script | Per-feature lock files for concurrent agent sessions — acquire/release/check/list/clean/suggest-branch |
 | Structure analyzer | `tools/analyze_structure.py` | script | Analyze project structure and generate .agentharness-guarded-paths.json; also --recommend for early-stage projects |
-| File placement check | `tools/check-file-placement.sh` | script | Pre-commit hook check — blocks staged files in guarded paths; called from .github/hooks/pre-commit |
+| File placement check | `tools/check-file-placement.sh` | script | Pre-commit hook check — blocks staged files in guarded paths; wired into .github/hooks/pre-commit alongside trunk protection |
 | Skill-symlink verifier | `tools/verify-skill-symlinks.sh` | script | Verifies `.agents/skills/` stays 1:1 with `.claude/skills/` — every Agent-Skills-standard tool (Codex, Copilot, Gemini, ...) reads the symlinks, so drift silently hides a skill from them while Claude still sees it |
 | Pinned dev/CI toolchain | `requirements-dev.txt` | config | Exact pinned versions of pytest/ruff/mypy/etc. — `pip install -r requirements-dev.txt` (P1-06) |
 | Sample project | `examples/sample-project/` | project | Blank/generic fixture; demonstrates harness integration, validates INTEGRATION.md commands work |

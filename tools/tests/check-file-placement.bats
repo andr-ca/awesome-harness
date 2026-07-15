@@ -136,3 +136,31 @@ EOF
     output="$(bash "$CHECK_SCRIPT" "$TEST_ROOT" 2>&1 || true)"
     [[ "$output" == *"FILE PLACEMENT POLICY"* ]]
 }
+
+@test "check: exits 0 when guarded file is in allowed-additions" {
+    cat > "$TEST_ROOT/.agentharness-guarded-paths.json" << 'EOF'
+{
+  "schema_version": 1,
+  "guard_root_level_new_items": false,
+  "guarded_dirs": ["src"],
+  "guarded_root_files": [],
+  "message": "test"
+}
+EOF
+    echo "src/newfile.ts" > "$TEST_ROOT/.agentharness-allowed-additions.txt"
+    mkdir -p "$TEST_ROOT/src"
+    echo "content" > "$TEST_ROOT/src/newfile.ts"
+    (cd "$TEST_ROOT" && git add src/newfile.ts)
+    local rc
+    bash "$CHECK_SCRIPT" "$TEST_ROOT"
+    rc=$?
+    [[ $rc -eq 0 ]]
+}
+
+@test "check: exits 1 when json is invalid (fail-closed)" {
+    echo "{ not valid json }" > "$TEST_ROOT/.agentharness-guarded-paths.json"
+    echo "content" > "$TEST_ROOT/test.txt"
+    (cd "$TEST_ROOT" && git add test.txt)
+    run bash "$CHECK_SCRIPT" "$TEST_ROOT"
+    [[ "$status" -ne 0 ]]
+}
