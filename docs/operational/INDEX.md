@@ -10,6 +10,7 @@ Currently being researched, developed, or planned:
 |----------|--------|---------|----------|
 | Dogfooding plan | Not started | Executable plan + tracking template to get real-world evidence (P2-05/P2-02) | `planning/DOGFOODING.md` |
 | Skill recommendations | Analysis complete | Survey of up to 15 optional skills to add; analysis and prioritized recommendations only, no implementation yet | `skill-recommendations-2026-07-14.md` |
+| Harness ideation disposition | Analysis complete | Filtered assessment of an external intent-first-harness ideation note; 6 items added to ROADMAP.md (I-01…I-06), heavy machinery rejected with rationale | `reviews/harness-ideation-2026-07-15-status.md` |
 
 ## 🔄 In-Progress Work
 

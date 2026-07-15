@@ -324,7 +324,13 @@ label by the review filename cited next to it, never by number alone.
   final code correctness. **Scaffolded:** `tools/eval/.env.sample`
   provides the live-run env template (API key + optional model/cost
   ceiling); `invoke_agent_via_api` is still deliberately unimplemented
-  (spends real money — a user-triggered step).
+  (spends real money — a user-triggered step). Ideation follow-up
+  (2026-07-15, see I-XX backlog below): score whole-task outcomes —
+  implementation attempts before acceptance, corrective prompts caused
+  by misunderstood intent, plan-to-code divergence, total cost through
+  the accepted PR — not first-generation cost alone; a harness that
+  raises first-prompt cost while cutting rework is a win the
+  first-generation metric would misreport as a loss.
 - **P2-02 (this review's numbering) — Dogfood in real repositories.**
   Same substance as the already-tracked "P2-05 (real dogfood) has no
   target" entry above (different review's numbering, same gap): adopt a
@@ -371,3 +377,59 @@ label by the review filename cited next to it, never by number alone.
   native agent plugin, dotfiles, a submodule of policy docs, or an
   organization template — including the smallest migration from one
   existing project and its ongoing maintenance cost.
+
+## Ideation Backlog (I-XX, 2026-07-15)
+
+Distilled from an external ideation note on intent-first harness design
+(full disposition, including everything that was rejected and why:
+`docs/operational/reviews/harness-ideation-2026-07-15-status.md`).
+Documentation-only, same posture as the third-pass backlog above: none
+of the following is scoped or authorized for implementation yet. The
+source note's heavy orchestration machinery — a persona-agent fleet, a
+two-level classification router with schema registries, hard
+edit-blocking hooks — was deliberately filtered out; every item kept
+below is an extension of an existing asset, not a new subsystem.
+
+- **I-01 — Evidence-classified intent contract.** Extend the existing
+  `requirements-clarification` skill (not a parallel skill — one source
+  of truth): before non-trivial implementation, produce a short
+  reviewable contract — requested outcome, in/out of scope, acceptance
+  criteria, constraints, open questions — with each statement classified
+  as verified fact (with file/doc evidence), inference, assumption, or
+  unknown. The gate: assumptions and unknowns are surfaced for review,
+  never silently converted into implementation decisions.
+- **I-02 — Risk-adaptive discovery depth.** Apply the existing
+  rigor-tier idea (`.github/CODING_GUIDELINES.md#rigor-tiers`) to
+  discovery and planning, not just testing and coverage: a typo fix
+  needs no intent contract; a bounded bug fix needs a reproduction and a
+  failing test; a cross-component feature needs the full I-01 contract.
+  One table, living in the rigor-tiers source of truth and referenced
+  from the discovery-oriented skills.
+- **I-03 — Read-only investigation mode.** An explicit always-on rule:
+  an analysis question ("why does X fail?") authorizes evidence
+  gathering and a cited answer, never code changes. Prevents "diagnose"
+  from silently becoming "modify until green." Candidate home: a short
+  addition to `CLAUDE.md`'s always-on rules plus the debugging-adjacent
+  skills.
+- **I-04 — Reclassification checkpoint.** When gathered evidence
+  contradicts the task's initial framing — a "defect" where behavior
+  matches documented requirements, a "refactor" that changes observable
+  behavior, a "prototype" heading for production — stop and re-confirm
+  the task type with the user instead of continuing under the original
+  framing. A pattern-level rule, not a router subsystem.
+- **I-05 — `patterns/refactoring/`.** The one workflow genuinely missing
+  from `patterns/`: a behavior-preservation contract, characterization
+  tests before restructuring, incremental reversible steps, and an
+  explicit list of protected public contracts. (Prototype→production
+  promotion needs no new doc — one line in rigor tiers covers it.)
+- **I-06 — Repository context contract (blocked).** A
+  knowledge-bootstrap companion to the policy-bootstrap program above:
+  committed, provenance-tagged repository context (purpose, structure,
+  build/test/run, documented-vs-observed branching) with a freshness
+  marker and staleness-invalidation rules, keeping mechanically
+  generated inventory separate from curated, human-reviewed knowledge.
+  **Blocked on the PR #47 scope decision** — no second bootstrap
+  subsystem starts while the first one's scope is unresolved. The one
+  piece adoptable independently and cheaply: the provenance vocabulary
+  (verified / inferred / declared / unknown) as a documentation
+  convention for agent-generated repo docs.

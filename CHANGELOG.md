@@ -7,6 +7,13 @@ section into a tagged version.
 ## [Unreleased]
 
 ### Added
+- Ideation Backlog (I-01…I-06) in `ROADMAP.md`: six documentation-only
+  items distilled from an external intent-first-harness ideation note
+  (evidence-classified intent contract, risk-adaptive discovery depth,
+  read-only investigation mode, reclassification checkpoint,
+  `patterns/refactoring/`, and a blocked repository-context contract).
+  Disposition with rejected-items rationale:
+  `docs/operational/reviews/harness-ideation-2026-07-15-status.md`.
 - Test-first implementation program for the approved project-bootstrap policy:
   a master plan, six independently gated slice plans, a locked
   `python-build-standalone`/zipapp distribution decision, and a 31-criterion
