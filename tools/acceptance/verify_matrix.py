@@ -57,7 +57,7 @@ def verify(release_mode: bool = False) -> list[str]:
         if status not in VALID_STATUSES:
             errors.append(f"{ac_id}: invalid status {status!r}")
 
-        if release_mode and status not in ("verified", "partial"):
+        if release_mode and status != "verified":
             errors.append(
                 f"{ac_id}: status is {status!r} but release mode requires 'verified'"
             )
@@ -67,7 +67,8 @@ def verify(release_mode: bool = False) -> list[str]:
             evidence_file = row.get("evidence_file")
             if not evidence_url and not evidence_file:
                 errors.append(
-                    f"{ac_id}: status is 'verified' but no evidence_url or evidence_file"
+                    f"{ac_id}: status is 'verified' but no "
+                    "evidence_url or evidence_file"
                 )
 
     missing = REQUIRED_IDS - seen_ids

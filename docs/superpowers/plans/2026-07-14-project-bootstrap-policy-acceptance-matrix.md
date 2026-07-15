@@ -12,6 +12,7 @@ reproducible evidence is invalid.
 |---|---|
 | `planned` | Mapped to implementation and tests, but no passing evidence exists. |
 | `implemented` | Code exists and focused tests pass locally. |
+| `partial` | Some owning code exists and passes focused tests, but a required part of the criterion is not yet implemented or provable. Never sufficient for release. |
 | `verified` | Required integration/E2E evidence passes for the release candidate. |
 | `blocked` | External capability or unresolved design constraint prevents proof. |
 
@@ -38,11 +39,11 @@ reproducible evidence is invalid.
 | AC-17 | Mutation runs only at configured expensive gates. | 2, 3 | Python testing detector, compiler | `tests/unit/plugins/python/test_mutation.py`; `tests/unit/policy/test_compiler.py` | Gate plan and CI artifact | planned |
 | AC-18 | Docs/changelog use canonical ranges and self-excluding diff-bound classifications. | 4 | `policy/classification.py`, core plugins | `tests/integration/test_classification_ranges.py` | Commit/push/PR/rebase/default/completion matrix | implemented |
 | AC-19 | Python plugin passes contract and fixture matrix. | 2 | `plugins/python/` | `tests/contract/`; `tests/fixtures/python/` | Contract JUnit and fixture matrix artifacts | planned |
-| AC-20 | Reductions require one matching code owner plus configured total approvals; CODEOWNERS protects itself. | 5 | GitHub protection/review adapters | `tests/integration/test_reductions.py` | Sandbox API read-back and merge-block proof | implemented |
-| AC-21 | Waivers are scoped, expiring, reasoned, and protected. | 3, 5 | `profile/waivers.py`, protection adapter | `tests/unit/profile/test_waivers.py` | Waiver lifecycle report | implemented |
+| AC-20 | Reductions require one matching code owner plus configured total approvals; CODEOWNERS protects itself. | 5 | GitHub protection/review adapters | `tests/integration/test_reductions.py` | Sandbox API read-back and merge-block proof | planned |
+| AC-21 | Waivers are scoped, expiring, reasoned, and protected. | 3, 5 | `profile/waivers.py`, protection adapter | `tests/unit/profile/test_waivers.py` | Waiver lifecycle report | partial |
 | AC-22 | GitHub settings apply minimally and read back, or bootstrap stays resumably incomplete. | 5 | `remote/github/protection.py` | `tests/integration/test_github_reconcile.py` | Before/plan/after sanitized API snapshots | partial |
-| AC-23 | Partial bootstrap operations recover or reconcile safely. | 1, 5 | transactions and GitHub reconciliation | `tests/integration/test_local_recovery.py`; fault-injection integration tests | Recovery transcript for each mutation boundary | implemented |
-| AC-24 | Completion blocks on expected review, stale CI, blocking/pending review, unresolved thread, or unacknowledged comments. | 5 | `remote/github/completion.py`, `reviews.py` | `tests/integration/test_completion.py` | Exact-head completion report | implemented |
+| AC-23 | Partial bootstrap operations recover or reconcile safely. | 1, 5 | transactions and GitHub reconciliation | `tests/integration/test_local_recovery.py`; fault-injection integration tests | Recovery transcript for each mutation boundary | partial |
+| AC-24 | Completion blocks on expected review, stale CI, blocking/pending review, unresolved thread, or unacknowledged comments. | 5 | `remote/github/completion.py`, `reviews.py` | `tests/integration/test_completion.py` | Exact-head completion report | partial |
 | AC-25 | Publication checks never broaden publish authority. | 3, 5 | completion gate authority reader | `tests/integration/test_publish_authority.py` | Authorized/unauthorized result matrix | planned |
 | AC-26 | Decommission uses protected three-PR transaction and leaves no orphan required context. | 5 | `remote/github/decommission.py` | `tests/unit/remote/github/test_slice5_tasks.py`; sandbox E2E pending | Three PRs plus final protection read-back | partial |
 | AC-27 | Agent instructions change only through canonical source and generators. | 4, 6 | `integrations/agents.py` | `tests/integration/test_agent_generation.py` | Clean generated-client verification | implemented |

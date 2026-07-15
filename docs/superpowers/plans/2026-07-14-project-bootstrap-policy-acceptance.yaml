@@ -96,12 +96,12 @@ criteria:
   test_node: null
   evidence_file: null
 - id: AC-20
-  status: implemented
+  status: planned
   gate: slice-5
   test_node: tests/integration/test_reductions.py
   evidence_file: null
 - id: AC-21
-  status: implemented
+  status: partial
   gate: slice-3,slice-5
   test_node: tests/unit/profile/test_waivers.py
   evidence_file: null
@@ -111,12 +111,12 @@ criteria:
   test_node: tests/integration/test_github_reconcile.py
   evidence_file: null
 - id: AC-23
-  status: implemented
+  status: partial
   gate: slice-1,slice-5
   test_node: tests/integration/test_local_recovery.py
   evidence_file: null
 - id: AC-24
-  status: implemented
+  status: partial
   gate: slice-5
   test_node: tests/integration/test_completion.py
   evidence_file: null
