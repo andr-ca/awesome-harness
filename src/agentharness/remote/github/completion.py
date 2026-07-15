@@ -15,7 +15,10 @@ class CompletionDecision:
     blocking_reasons: list[str]
 
 
-def evaluate_completion(signals: ReviewSignals, expected_head: str) -> CompletionDecision:
+def evaluate_completion(
+    signals: ReviewSignals,
+    expected_head: str,
+) -> CompletionDecision:
     """Evaluate whether *signals* satisfy the completion gate.
 
     Completion requires:

@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from agentharness.remote.github.api import APIError, GitHubClient, RateLimitError
-from agentharness.remote.github.auth import redact_token, get_token, AuthError
+from agentharness.remote.github.auth import AuthError, get_token, redact_token
 
 
 class TestAuth:
@@ -32,7 +32,9 @@ class TestAuth:
         text = "some text"
         assert redact_token(text, "") == text
 
-    def test_error_message_does_not_contain_token(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_error_message_does_not_contain_token(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """AuthError must not include the token value in its message."""
         monkeypatch.delenv("GITHUB_TOKEN", raising=False)
         try:

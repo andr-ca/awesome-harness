@@ -2,14 +2,16 @@
 
 from __future__ import annotations
 
-from agentharness.remote.github.models import PRState
-from agentharness.remote.github.reviews import ReviewSignals, extract_signals
-from agentharness.remote.github.completion import CompletionDecision, evaluate_completion
+from agentharness.remote.github.completion import (
+    evaluate_completion,
+)
 from agentharness.remote.github.decommission import (
     DecommissionStage,
     DecommissionState,
     advance_decommission,
 )
+from agentharness.remote.github.models import PRState
+from agentharness.remote.github.reviews import ReviewSignals, extract_signals
 from agentharness.remote.github.rulesets import build_ruleset_config
 
 
@@ -114,7 +116,8 @@ class TestDecommissionStateMachine:
 
     def test_invalid_event_does_not_advance(self) -> None:
         state = DecommissionState(stage=DecommissionStage.NOT_STARTED)
-        new_state = advance_decommission(state, "pr_merged")  # can't merge without opening
+        # can't merge without opening first
+        new_state = advance_decommission(state, "pr_merged")
         assert new_state.stage == DecommissionStage.NOT_STARTED
 
 
