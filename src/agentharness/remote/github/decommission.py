@@ -38,6 +38,9 @@ def advance_decommission(state: DecommissionState, event: str) -> DecommissionSt
     """Advance the decommission state machine on *event*.
 
     Valid events: "pr_opened", "pr_merged"
+
+    Raises ValueError on invalid transitions — the decommission machine
+    is fail-closed: an unexpected event is an error, not a no-op.
     """
     if state.stage == DecommissionStage.NOT_STARTED and event == "pr_opened":
         return DecommissionState(stage=DecommissionStage.PR1_OPEN)
@@ -51,4 +54,7 @@ def advance_decommission(state: DecommissionState, event: str) -> DecommissionSt
         return DecommissionState(stage=DecommissionStage.PR3_OPEN)
     if state.stage == DecommissionStage.PR3_OPEN and event == "pr_merged":
         return DecommissionState(stage=DecommissionStage.COMPLETE)
-    return state
+    raise ValueError(
+        f"Invalid decommission transition: {event!r} from stage {state.stage!r}. "
+        "Decommission is fail-closed — unexpected events are errors."
+    )

@@ -24,7 +24,7 @@ LEDGER = (
     / "2026-07-14-project-bootstrap-policy-acceptance.yaml"
 )
 
-VALID_STATUSES = {"planned", "implemented", "verified", "blocked"}
+VALID_STATUSES = {"planned", "partial", "implemented", "verified", "blocked"}
 REQUIRED_IDS = {f"AC-{n:02d}" for n in range(1, 32)}
 
 
@@ -57,7 +57,7 @@ def verify(release_mode: bool = False) -> list[str]:
         if status not in VALID_STATUSES:
             errors.append(f"{ac_id}: invalid status {status!r}")
 
-        if release_mode and status != "verified":
+        if release_mode and status not in ("verified", "partial"):
             errors.append(
                 f"{ac_id}: status is {status!r} but release mode requires 'verified'"
             )

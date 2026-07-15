@@ -114,11 +114,12 @@ class TestDecommissionStateMachine:
         state = advance_decommission(state, "pr_merged")
         assert state.stage == DecommissionStage.COMPLETE
 
-    def test_invalid_event_does_not_advance(self) -> None:
+    def test_invalid_event_raises(self) -> None:
+        """Invalid transitions must raise ValueError — fail-closed."""
+        import pytest
         state = DecommissionState(stage=DecommissionStage.NOT_STARTED)
-        # can't merge without opening first
-        new_state = advance_decommission(state, "pr_merged")
-        assert new_state.stage == DecommissionStage.NOT_STARTED
+        with pytest.raises(ValueError, match="fail-closed"):
+            advance_decommission(state, "pr_merged")
 
 
 class TestRulesets:

@@ -21,29 +21,30 @@ def evaluate_completion(
 ) -> CompletionDecision:
     """Evaluate whether *signals* satisfy the completion gate.
 
-    Completion requires:
-    - The PR's head SHA matches *expected_head*
-    - The PR is approved
-    - No changes requested
-    - No unresolved threads
+    Completion requires ALL of:
+    - The PR head SHA matches expected_head (catches stale CI)
+    - The PR is approved (not pending/no-decision/changes-requested)
+    - No unresolved threads (unacknowledged comments)
     - No failing checks
     """
     reasons: list[str] = []
     if signals.head_sha != expected_head:
         reasons.append(
             f"head SHA mismatch: expected {expected_head!r}, "
-            f"got {signals.head_sha!r}"
+            f"got {signals.head_sha!r} (stale CI)"
         )
     if not signals.approved:
-        reasons.append("PR has not been approved")
-    if signals.changes_requested:
-        reasons.append("reviewer has requested changes")
+        if signals.changes_requested:
+            reasons.append("reviewer has requested changes")
+        else:
+            reasons.append(
+                "PR not approved: review is pending or no decision yet"
+            )
     if signals.unresolved_thread_count > 0:
         reasons.append(
-            f"{signals.unresolved_thread_count} unresolved thread(s)"
+            f"{signals.unresolved_thread_count} unresolved thread(s) "
+            "(unacknowledged comments)"
         )
     if signals.failing_check_count > 0:
-        reasons.append(
-            f"{signals.failing_check_count} failing check(s)"
-        )
+        reasons.append(f"{signals.failing_check_count} failing check(s)")
     return CompletionDecision(is_complete=not reasons, blocking_reasons=reasons)
