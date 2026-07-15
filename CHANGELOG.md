@@ -6,7 +6,9 @@ section into a tagged version.
 
 ## [Unreleased]
 
-### Added- Slice 3 Tasks 1–8 of the project bootstrap policy program implemented and
+### Added
+
+- Slice 3 Tasks 1–8 of the project bootstrap policy program implemented and
   verified locally (608 tests passing, ruff clean, mypy clean):
   - Task 1 (`Compile one profile into deterministic gate plans`): policy/scope.py
     (PathExpression, ChangeClass, ScopeExpression), policy/compiler.py (pure
@@ -26,7 +28,8 @@ section into a tagged version.
     gates/push.py, gates/ci.py (context readers), gates/context.py, policy/
     integrity.py (hash-based tamper detection), integrations/hashes.py — 17 tests.
   - Task 8: ruff clean, mypy clean (18 source files); acceptance matrix updated:
-    AC-08, AC-11, AC-12, AC-21 → implemented.- Slice 2 Tasks 1–7 of the project bootstrap policy program implemented and
+    AC-08, AC-11, AC-12, AC-21 → implemented.
+- Slice 2 Tasks 1–7 of the project bootstrap policy program implemented and
   verified locally (526 tests passing, ruff clean, mypy clean):
   - Task 1 (`Define versioned bootstrap plugin contract`): plugin api.py,
     registry.py, runner.py, trust.py — 21 unit tests.
