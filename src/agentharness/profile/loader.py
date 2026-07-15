@@ -12,7 +12,7 @@ from pathlib import PurePosixPath
 from typing import Any, cast
 from unicodedata import category
 
-import fastjsonschema  # type: ignore[import-not-found]
+import fastjsonschema  # type: ignore[import-untyped]
 import yaml
 from yaml.constructor import ConstructorError
 from yaml.tokens import AliasToken, AnchorToken, TagToken
