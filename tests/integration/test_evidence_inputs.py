@@ -151,4 +151,3 @@ class TestEvidenceInputs:
             scope_patterns=["src/**", "lib/**"],  # added
         )
         assert compute_fingerprint(base) != compute_fingerprint(changed)
-

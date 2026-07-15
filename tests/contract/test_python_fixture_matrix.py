@@ -105,4 +105,3 @@ class TestPythonPluginFixtureMatrix:
         # assert_plugin_compliant raises ComplianceError on any violation
         result = assert_plugin_compliant(plugin, {"project_root": str(FIXTURES / subdir)})  # noqa: E501
         assert result.plugin_id == plugin.metadata.plugin_id
-
