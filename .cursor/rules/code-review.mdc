@@ -179,7 +179,7 @@ Check for these cross-cutting problems regardless of layer:
 - **`Thread.sleep` / `time.sleep` in production path** — used to "wait for something to be ready" instead of a proper condition variable, semaphore, or event notification. Brittle and slow.
 - **Goroutine/thread leak** — a goroutine or thread started but never joined, cancelled, or bounded. Accumulates over time until the process runs out of resources.
 - **Deadlock risk** — two lock acquisitions where another code path acquires the same locks in the opposite order. Establish a consistent lock ordering convention.
-- **Async fire-and-forget without error handling** — `asyncio.create_task(...)`, `Promise` or `setTimeout` without `.catch()` / error propagation. Exceptions are silently swallowed.
+- **Async fire-and-forget without error handling** — `asyncio.create_task(...)`, `Promise` or `setTimeout` without `.catch()` / error propagation. Exceptions don't propagate to the caller; they may be logged late (asyncio logs them as warnings at GC time) or not at all, making failures hard to detect and debug. Always attach an error handler or `await` the result.
 
 #### Memory & resource management
 - **Memory leak via unclosed listener/subscription** — event listener, observer, or pub/sub subscription registered but never removed when the owning object is destroyed. Common in frontend components and long-lived services.
@@ -191,10 +191,10 @@ Check for these cross-cutting problems regardless of layer:
 
 #### Input validation
 - **Missing boundary validation** — numeric input used as an index, allocation size, or loop bound without checking it's in a safe range. Leads to out-of-bounds, OOM, or infinite loops.
-- **Trusting user-controlled format strings** — `printf(user_input)` (C), `String.format(userInput, ...)` (Java), `%s % user_input` (Python) — if `user_input` contains format specifiers, it can read arbitrary memory or crash.
+- **Trusting user-controlled format strings** — passing user input as the format string itself (e.g., `printf(user_input)` in C, `logger.log(level, user_input)` in some frameworks) rather than as an argument. In C, this leaks memory or crashes; in Python/Java the typical risk is information disclosure or unexpected output. Always use a fixed literal format string: `printf("%s", user_input)`.
 - **Path traversal** — file path built from user input without sanitizing `../` sequences. Use `os.path.realpath` / `Path.resolve()` and verify the result is within the allowed prefix.
 - **Regex catastrophic backtracking** — a regex with nested quantifiers on overlapping character classes (e.g., `(a+)+`) applied to user input. Exponential time; exploitable as ReDoS. Validate regex complexity or use a linear-time engine.
-- **Trusting `Content-Type` for deserialization** — deserializing a body (JSON, XML, YAML) without validating the content matches the declared type. YAML and XML parsers can execute code or make network calls by default.
+- **Trusting `Content-Type` for deserialization** — deserializing a body without validating the content matches the declared type. Specific risks: YAML parsers with unsafe loaders (e.g., PyYAML's `yaml.load` without `Loader=yaml.SafeLoader`) can instantiate arbitrary objects; XML parsers may be vulnerable to XXE (external entity injection) which can read local files or make server-side requests. JSON is generally safe. Always use safe/restricted deserializer modes.
 - **Missing max-length enforcement** — accepting arbitrarily long strings, files, or payloads without a size limit. Leads to OOM, DoS, or storage exhaustion.
 - **Integer overflow in user-supplied arithmetic** — multiplying or adding user inputs before checking for overflow, then using the result as an allocation size or loop count.
 
