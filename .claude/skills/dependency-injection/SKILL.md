@@ -1,0 +1,101 @@
+---
+name: dependency-injection
+description: >
+  Use when writing or reviewing code that creates object graphs, manages service dependencies, or
+  needs to be testable. Covers constructor injection over field injection, DI container patterns,
+  avoiding service locators, and when not to use DI at all.
+metadata:
+  type: skill
+  scope: ["Python", "TypeScript", "JavaScript", "Go", "Java"]
+  when: "Before introducing a DI framework; when reviewing tightly-coupled code; when designing testable services"
+---
+
+# Dependency Injection
+
+**One rule:** depend on abstractions, receive them via constructor, never create them internally.
+
+---
+
+## The Pattern
+
+```python
+# BAD — hard to test, tightly coupled
+class OrderService:
+    def __init__(self):
+        self.db = Database()          # creates its own dependency
+        self.email = EmailClient()    # can't inject fakes in tests
+
+# GOOD — testable, decoupled
+class OrderService:
+    def __init__(self, db: Database, email: EmailClient) -> None:
+        self.db = db
+        self.email = email
+```
+
+```typescript
+// BAD
+class OrderService {
+    private db = new Database();   // hidden dependency
+}
+
+// GOOD
+class OrderService {
+    constructor(private db: Database, private email: EmailClient) {}
+}
+```
+
+---
+
+## Rules
+
+| Do | Don't |
+|---|---|
+| Inject dependencies via constructor | Create dependencies with `new` inside a class |
+| Depend on interfaces/protocols | Depend on concrete types when an abstraction exists |
+| Make dependencies explicit | Use service locators (`Container.get(...)`) inside business logic |
+| Keep constructors simple — no logic | Do work in `__init__`/constructors |
+| Use fakes/stubs in tests | Patch global singletons in tests |
+
+---
+
+## When to Use a DI Container
+
+Use a container (FastAPI's Depends, tsyringe, Wire for Go) when:
+- The object graph has 3+ levels of nesting
+- You need lifetime management (singleton vs. transient vs. scoped)
+- You need request-scoped dependencies (e.g., database sessions per HTTP request)
+
+Don't use a container for:
+- Small scripts or utilities (manual wiring is simpler and clearer)
+- Value objects (DTOs, records) — they carry data, not behavior
+- Stateless pure functions
+
+---
+
+## Lifetimes
+
+| Lifetime | When to use | Example |
+|---|---|---|
+| Singleton | Shared state across the app; expensive to create | `DatabasePool`, `ConfigLoader` |
+| Scoped | One instance per request/unit of work | `DbSession`, `UserContext` |
+| Transient | Stateless; cheap to create | `EmailFormatter`, `Validator` |
+
+---
+
+## Anti-Patterns
+
+**Service Locator** — business logic calls `Container.get(Service)` directly. Makes dependencies invisible.
+
+**Ambient Context / Thread-local** — global mutable state accessed via static accessors. Breaks testability.
+
+**Constructor over-injection (> 4 params)** — sign the class violates SRP; split responsibilities.
+
+**Circular dependency** — A depends on B which depends on A. Refactor to break the cycle, often by extracting a shared interface.
+
+---
+
+## See Also
+
+- `patterns/dependency-injection/DI_PATTERNS.md` — full reference with Go/Python/TS examples
+- `.claude/skills/solid-principles/SKILL.md` — DIP (Dependency Inversion Principle) explains *why*
+- `.claude/skills/testing/SKILL.md` — how DI enables unit testing with fakes

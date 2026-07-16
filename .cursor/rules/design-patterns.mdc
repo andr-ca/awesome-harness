@@ -1,0 +1,166 @@
+---
+description: ">"
+---
+
+## Design Patterns (GoF Reference)
+
+Patterns solve recurring design problems. **Don't introduce a pattern to a problem that doesn't exist yet.**
+
+### Creational — Object Creation
+
+#### Factory Method
+Create objects without knowing the concrete class.
+
+```python
+class NotificationFactory:
+    @staticmethod
+    def create(channel: str) -> Notification:
+        match channel:
+            case "email": return EmailNotification()
+            case "sms":   return SmsNotification()
+            case _: raise ValueError(f"Unknown channel: {channel}")
+```
+
+**Use when:** the exact type to create is determined at runtime, or varies by environment.
+
+#### Builder
+Construct complex objects step by step, separating construction from representation.
+
+```typescript
+const email = new EmailBuilder()
+    .to("alice@example.com")
+    .subject("Hello")
+    .body("World")
+    .build();
+```
+
+**Use when:** constructors would have 4+ parameters, especially optional ones.
+
+### Behavioral — Object Communication
+
+#### Strategy
+Define a family of algorithms and make them interchangeable at runtime.
+
+```python
+class Sorter:
+    def __init__(self, strategy: SortStrategy) -> None:
+        self._strategy = strategy
+
+    def sort(self, data: list) -> list:
+        return self._strategy.sort(data)
+```
+
+**Use when:** you have multiple ways to do something and want to switch them. Replace `if/elif` chains.
+
+#### Observer (Event / Pub-Sub)
+One object notifies many dependents without knowing who they are.
+
+```typescript
+class EventEmitter<T> {
+    private listeners = new Set<(event: T) => void>();
+    on(fn: (event: T) => void) { this.listeners.add(fn); }
+    emit(event: T) { this.listeners.forEach(fn => fn(event)); }
+}
+```
+
+**Use when:** one thing changing should trigger reactions in multiple places, without tight coupling.
+
+#### Command
+Encapsulate a request as an object to support undo, logging, or queuing.
+
+```python
+@dataclass
+class CreateOrderCommand:
+    user_id: str
+    items: list[OrderItem]
+
+class CommandHandler:
+    def handle(self, cmd: CreateOrderCommand) -> Order: ...
+```
+
+**Use when:** you need undo/redo, request queuing, audit trails, or to decouple request sender from executor.
+
+#### Template Method
+Define the skeleton of an algorithm; let subclasses fill in specific steps.
+
+```python
+class DataProcessor(ABC):
+    def process(self, data):        # template
+        raw = self.read(data)
+        parsed = self.parse(raw)
+        return self.write(parsed)
+
+    @abstractmethod
+    def read(self, data): ...
+    @abstractmethod
+    def write(self, data): ...
+```
+
+**Use when:** multiple classes share an algorithm structure but differ in specific steps.
+
+### Structural — Object Composition
+
+#### Decorator
+Add behavior to an object without modifying its class.
+
+```python
+class LoggingRepository:
+    def __init__(self, inner: UserRepository, logger: Logger) -> None:
+        self._inner = inner
+        self._logger = logger
+
+    def find(self, id: str) -> User:
+        self._logger.info(f"find {id}")
+        return self._inner.find(id)
+```
+
+**Use when:** you need to add concerns (logging, caching, validation) without subclassing.
+
+#### Repository
+Abstract the data layer behind a domain-focused interface.
+
+```python
+class UserRepository(Protocol):
+    def find_by_id(self, id: str) -> User | None: ...
+    def save(self, user: User) -> None: ...
+    def find_active(self) -> list[User]: ...
+```
+
+**Use when:** domain logic should not know about SQL/ORM/HTTP details.
+
+#### Facade
+Provide a simple interface to a complex subsystem.
+
+```typescript
+class PaymentFacade {
+    constructor(
+        private stripe: StripeClient,
+        private fraud: FraudDetector,
+        private audit: AuditLogger
+    ) {}
+
+    async charge(user: User, amount: Money): Promise<Receipt> {
+        await this.fraud.check(user, amount);
+        const charge = await this.stripe.charge(user.card, amount);
+        await this.audit.log(charge);
+        return new Receipt(charge);
+    }
+}
+```
+
+**Use when:** a subsystem has many steps that callers shouldn't orchestrate directly.
+
+### Anti-Patterns to Avoid
+
+| Anti-pattern | Instead |
+|---|---|
+| God object — one class does everything | Split by SRP |
+| Singleton abuse — global mutable state | Inject dependencies |
+| Premature abstraction — interface with one implementation | Wait until you have two |
+| Inheritance for code reuse | Prefer composition (Strategy, Decorator) |
+
+### See Also
+
+- `patterns/design-patterns/PATTERNS_GUIDE.md` — extended examples + when NOT to use each
+- `.claude/skills/solid-principles/SKILL.md` — principles that patterns implement
+- `.claude/skills/clean-architecture/SKILL.md` — how patterns combine into architectures

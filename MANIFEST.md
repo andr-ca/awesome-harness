@@ -119,6 +119,11 @@ they drift (`check_manifest_md_sync()` in `tools/verify-content-quality.py`).
 | Mutation testing | `.claude/skills/mutation-testing/SKILL.md` | skill | Loads on demand when auditing test suite quality beyond line coverage or interpreting surviving mutants |
 | Multi-agent coordination | `.claude/skills/multi-agent-coordination/SKILL.md` | skill | Loads on demand when two or more agents may work on the same repository concurrently |
 | File placement policy | `.claude/skills/file-placement-policy/SKILL.md` | skill | Loads at session start in projects with .agentharness-guarded-paths.json; checks before any new file creation |
+| Dependency injection | `.claude/skills/dependency-injection/SKILL.md` | skill | Constructor injection, DI containers, testability; load when reviewing tightly-coupled code or designing services |
+| SOLID principles | `.claude/skills/solid-principles/SKILL.md` | skill | SRP, OCP, LSP, ISP, DIP; load during design review or when a class feels too large |
+| Design patterns | `.claude/skills/design-patterns/SKILL.md` | skill | Factory, Strategy, Observer, Repository, Decorator, Command, Builder; load when recognizing a recurring design problem |
+| Clean architecture | `.claude/skills/clean-architecture/SKILL.md` | skill | Hexagonal/ports-and-adapters, domain isolation; load when business logic is tangled with infrastructure |
+| Code review | `.claude/skills/code-review/SKILL.md` | skill | Systematic review checklist; load when reviewing a PR or assessing a code change |
 
 ## Custom Agents (task delegation to a separate agent instance — a different mechanism from skills, ported to Codex/OpenCode/Cursor/Kilo Code/Copilot/Gemini CLI)
 
