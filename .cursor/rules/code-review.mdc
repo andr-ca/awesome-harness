@@ -205,6 +205,38 @@ Check for these cross-cutting problems regardless of layer:
 - **Missing pattern for real duplication** — copy-paste of the same algorithm in 3 places that could be a Strategy; repeated decoration logic that could be a Decorator; 5-clause `if type == X` that could be a Factory.
 - **Inheritance for code reuse** — a subclass that only exists to share code (not to express a true is-a relationship). Use composition (Strategy, Decorator, delegation) instead.
 
+#### Performance
+- **Blocking I/O on the event loop / main thread** — synchronous disk reads, DNS lookups, or HTTP calls inside a Node.js `async` function, a Python `asyncio` coroutine, or a UI thread. Blocks all other work. Use async I/O or a thread pool offload.
+- **Unnecessary serialization/deserialization in a hot path** — JSON-encoding and decoding the same structure multiple times in a request, or marshalling to/from a format that's only consumed internally. Serialize once at the boundary.
+- **Missing pagination in data pipelines** — a background job that loads all rows from a table, transforms them, then inserts results, with no chunking. Will OOM or time out at scale. Add batch/cursor-based processing.
+- **Synchronous work hiding behind async** — `await asyncio.to_thread(heavy_cpu_task)` or `await loop.run_in_executor(executor, heavy_cpu_task)` offloads to a thread pool but doesn't reduce CPU time. Profile first; CPU-bound tasks belong in a separate process or worker pool (e.g., `multiprocessing`, a task queue), not the async thread pool.
+- **Re-computing expensive derived values on every access** — a getter that recalculates a sum, sorts a list, or runs a regex on every call. Memoize or cache the result unless the input changes frequently.
+- **Payload too large for the use case** — an endpoint that returns 50 fields when a summary response with 5 would serve the caller. Increases bandwidth, parse time, and serialization cost on every request.
+
+#### API contracts
+- **Breaking change without version bump** — removing a field, renaming a required field, changing a type, or adding a required request field to an existing API version. Any of these break existing callers silently. Version the endpoint or maintain backward compat.
+- **Optional field added as required** — a new request field with no default and no null-tolerance. Existing callers that don't send it will start failing.
+- **Response shape drift** — the actual JSON/schema differs from the documented shape (missing fields, wrong types). Breaks contract-test suites and auto-generated clients.
+- **No deprecation notice before removal** — removing or renaming something that callers depend on without a documented deprecation period. Always add `Deprecation` header or `X-Deprecated` before removing.
+- **Implicit contract in error responses** — callers branching on error message strings instead of stable error codes. If you change the message, callers break silently. Always include a stable `error_code` in every error response.
+- **Silent coercion of invalid input** — accepting `"true"` as a boolean, or `"123abc"` as a number, without surfacing a validation error. Callers don't discover their bugs and the API becomes unpredictable.
+
+#### Observability
+- **No structured event for a critical state transition** — a payment succeeding, an order being placed, or an authentication failing — with no log entry, metric increment, or trace span. Impossible to monitor or alert on.
+- **Hardcoded timeout values** — `timeout=30` scattered across the codebase. Timeouts belong in configuration; hardcoded values make them impossible to tune without a code deploy.
+- **No health-check endpoint** — a service deployed behind a load balancer or in a container without a `/health` or `/readiness` endpoint. Orchestrators can't distinguish a starting pod from a dead one.
+- **Missing trace propagation** — an HTTP call to a downstream service that doesn't forward trace context (`traceparent`, `X-B3-TraceId`). Breaks distributed traces; can't correlate frontend and backend spans.
+- **Counter instead of histogram for latency** — recording request count but not latency distribution. Counts tell you volume; histograms tell you p99. Both are needed for SLO monitoring.
+- **Alert only on errors, not on latency or saturation** — an alert for `5xx > threshold` but nothing for "p99 > 2s" or "queue depth > 1000". The USE method (Utilization, Saturation, Errors) needs all three.
+
+#### Configuration
+- **Hardcoded environment-specific values** — URLs, ports, or feature flags embedded in source code instead of environment variables or a config file. Requires a code change to point at a different environment.
+- **Secrets in source code or config files** — API keys, DB passwords, or private keys committed to the repository or present in a non-secret config file. Use environment variables, a secrets manager, or `.env` files excluded from version control.
+- **No config validation at startup** — a service that reads config lazily (on first use) will fail in production hours after deployment. Validate all required config values at startup and fail fast with a clear error.
+- **Inconsistent config key naming** — some keys are `SCREAMING_SNAKE_CASE`, others are `camelCase`, others are `dot.notation`. Pick one convention per scope and document it.
+- **Default config values that are unsafe for production** — `DEBUG=true`, `ALLOW_ANY_ORIGIN=true`, or `DB_MAX_CONNECTIONS=unlimited` as defaults. Production-safe defaults should be the out-of-the-box behaviour; opt-in to relaxed settings in dev.
+- **No config drift detection** — configuration values that can change at runtime without any validation or audit trail. If a secret is rotated or a flag is toggled in prod, there should be a record of who changed it and when.
+
 ### Approve vs. request changes
 
 **Approve** when:
