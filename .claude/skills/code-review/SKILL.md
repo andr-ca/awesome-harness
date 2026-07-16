@@ -163,17 +163,17 @@ if the caller passes user-controlled input. Use a parameterised query:
 Check for these cross-cutting problems regardless of layer:
 
 ### Exception handling
-- **Bare/empty catch** — `except: pass`, `catch (e) {}`, `catch (_) {}` — silently swallows errors; bugs become invisible. Always log or re-throw.
+- **Bare/empty catch** — `except: pass` (Python), `catch (e) {}` (JS/TS), `catch (Exception ignored) {}` (Java) — silently swallows errors; bugs become invisible. Always log or re-throw.
 - **Catching too broadly** — bare `except:` (Python) or `catch (Throwable t)` (Java) catches truly everything including keyboard interrupt and VM errors that cannot be recovered from. Even `except Exception` or `catch (Exception e)` is too broad when the try block is long: narrow the scope instead. Catch only the specific exception types you know how to handle.
 - **Swallowing and continuing** — catching an error, logging it, then continuing as if nothing happened. If recovery is possible, do it explicitly; otherwise re-throw.
 - **Exception used for control flow** — throwing to signal a normal condition ("not found" as a raised exception instead of an Optional). Exceptions are for unexpected failures, not expected branches.
 - **Missing cleanup on error** — a resource (file, DB connection, lock) opened in a try block but not released on exception; needs `finally`/`with`/`using`/`defer`.
-- **Re-raising loses original cause** — `raise NewException(...)` without `from e` (Python) / missing `innerException` (C#/Java) — loses the original stack trace. Chain exceptions.
+- **Re-raising loses original cause** — `raise NewException(...)` without `from e` (Python) / missing cause arg (Java: `new MyException(msg, cause)`) / missing `innerException` (C#) — loses the original stack trace. Chain exceptions.
 - **Error message contains secrets** — exception message or log line includes passwords, tokens, or PII. Sanitize before logging.
 
 ### Logging
 - **Log level too high for routine events** — `ERROR` or `WARN` for expected, recoverable conditions inflates alert noise. Use `DEBUG`/`INFO` for normal flow, `WARN` for degraded-but-continuing, `ERROR` for failures that need attention, `FATAL`/`CRITICAL` only for unrecoverable states.
-- **Log level too low for real failures** — an unhandled exception or a security event logged at `DEBUG` is invisible in production. Errors that reach the caller should be `ERROR` or above.
+- **Log level too low for real failures** — a caught exception that reaches the caller, or a security event, logged at `DEBUG` is invisible in production. Failures surfaced to the caller should be `ERROR` or above.
 - **Unstructured log messages** — `logger.info(f"User {user.id} logged in at {ts}")` is hard to query and alert on. Prefer structured key=value or JSON fields: `logger.info("user.login", user_id=user.id, ts=ts)`.
 - **Logging PII or secrets** — passwords, tokens, full credit card numbers, SSNs, or health data in log lines. Mask, hash, or omit sensitive fields before logging.
 - **Logging request/response bodies unconditionally** — request bodies can contain credentials or PII. Only log in debug mode and with explicit field allowlists.
