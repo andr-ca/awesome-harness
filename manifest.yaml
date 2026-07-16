@@ -389,6 +389,18 @@ sections:
     path: tools/check-file-placement.sh
     type: script
     when_to_use: Pre-commit hook check — blocks staged files in guarded paths; wired into .github/hooks/pre-commit alongside trunk protection
+  - asset: Completion gate script
+    path: tools/check-completion.sh
+    type: script
+    when_to_use: Run before declaring work done — verifies lint, types, tests, coverage, content quality. Exit 0 = complete; exit 1 = incomplete
+  - asset: Completion gate hook (Copilot)
+    path: .github/hooks/completion-gate.json
+    type: hook
+    when_to_use: Copilot Stop hook — prevents agents from stopping until check-completion.sh passes
+  - asset: Completion gate hook (Claude Code)
+    path: .claude/settings.json
+    type: hook
+    when_to_use: Claude Code Stop hook — same enforcement as the Copilot hook
   - asset: Skill-symlink verifier
     path: tools/verify-skill-symlinks.sh
     type: script

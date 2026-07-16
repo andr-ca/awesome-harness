@@ -135,6 +135,9 @@ they drift (`check_manifest_md_sync()` in `tools/verify-content-quality.py`).
 | Agent lock manager | `tools/agent-lock.sh` | script | Per-feature lock files for concurrent agent sessions — acquire/release/check/list/clean/suggest-branch |
 | Structure analyzer | `tools/analyze_structure.py` | script | Analyze project structure and generate .agentharness-guarded-paths.json; also --recommend for early-stage projects |
 | File placement check | `tools/check-file-placement.sh` | script | Pre-commit hook check — blocks staged files in guarded paths; wired into .github/hooks/pre-commit alongside trunk protection |
+| Completion gate script | `tools/check-completion.sh` | script | Run before declaring work done — verifies lint, types, tests, coverage, content quality. Exit 0 = complete; exit 1 = incomplete |
+| Completion gate hook (Copilot) | `.github/hooks/completion-gate.json` | hook | Copilot Stop hook — prevents agents from stopping until check-completion.sh passes |
+| Completion gate hook (Claude Code) | `.claude/settings.json` | hook | Claude Code Stop hook — same enforcement as the Copilot hook |
 | Skill-symlink verifier | `tools/verify-skill-symlinks.sh` | script | Verifies `.agents/skills/` stays 1:1 with `.claude/skills/` — every Agent-Skills-standard tool (Codex, Copilot, Gemini, ...) reads the symlinks, so drift silently hides a skill from them while Claude still sees it |
 | Pinned dev/CI toolchain | `requirements-dev.txt` | config | Exact pinned versions of pytest/ruff/mypy/etc. — install after the separate hash-locked runtime requirements (P1-06) |
 | Wheel-only CI runtime lock | `requirements-ci-runtime.lock` | config | Hash-closed PyYAML and fastjsonschema wheel installation for Python 3.12/3.14 CI jobs; versions must match requirements-runtime.lock |

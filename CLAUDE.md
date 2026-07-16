@@ -8,7 +8,12 @@ Planned-but-not-built: [ROADMAP.md](ROADMAP.md).
 
 **Default (no publish authority): verify and stage, then stop.**
 
-1. ✅ **Verify all work is done** — tests pass, coverage meets the applicable rigor tier (see `.github/CODING_GUIDELINES.md#rigor-tiers`), lint passes, no TODOs
+1. ✅ **Run the completion gate** — before declaring any work done, run
+   `bash tools/check-completion.sh`. This script verifies lint, types,
+   tests, coverage, and content quality in one shot and exits non-zero if
+   anything fails. The Stop hook in `.github/hooks/completion-gate.json`
+   and `.claude/settings.json` enforces this automatically for Claude Code
+   and GitHub Copilot — the agent cannot stop until all gates pass.
 2. ✅ **Create atomic commits locally** — one logical unit per commit, clear message explaining WHY
 3. 🛑 **Stop before pushing, opening a PR, or auto-implementing recommendations.** Present a summary of what's staged and ask the user to confirm before publishing anything.
 
@@ -165,6 +170,31 @@ never actually signed off on. The same logic applies one level up: a
 mandate that grants an agent standing remote-write authority by default
 is itself a product-direction decision the user should make explicitly,
 not inherit silently from a template — see "Publish authority" above.
+
+---
+
+## 📋 Completion Gate
+
+**Run `bash tools/check-completion.sh` before declaring any work done.**
+
+The gate runs all quality gates in one shot and exits 1 if any fail:
+
+| Gate | What it checks |
+|---|---|
+| `content-quality` | YAML validity, skill frontmatter schema, tested-snippet syntax |
+| `ruff-lint` | Python lint (E, F, I, UP rules) |
+| `mypy` | Strict type checking on `src/` |
+| `pytest-coverage` | Test suite + ≥65% branch coverage on `src/agentharness/` |
+| `shellcheck` | Changed `.sh` files have no issues |
+| `git-clean` | No uncommitted changes to tracked files |
+
+The Stop hook in `.github/hooks/completion-gate.json` (Copilot) and
+`.claude/settings.json` (Claude Code) enforces this automatically —
+the agent cannot stop until `tools/check-completion.sh` exits 0.
+
+For projects consuming this harness via `harness-link.sh init`, install
+the completion gate with: `harness-link.sh init --with-hook` (the hook
+is bundled alongside trunk protection in `.github/hooks/`).
 
 ---
 

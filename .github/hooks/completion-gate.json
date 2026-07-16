@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "type": "command",
+        "command": "bash tools/check-completion.sh --quiet",
+        "linux": "bash tools/check-completion.sh --quiet",
+        "osx": "bash tools/check-completion.sh --quiet",
+        "windows": "bash tools/check-completion.sh --quiet",
+        "timeout": 120,
+        "_comment": "Completion gate: blocks the agent from declaring work done until all quality gates pass (lint, types, tests, coverage, content quality). Exit code 0 = complete; exit code 1 = incomplete. See tools/check-completion.sh for the full gate list."
+      }
+    ]
+  }
+}
