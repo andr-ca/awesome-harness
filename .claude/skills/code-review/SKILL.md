@@ -36,7 +36,9 @@ The most important category. Ask: *"Can this code produce wrong results?"*
 - Are all inputs validated before use?
 - Are edge cases handled: empty collections, zero, null/None/undefined,
   negative numbers, max values, concurrent access?
-- Does error handling actually handle the error, or does it swallow it?
+- Does error handling actually handle the error, or does it swallow it silently?
+- Are exceptions caught at the right level (not too broad, not too narrow)?
+- Are resources (files, connections, locks) released even on exception?
 
 ```python
 # Swallowed error — caller sees success, wrong data silently used
@@ -159,6 +161,15 @@ if the caller passes user-controlled input. Use a parameterised query:
 ## 7. Smells, Inefficiencies & Pattern Misuse
 
 Check for these cross-cutting problems regardless of layer:
+
+### Exception handling
+- **Bare/empty catch** — `except: pass`, `catch (e) {}`, `catch (_) {}` — silently swallows errors; bugs become invisible. Always log or re-throw.
+- **Catching too broadly** — `except Exception` or `catch (Exception e)` catching everything including OOM, keyboard interrupt, or system errors. Catch the narrowest type that makes sense.
+- **Swallowing and continuing** — catching an error, logging it, then continuing as if nothing happened. If recovery is possible, do it explicitly; otherwise re-throw.
+- **Exception used for control flow** — throwing to signal a normal condition ("not found" as a raised exception instead of an Optional). Exceptions are for unexpected failures, not expected branches.
+- **Missing cleanup on error** — a resource (file, DB connection, lock) opened in a try block but not released on exception; needs `finally`/`with`/`using`/`defer`.
+- **Re-raising loses original cause** — `raise NewException(...)` without `from e` (Python) / missing `innerException` (C#/Java) — loses the original stack trace. Chain exceptions.
+- **Error message contains secrets** — exception message or log line includes passwords, tokens, or PII. Sanitize before logging.
 
 ### Database / persistence
 - **N+1 queries** — loading a list then fetching related records per item in a loop. Look for `for item in items: item.load_relation()`.
