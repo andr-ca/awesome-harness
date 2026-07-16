@@ -1,9 +1,6 @@
 ---
 name: solid-principles
-description: >
-  Use when designing classes, modules, or APIs to evaluate whether the design follows SOLID principles —
-  Single Responsibility, Open/Closed, Liskov Substitution, Interface Segregation, Dependency Inversion.
-  Covers what each principle means, how to detect violations, and how to refactor.
+description: Use when designing classes or APIs to evaluate SOLID compliance — SRP, OCP, LSP, ISP, DIP. Covers what each principle means, how to diagnose violations by symptom, and how to refactor.
 metadata:
   type: skill
   scope: ["Python", "TypeScript", "JavaScript", "Go", "Java"]
@@ -150,6 +147,6 @@ See `.claude/skills/dependency-injection/SKILL.md` for the full DI pattern.
 
 ## See Also
 
-- `patterns/solid-principles/SOLID_GUIDE.md` — extended examples per language
+- `patterns/solid-principles/README.md` — pattern directory entry
 - `.claude/skills/dependency-injection/SKILL.md` — DIP in practice
 - `.claude/skills/design-patterns/SKILL.md` — patterns that implement SOLID

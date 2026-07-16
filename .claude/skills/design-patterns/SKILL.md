@@ -1,9 +1,6 @@
 ---
 name: design-patterns
-description: >
-  Use when recognizing a recurring structural or behavioral problem — creation of objects, algorithm
-  variation, object communication, or structural composition. Covers GoF patterns: Factory, Strategy,
-  Observer, Repository, Decorator, Command, and Builder. Focuses on when to apply each and when not to.
+description: "Use when recognizing a recurring design problem. Covers GoF patterns: Factory, Builder, Strategy, Observer, Command, Template Method, Decorator, Repository, Facade — when to apply each and when not to."
 metadata:
   type: skill
   scope: ["Python", "TypeScript", "JavaScript", "Go", "Java"]
@@ -179,6 +176,6 @@ class PaymentFacade {
 
 ## See Also
 
-- `patterns/design-patterns/PATTERNS_GUIDE.md` — extended examples + when NOT to use each
+- `patterns/design-patterns/README.md` — pattern directory entry
 - `.claude/skills/solid-principles/SKILL.md` — principles that patterns implement
 - `.claude/skills/clean-architecture/SKILL.md` — how patterns combine into architectures

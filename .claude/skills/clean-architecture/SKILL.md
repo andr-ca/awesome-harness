@@ -1,9 +1,6 @@
 ---
 name: clean-architecture
-description: >
-  Use when designing a new service, reviewing a codebase where business logic is tangled with
-  frameworks/databases/HTTP, or deciding where a piece of code belongs. Covers hexagonal architecture
-  (ports and adapters), domain isolation, dependency direction rules, and how to organize layers.
+description: Use when business logic is entangled with frameworks or databases. Covers hexagonal architecture (ports and adapters), layer diagram, dependency direction rules, and violation symptoms.
 metadata:
   type: skill
   scope: ["Python", "TypeScript", "JavaScript", "Go", "Java"]
@@ -127,6 +124,6 @@ src/
 
 ## See Also
 
-- `patterns/clean-architecture/HEXAGONAL_GUIDE.md` — extended example with full project
+- `patterns/clean-architecture/README.md` — pattern directory entry
 - `.claude/skills/design-patterns/SKILL.md` — Repository, Facade, Strategy used in clean arch
 - `.claude/skills/dependency-injection/SKILL.md` — how DI wires the layers together

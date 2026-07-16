@@ -1,5 +1,5 @@
 ---
-description: ">"
+description: "Use when writing or reviewing code with object graphs, service dependencies, or testability concerns. Covers constructor injection, DI containers, lifetimes, and anti-patterns (service locator, ambient context, over-injection)."
 ---
 
 ## Dependency Injection
@@ -76,6 +76,6 @@ Don't use a container for:
 
 ### See Also
 
-- `patterns/dependency-injection/DI_PATTERNS.md` — full reference with Go/Python/TS examples
+- `patterns/dependency-injection/README.md` — pattern directory entry
 - `.claude/skills/solid-principles/SKILL.md` — DIP (Dependency Inversion Principle) explains *why*
 - `.claude/skills/testing/SKILL.md` — how DI enables unit testing with fakes

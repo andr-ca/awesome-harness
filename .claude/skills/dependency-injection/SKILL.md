@@ -1,9 +1,6 @@
 ---
 name: dependency-injection
-description: >
-  Use when writing or reviewing code that creates object graphs, manages service dependencies, or
-  needs to be testable. Covers constructor injection over field injection, DI container patterns,
-  avoiding service locators, and when not to use DI at all.
+description: Use when writing or reviewing code with object graphs, service dependencies, or testability concerns. Covers constructor injection, DI containers, lifetimes, and anti-patterns (service locator, ambient context, over-injection).
 metadata:
   type: skill
   scope: ["Python", "TypeScript", "JavaScript", "Go", "Java"]
@@ -96,6 +93,6 @@ Don't use a container for:
 
 ## See Also
 
-- `patterns/dependency-injection/DI_PATTERNS.md` — full reference with Go/Python/TS examples
+- `patterns/dependency-injection/README.md` — pattern directory entry
 - `.claude/skills/solid-principles/SKILL.md` — DIP (Dependency Inversion Principle) explains *why*
 - `.claude/skills/testing/SKILL.md` — how DI enables unit testing with fakes

@@ -1,5 +1,5 @@
 ---
-description: ">"
+description: "Use when recognizing a recurring design problem. Covers GoF patterns: Factory, Builder, Strategy, Observer, Command, Template Method, Decorator, Repository, Facade — when to apply each and when not to."
 ---
 
 ## Design Patterns (GoF Reference)
@@ -161,6 +161,6 @@ class PaymentFacade {
 
 ### See Also
 
-- `patterns/design-patterns/PATTERNS_GUIDE.md` — extended examples + when NOT to use each
+- `patterns/design-patterns/README.md` — pattern directory entry
 - `.claude/skills/solid-principles/SKILL.md` — principles that patterns implement
 - `.claude/skills/clean-architecture/SKILL.md` — how patterns combine into architectures

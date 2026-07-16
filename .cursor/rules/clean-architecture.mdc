@@ -1,5 +1,5 @@
 ---
-description: ">"
+description: "Use when business logic is entangled with frameworks or databases. Covers hexagonal architecture (ports and adapters), layer diagram, dependency direction rules, and violation symptoms."
 ---
 
 ## Clean Architecture (Hexagonal / Ports & Adapters)
@@ -107,6 +107,6 @@ src/
 
 ### See Also
 
-- `patterns/clean-architecture/HEXAGONAL_GUIDE.md` — extended example with full project
+- `patterns/clean-architecture/README.md` — pattern directory entry
 - `.claude/skills/design-patterns/SKILL.md` — Repository, Facade, Strategy used in clean arch
 - `.claude/skills/dependency-injection/SKILL.md` — how DI wires the layers together

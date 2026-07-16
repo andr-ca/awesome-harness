@@ -1,5 +1,5 @@
 ---
-description: ">"
+description: "Use when designing classes or APIs to evaluate SOLID compliance — SRP, OCP, LSP, ISP, DIP. Covers what each principle means, how to diagnose violations by symptom, and how to refactor."
 ---
 
 ## SOLID Principles
@@ -128,6 +128,6 @@ See `.claude/skills/dependency-injection/SKILL.md` for the full DI pattern.
 
 ### See Also
 
-- `patterns/solid-principles/SOLID_GUIDE.md` — extended examples per language
+- `patterns/solid-principles/README.md` — pattern directory entry
 - `.claude/skills/dependency-injection/SKILL.md` — DIP in practice
 - `.claude/skills/design-patterns/SKILL.md` — patterns that implement SOLID

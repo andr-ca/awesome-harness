@@ -367,10 +367,6 @@ sections:
     path: .claude/skills/clean-architecture/SKILL.md
     type: skill
     when_to_use: Hexagonal/ports-and-adapters, domain isolation; load when business logic is tangled with infrastructure
-  - asset: Code review
-    path: .claude/skills/code-review/SKILL.md
-    type: skill
-    when_to_use: Systematic review checklist; load when reviewing a PR or assessing a code change
 - name: Custom Agents (task delegation to a separate agent instance — a different mechanism from skills, ported to Codex/OpenCode/Cursor/Kilo Code/Copilot/Gemini CLI)
   columns:
   - Asset
