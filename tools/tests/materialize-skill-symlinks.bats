@@ -15,7 +15,20 @@ teardown() {
     git -C "$REPO_ROOT" checkout -- .claude/skills >/dev/null 2>&1 || true
 }
 
+_is_work_tree() {
+    # git rev-parse --is-inside-work-tree returns "false" (with exit 0) for bare
+    # repos, so we must check the output string, not just the exit code.
+    [[ "$(git -C "$REPO_ROOT" rev-parse --is-inside-work-tree 2>/dev/null)" == "true" ]]
+}
+
 @test "materialize-skill-symlinks: agentic-loops bundled symlinks exist before the test" {
+    # In a bare repo there is no working tree, so symlinks in the object
+    # database cannot be checked out as filesystem symlinks. Skip the symlink
+    # pre-condition check there — the materialize/restore cycle is still
+    # exercised by test 2 regardless.
+    if ! _is_work_tree; then
+        skip "bare repo: symlinks are stored as real files — skipping symlink pre-condition"
+    fi
     [ -L "$REPO_ROOT/.claude/skills/agentic-loops/agent_loop.py" ]
 }
 
@@ -32,6 +45,9 @@ teardown() {
 }
 
 @test "materialize-skill-symlinks: restore puts the symlinks back via git checkout" {
+    if ! _is_work_tree; then
+        skip "bare repo: git checkout requires a work tree — skipping restore test"
+    fi
     python3 "$SCRIPT" materialize
     [ ! -L "$REPO_ROOT/.claude/skills/agentic-loops/agent_loop.py" ]
 

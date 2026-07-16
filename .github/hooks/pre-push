@@ -39,24 +39,42 @@ REPO_ROOT="$(cd "$HOOKS_DIR/../.." && pwd)"
 
 # Is the repo actually being pushed (current working directory) this repo,
 # or some consumer project that merely points core.hooksPath here?
+# git rev-parse --show-toplevel fails/returns empty for bare repos; fall back to
+# deriving the repo root from the absolute git-dir path instead.
 PUSHED_REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+if [ -z "$PUSHED_REPO_ROOT" ]; then
+    # Bare repo fallback: derive the repo root from the absolute git-dir.
+    # - Normal / bare-worktree: --absolute-git-dir returns <root>/.git — use parent.
+    # - Pure bare clone (git init --bare): git-dir IS the root — use it directly.
+    GIT_ABS_DIR="$(git rev-parse --absolute-git-dir 2>/dev/null || true)"
+    if [ -n "$GIT_ABS_DIR" ]; then
+        if [[ "$GIT_ABS_DIR" == */.git ]]; then
+            PUSHED_REPO_ROOT="$(cd "$GIT_ABS_DIR/.." && pwd)"
+        else
+            PUSHED_REPO_ROOT="$(cd "$GIT_ABS_DIR" && pwd)"
+        fi
+    fi
+fi
 if [ "$PUSHED_REPO_ROOT" != "$REPO_ROOT" ]; then
     echo "pre-push: this push is not to agentharness itself (core.hooksPath"
     echo "is just borrowed from it) — skipping agentharness's own test suite."
     exit 0
 fi
 
-# Git exports repository-local variables such as GIT_DIR and GIT_WORK_TREE to
-# hooks.  The suites below create disposable repositories; allowing those
-# variables to leak makes `git -C <fixture>` continue operating on this
-# worktree instead of the fixture.  Resolve this repository first, then clear
-# every variable Git itself classifies as local before invoking test tools.
-while IFS= read -r git_var; do
-    unset "$git_var"
-done < <(git rev-parse --local-env-vars)
-
 cd "$REPO_ROOT"
 
+# Strip repository-local Git environment variables so that tools invoked
+# by this hook (bats, python3, pytest) behave as if launched from a plain
+# shell rather than from inside an ongoing git operation. Without this, a
+# caller that sets GIT_DIR / GIT_WORK_TREE / etc. (e.g. git itself when
+# running hooks) would cause those vars to leak into subprocesses and
+# confuse any git operations they start (wrong repo, wrong index, etc.).
+# Use git rev-parse --local-env-vars for the authoritative list rather than
+# a hard-coded set that would drift as Git adds new repo-local variables.
+while IFS= read -r _gitvar; do
+    unset "$_gitvar" 2>/dev/null || true
+done < <(git rev-parse --local-env-vars 2>/dev/null || true)
+unset _gitvar
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 NC='\033[0m'

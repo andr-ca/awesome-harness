@@ -666,7 +666,16 @@ print(d['source']['revision'])
     # npx flow — pack the actual package, extract it to a throwaway
     # "cache" directory, install from THAT extracted copy, then delete the
     # whole cache and confirm doctor still passes.
+    #
+    # Requires the runtime artifact cache to be seeded (.tool-cache/runtime-artifacts/).
+    # In CI, the runtime-bootstrap-exact-four job seeds this; locally, run
+    # `tools/runtime/seed-runtime-artifacts.sh` first, or skip with
+    # CHECK_OFFLINE=1.
     local harness_root="$BATS_TEST_DIRNAME/../.."
+    local tool_cache="$harness_root/.tool-cache/runtime-artifacts"
+    if [ -z "$(ls "$tool_cache" 2>/dev/null)" ]; then
+        skip "runtime artifact cache not seeded (.tool-cache/runtime-artifacts/ is empty); run tools/runtime/seed-runtime-artifacts.sh first"
+    fi
     local cache pkg_tgz
     cache=$(mktemp -d)
     ( cd "$harness_root" && npm pack --silent --pack-destination "$cache" ) >/dev/null

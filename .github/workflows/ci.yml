@@ -276,6 +276,15 @@ jobs:
           pytest tests/ --cov=score --cov=run --cov-branch --cov-fail-under=80 -v
       - name: Run duplicate-policy detection tests (B7, no coverage gate — see tools/check.sh's comment)
         run: pytest tools/tests/test_verify_content_quality.py -v
+      - name: Run bootstrap policy core tests (>=65% coverage required)
+        run: |
+          pytest tests/ \
+            --ignore=tests/integration/test_runtime_upgrade.py \
+            --ignore=tests/unit/runtime/test_runtime_lock.py \
+            --cov=src/agentharness \
+            --cov-branch \
+            --cov-fail-under=65 \
+            -q
 
   markdown-links:
     runs-on: ubuntu-latest

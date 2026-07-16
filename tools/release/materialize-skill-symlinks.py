@@ -45,6 +45,25 @@ def materialize() -> None:
 
 
 def restore() -> None:
+    """Restore symlinks via git checkout.
+
+    In a bare git repository (or any context where git requires a work tree),
+    git checkout -- will fail. In that case, log a warning and skip — the
+    materialized files will remain, which is acceptable for local dev; the
+    prepack/postpack cycle is intended for npm pack in CI (a normal clone).
+    """
+    is_work_tree = subprocess.run(
+        ["git", "rev-parse", "--is-inside-work-tree"],
+        capture_output=True,
+        text=True,
+    ).stdout.strip() == "true"
+    if not is_work_tree:
+        print(
+            "materialize-skill-symlinks.py restore: not inside a work tree "
+            "(bare repo?); skipping git checkout. Materialized files remain.",
+            file=sys.stderr,
+        )
+        return
     subprocess.run(["git", "checkout", "--", str(SKILLS_DIR)], check=True)
 
 
