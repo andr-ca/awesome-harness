@@ -119,6 +119,33 @@ elif [ -d tests ]; then
 fi
 
 # ---------------------------------------------------------------------------
+# Gate 4b: JavaScript / TypeScript lint + type check
+# Detects JS/TS projects by package.json presence and runs the project's
+# own lint/typecheck scripts (defer to the project's config rather than
+# hard-coding eslint/tsc flags).
+# ---------------------------------------------------------------------------
+if [ -f package.json ] && command -v node >/dev/null 2>&1; then
+    has_npm=$(command -v npm >/dev/null 2>&1 && echo true || echo false)
+    # TypeScript type check — if tsconfig.json exists and tsc is available
+    if [ -f tsconfig.json ] && command -v tsc >/dev/null 2>&1; then
+        run_gate "tsc-typecheck" tsc --noEmit
+    elif [ -f tsconfig.json ] && [ -f node_modules/.bin/tsc ]; then
+        run_gate "tsc-typecheck" node_modules/.bin/tsc --noEmit
+    fi
+    # Use the project's own lint script if one exists in package.json
+    if $has_npm && node -e "
+const d = require('./package.json');
+const s = (d.scripts || {});
+process.exit(('lint' in s || 'typecheck' in s || 'type-check' in s) ? 0 : 1)
+" 2>/dev/null; then
+        lint_script="lint"
+        node -e "const d=require('./package.json'); process.exit(('lint' in (d.scripts||{})) ? 0 : 1)" 2>/dev/null \
+            || lint_script="typecheck"
+        run_gate "npm-lint" npm run "$lint_script" --if-present
+    fi
+fi
+
+# ---------------------------------------------------------------------------
 # Gate 5: Shellcheck on changed/added .sh files
 # ---------------------------------------------------------------------------
 if command -v shellcheck >/dev/null 2>&1; then

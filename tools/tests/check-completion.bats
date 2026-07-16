@@ -111,3 +111,53 @@ d = json.loads("""$output""")
 assert any("shellcheck" in f for f in d.get("gates_failed", [])), d
 PYEOF
 }
+
+# ---------------------------------------------------------------------------
+# JS/TS gate
+# ---------------------------------------------------------------------------
+
+@test "check-completion: JS project with passing lint script passes" {
+    proj="$(_make_minimal_project)"
+    # Add a package.json with a lint script that exits 0
+    cat > "$proj/package.json" << 'EOF'
+{
+  "name": "test",
+  "version": "1.0.0",
+  "scripts": { "lint": "node -e 'process.exit(0)'" }
+}
+EOF
+    git -C "$proj" add . && git -C "$proj" commit -m "add pkg" -q
+    run bash -c "cd '$proj' && bash tools/check-completion.sh 2>/dev/null"
+    rm -rf "$proj"
+    [ "$status" -eq 0 ]
+}
+
+@test "check-completion: JS project with failing lint script fails the gate" {
+    proj="$(_make_minimal_project)"
+    cat > "$proj/package.json" << 'EOF'
+{
+  "name": "test",
+  "version": "1.0.0",
+  "scripts": { "lint": "node -e 'process.exit(1)'" }
+}
+EOF
+    git -C "$proj" add . && git -C "$proj" commit -m "add pkg" -q
+    run bash -c "cd '$proj' && bash tools/check-completion.sh 2>/dev/null"
+    rm -rf "$proj"
+    [ "$status" -eq 1 ]
+}
+
+@test "check-completion: project without package.json skips JS gate" {
+    # Verify that the JS gate doesn't run in a Python-only project
+    proj="$(_make_minimal_project)"
+    output=$(cd "$proj" && bash tools/check-completion.sh 2>/dev/null || true)
+    rm -rf "$proj"
+    python3 - <<PYEOF
+import json
+d = json.loads("""$output""")
+# No JS gates should appear in passed or failed
+js_gates = [g for g in d["gates_passed"] + d["gates_failed"]
+            if "tsc" in g or "npm-lint" in g]
+assert len(js_gates) == 0, f"Unexpected JS gates: {js_gates}"
+PYEOF
+}
