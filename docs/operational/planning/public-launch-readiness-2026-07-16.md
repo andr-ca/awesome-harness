@@ -1,5 +1,6 @@
 ---
 date: 2026-07-16
+last_updated: 2026-07-17
 status: in-progress
 topic: planning
 purpose: Sequenced readiness plan for the repo's first deliberate public-attention moment — an external article and social post will link here
@@ -338,3 +339,98 @@ In addition to the original criteria, “done” requires:
   a mechanism verified at the linked release; and
 - no unresolved placeholders, employer implication, or unmeasured efficacy
   claim in the article or companion post.
+
+---
+
+## Session 3 — Independent audit of the status report (2026-07-17)
+
+**New session.** Every ✅ in
+[public-launch-readiness-2026-07-16-status.md](./public-launch-readiness-2026-07-16-status.md)
+was re-verified against the tree at `main` (`96ef3be`), not taken on
+trust. Verdict: **16 of 17 claimed-complete items verified genuinely
+done; 1 missed gap found; 1 in-progress item has since completed but the
+status file wasn't updated.**
+
+### Verified done (spot-checked against repo state)
+
+- **F-02** — `.claude/skills/committing/SKILL.md` now carries the
+  verify-and-stage default + publish-authority model (lines 44–60).
+- **F-03** — `--force`/`--dry-run` flags and non-harness-file refusal
+  present in `harness-link.sh`; `tools/tests/generate-clients.bats` has
+  12 tests covering skip-without-force, force-overwrite-with-warning,
+  and dry-run-writes-nothing.
+- **F-04** — `copy_npm_durable_source` tar excludes `.env`, `.env.*`,
+  `*.env`, `node_modules`, `.cache`, `__pycache__`, `*.pyc`,
+  `.worktrees` (`harness-link.sh:329–355`).
+- **F-05** — `previous_hooks_path` recorded in state and restored on
+  uninstall (`harness-link.sh:1642–1647`).
+- **E3** — `tools/acceptance/verify_matrix.py` gone; only
+  `verify-matrix.py` remains.
+- **E4** — `tools/check.sh:147–158` runs the core suite with
+  `--cov=src/agentharness --cov-fail-under=65`.
+- **E5** — `SECURITY.md` covers npm distribution, git-config mutations,
+  GitHub protection boundary, and the supported boundary.
+- **E6** — `setuptools==83.0.0` exact-pinned in both `pyproject.toml`
+  and `requirements-dev.txt`.
+- **E9** — `verify-content-quality.py:322` prunes `.worktrees` from the
+  markdown scan.
+- **F-07** — `docs/operational/reviews/README.md` exists;
+  `INDEX.md:26` references it.
+- **Workstream B (all 6)** — `gh repo view` confirms the description,
+  5 topics, and homepage are live; README has the "What makes it
+  different" section (line 11) and the repo/npm naming line (line 5);
+  all 11 `tools/generate-*.sh` generators emit the GitHub provenance
+  URL and generated outputs (e.g. `AGENTS.md:4`) carry it.
+
+### ❌ Missed gap found by this audit
+
+- **E1 is only half done.** The status file claims "MANIFEST.md and
+  STATUS.md both label bootstrap policy core as ⚠ EXPERIMENTAL —
+  unreleased." `docs/STATUS.md:29` does say "Python core is
+  experimental/unreleased," but **MANIFEST.md has never contained the
+  label** — PR #65 (the commit that marked E1 ✅) did not touch
+  MANIFEST.md at all, and `git log -S EXPERIMENTAL -- MANIFEST.md`
+  across all branches is empty. MANIFEST's bootstrap rows say
+  "(approved; not implemented)"/"(planned; not implemented)", which
+  describes the *plans*, not the shipped `src/agentharness/` core.
+  **Action needed:** add the experimental/unreleased label to the
+  relevant MANIFEST.md rows, then correct the E1 note in the status
+  file.
+
+### Status file stale in the other direction
+
+- **C "STATUS.md re-verification" (🔄) is now done.** PR #74
+  (`e212544`, merged 2026-07-17) performed the full row-by-row sweep;
+  `docs/STATUS.md:20` reads "Last verified against the tree: 2026-07-17
+  (commit `af36f2c`)." The status row should move to ✅.
+- **E2 note is stale on facts:** versions have since moved to npm
+  `v0.2.1` / pyproject `0.1.1` (not `0.1.0`); the deliberate
+  deferral of full reconciliation stands.
+
+### Still outstanding (confirmed, not just claimed)
+
+| Item | Status | Evidence / blocker |
+|---|---|---|
+| Workstream 0 — clearance record | ⏸ owner | Recorded outside repo; nothing verifiable here |
+| A — disposition wrap-up | ❌ | `fable-gpt5-sol-disposition-2026-07-14.md` F-02–F-05 sections still read as open; no per-item status updates |
+| E1 — MANIFEST.md label | ❌ (new) | See missed gap above |
+| E2 — version reconciliation | 🔄 deferred | Deliberate post-launch deferral; STATUS.md documents the split |
+| E7 — secret/history scan | ⏸ owner | No recorded gitleaks/trufflehog result |
+| E8 — RC smoke test | ⏸ owner | Needs clean environment |
+| D — dogfood run + evidence bundle + KNOWN_LIMITATIONS | ⏸ owner | All three blocked on the Recalium run |
+| C — KNOWN_LIMITATIONS re-verification | ❌ | File untouched since PR #47 (`e98335c`) — predates all launch work |
+
+### Not tracked in the status file at all
+
+The addendum's expanded definition of done has items with **no status
+row anywhere**:
+
+- clean-clone / packed-artifact / current-CI release verification;
+- article factual/adversarial review (external, but the gate is listed
+  here);
+- F-01 follow-up from addendum item 5: re-verify the adapter-drift
+  check green in a clean checkout and formally close F-01's automation
+  caveat.
+
+These should either get rows in the status file or an explicit
+out-of-scope note, so the tracker and the definition of done agree.
