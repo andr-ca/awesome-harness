@@ -5,7 +5,7 @@
 pytest==9.1.1
 pytest-cov==7.1.0
 hypothesis==6.156.6
-setuptools==80.9.0
+setuptools==83.0.0
 jsonschema==4.26.0
 ruff==0.15.8
 mypy==1.19.1

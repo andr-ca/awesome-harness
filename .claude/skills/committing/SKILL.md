@@ -1,6 +1,6 @@
 ---
 name: committing
-description: Use when creating a git commit — atomic commits, message format, what never to commit, and the agent workflow-completion requirement (commit → push → PR).
+description: Use when creating a git commit — atomic commits, message format, what never to commit, and the agent workflow-completion requirement (run completion gate; stage or publish per publish authority).
 metadata:
   type: skills
   complexity: low
@@ -41,16 +41,29 @@ commit template). This skill is the actionable summary.
 - Build artifacts, `node_modules/`, and anything covered by
   `.github/.gitignore.template`.
 
-## After the commit — mandatory for agents
+## After the commit — run the completion gate, then follow publish authority
 
-This harness's `CLAUDE.md` mandates the full workflow: commit → push →
-PR. Don't stop at the commit.
+1. **Run `bash tools/check-completion.sh`** — all quality gates must pass
+   before declaring work done. This is enforced by the Stop hook in
+   `.github/hooks/completion-gate.json` (Copilot) and `.claude/settings.json`
+   (Claude Code).
 
-1. `git push -u origin <branch>` (first push) or `git push` (subsequent).
-2. `gh pr create` with a real title, body, and test/verification notes.
-3. Work is not "done" until the PR exists and its link has been given to
-   the user. An agent claiming completion without a PR is incomplete —
-   see `CLAUDE.md`'s "Agent Workflow Completion" section.
+2. **Default (no publish authority): stop at the commit.**
+   Stage the commit locally, summarize what was done, and ask the user to
+   confirm before pushing or opening a PR. Work is "done" when the user
+   has reviewed and approved the staged changes.
+
+3. **With publish authority**: push and open a PR.
+   Publish authority is granted when `.agentharness-publish-mode` exists
+   at the repo root, or when the user explicitly authorizes it in the
+   current session.
+   - `git push -u origin <branch>` (first push) or `git push` (subsequent).
+   - `gh pr create` with a real title, body, and test/verification notes.
+   - Work is not "done" until the PR exists, CI is green, and review
+     comments have been addressed.
+
+See `CLAUDE.md`'s "Agent Workflow Completion" section for the full rules
+and the `📋 Completion Gate` section for the gate commands.
 
 ## If tests or hooks fail
 

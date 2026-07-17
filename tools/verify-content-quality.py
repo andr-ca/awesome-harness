@@ -319,7 +319,9 @@ def check_duplicate_policy_numbers(scan_root: Path = REPO_ROOT) -> list[str]:
         source_numbers = _extract_mandate_numbers(_strip_fences(source_path.read_text()), entry["topic_word"])
 
         for md_file in sorted(scan_root.rglob("*.md")):
-            if ".git" in md_file.parts or md_file == source_path:
+            if ".git" in md_file.parts or ".worktrees" in md_file.parts:
+                continue
+            if md_file == source_path:
                 continue
             rel = md_file.relative_to(scan_root)
             rel_str = str(rel)
