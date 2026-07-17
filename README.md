@@ -47,7 +47,6 @@ tested, *enforced* product:
   every install mode, and "one source of truth per rule" is a standing
   mandate — a duplicated number is treated as a bug.
 
-
 ## Purpose
 
 Every project accumulates its own CLAUDE.md, commit conventions, and CI
