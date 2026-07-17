@@ -98,11 +98,11 @@ Tracks progress against
 |---|---|---|---|---|
 | 0 — Clearance | 0 | 0 | 0 | 1 |
 | A — P0 fixes | 3 | 0 | 1 | 0 |
-| E — Release integrity | 6 | 1 | 0 | 2 |
+| E — Release integrity | 7 | 0 | 0 | 2 |
 | D — Dogfood | 0 | 0 | 0 | 3 |
 | C — Doc accuracy | 0 | 1 | 2 | 0 |
 | B — Front door | 0 | 0 | 6 | 0 |
-| **Total** | **10** | **2** | **8** | **6** |
+| **Total** | **11** | **1** | **7** | **6** |
 
 ---
 
@@ -121,3 +121,4 @@ Tracks progress against
 | 2026-07-16 | E9 | verify-content-quality.py now prunes .worktrees/ from markdown scan |
 | 2026-07-16 | C partial | STATUS.md last-verified date updated to 2026-07-16 |
 | 2026-07-16 | F-03 | generate-clients: existence check, --force, --dry-run, provenance detection (4 new tests) |
+| 2026-07-16 | E5 | SECURITY.md: added npm distribution, git config mutations, GitHub protection, supported boundary |
