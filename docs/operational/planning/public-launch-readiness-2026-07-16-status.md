@@ -51,7 +51,7 @@ Tracks progress against
 | E2 reconcile versions | 🔄 | STATUS.md acknowledges the gap; pyproject.toml version pin at 0.1.0 matches experimental status; full reconciliation + tagging deferred to post-launch (E2 is a label issue, not a breakage) |
 | E3 dedupe acceptance verifiers | ✅ | Removed `tools/acceptance/verify_matrix.py` (underscore variant); `verify-matrix.py` is canonical |
 | E4 check.sh parity | ✅ | `tools/check.sh` now runs `pytest tests/ --cov=src/agentharness --cov-fail-under=65` with same excludes as `check-completion.sh` |
-| E5 SECURITY.md refresh | ❌ | No current SECURITY.md covering npm distribution, git-config mutations, GitHub protection, private reporting |
+| E5 SECURITY.md refresh | ✅ | SECURITY.md refreshed (PR #67): npm distribution, git-config mutations, GitHub protection changes, supported boundary, private reporting |
 | E6 setuptools CVE fix | ✅ | `pyproject.toml` and `requirements-dev.txt` bumped to `setuptools>=83.0.0` (CVE-2026-59890) |
 | E7 secret/history scan | ⏸ | Requires owner to run gitleaks or trufflehog and record result |
 | E8 RC smoke test | ⏸ | Requires clean environment; owner-triggered |
@@ -102,7 +102,7 @@ Tracks progress against
 | D — Dogfood | 0 | 0 | 0 | 3 |
 | C — Doc accuracy | 0 | 1 | 2 | 0 |
 | B — Front door | 0 | 0 | 6 | 0 |
-| **Total** | **11** | **1** | **7** | **6** |
+| **Total** | **12** | **1** | **6** | **6** |
 
 ---
 
