@@ -724,7 +724,7 @@ cmd_init() {
             else
                 if [ "$mode" = "copy" ] || [ "$coverage_hook" = true ]; then
                     mkdir -p "$target/.github/hooks"
-                    cp "$hooks_src_dir/prevent-trunk-commit" "$hooks_src_dir/pre-commit" "$target/.github/hooks/"
+                    cp "$hooks_src_dir/prevent-trunk-commit" "$hooks_src_dir/pre-commit" "$hooks_src_dir/pre-merge-commit" "$target/.github/hooks/"
                     if [ "$coverage_hook" = true ]; then
                         generate_coverage_pre_push "$target" "$skills_src_root/tools/setup/harness-link.sh"
                         echo "  Generated a coverage-aware pre-push hook (calls 'enforce-profile' on every push)"
@@ -906,6 +906,19 @@ cmd_doctor() {
             failed=1
         else
             echo "  ✓ core.hooksPath set ($actual_hooks_path)"
+
+            # Check that both pre-commit and pre-merge-commit hook files exist.
+            # Git only falls back to pre-commit for merge commits under certain
+            # conditions; when the fallback fails, merge commits to trunk bypass
+            # protection entirely (see issue #76 for detailed analysis).
+            local pre_commit_path="$actual_hooks_path/pre-commit"
+            local pre_merge_commit_path="$actual_hooks_path/pre-merge-commit"
+            if [ -x "$pre_commit_path" ] && [ ! -x "$pre_merge_commit_path" ]; then
+                echo "  ✗ pre-commit hook exists but pre-merge-commit is missing — merge commits to trunk branches may bypass protection (see issue #76 for details)" >&2
+                failed=1
+            elif [ -x "$pre_commit_path" ] && [ -x "$pre_merge_commit_path" ]; then
+                echo "  ✓ both pre-commit and pre-merge-commit hooks present"
+            fi
         fi
 
         # P0-03: a coverage-hook install's pre-push MUST be the generated
@@ -1661,7 +1674,7 @@ cmd_uninstall() {
             if [ "$recorded_hooks_path" = "$target/.github/hooks" ]; then
                 local coverage_hook
                 coverage_hook="$(state_field "$target" coverage_hook 2>/dev/null || echo "false")"
-                rm -f "$target/.github/hooks/pre-push" "$target/.github/hooks/pre-commit" "$target/.github/hooks/prevent-trunk-commit"
+                rm -f "$target/.github/hooks/pre-push" "$target/.github/hooks/pre-commit" "$target/.github/hooks/pre-merge-commit" "$target/.github/hooks/prevent-trunk-commit"
                 rmdir "$target/.github/hooks" 2>/dev/null || true
                 rmdir "$target/.github" 2>/dev/null || true
                 if [ "$coverage_hook" = "true" ]; then

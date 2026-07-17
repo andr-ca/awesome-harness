@@ -1,0 +1,18 @@
+#!/bin/bash
+# Dispatcher required by `git config core.hooksPath .github/hooks`.
+#
+# Git looks for a file named exactly `pre-merge-commit` inside core.hooksPath
+# — a file named `prevent-trunk-commit` in that same directory is never
+# invoked on its own. This delegates to the real script so that setting
+# core.hooksPath (as tools/setup/harness-link.sh --with-hook does) actually
+# enables trunk protection for merge commits in addition to plain commits.
+#
+# Without this file, git only falls back to `pre-commit` for merge commits
+# under certain conditions — when the fallback fails to trigger, merge commits
+# to trunk branches bypass protection entirely.
+set -euo pipefail
+
+HOOK_DIR="$(dirname "${BASH_SOURCE[0]}")"
+
+# Trunk protection
+"$HOOK_DIR/prevent-trunk-commit" "$@"

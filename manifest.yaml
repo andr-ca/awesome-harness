@@ -42,6 +42,10 @@ sections:
     path: .github/hooks/pre-commit
     type: git hook
     when_to_use: Required alongside the hook above — `core.hooksPath` only invokes a file literally named `pre-commit`; this execs `prevent-trunk-commit`
+  - asset: pre-merge-commit dispatcher
+    path: .github/hooks/pre-merge-commit
+    type: git hook
+    when_to_use: "Required to block merge commits to trunk branches — `core.hooksPath` only invokes a file literally named `pre-merge-commit`; git only falls back to `pre-commit` for merge commits under certain conditions, and when that fallback fails, merge commits bypass protection entirely (see issue #76)"
   - asset: pre-push test/coverage hook
     path: .github/hooks/pre-push
     type: git hook
