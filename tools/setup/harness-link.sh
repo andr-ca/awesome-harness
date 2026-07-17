@@ -152,9 +152,11 @@ state_write() {
     #     set; only present when with_hook installation genuinely succeeded)
     # $11=coverage_hook(true/false — P0-03, whether the generated
     #     enforce-profile-calling pre-push script was actually installed)
+    # $12=previous_hooks_path(or "" — the core.hooksPath value that existed
+    #     before this install; restored on uninstall when present)
     local target="$1" mode="$2" skills_csv="$3" skills_filter="$4" with_hook="$5"
     local profile="$6" source_path="$7" source_revision="$8" source_remote="$9"
-    local hooks_path="${10:-}" coverage_hook="${11:-false}"
+    local hooks_path="${10:-}" coverage_hook="${11:-false}" previous_hooks_path="${12:-}"
     local existing_installed_at=""
     if [ -f "$(state_path "$target")" ]; then
         existing_installed_at="$(state_field "$target" "installed_at" || true)"
@@ -163,6 +165,7 @@ state_write() {
     AH_WITH_HOOK="$with_hook" AH_PROFILE="$profile" AH_SOURCE_PATH="$source_path" \
     AH_SOURCE_REVISION="$source_revision" AH_SOURCE_REMOTE="$source_remote" \
     AH_HOOKS_PATH="$hooks_path" AH_COVERAGE_HOOK="$coverage_hook" \
+    AH_PREVIOUS_HOOKS_PATH="$previous_hooks_path" \
     AH_EXISTING_INSTALLED_AT="$existing_installed_at" \
     python3 - "$(state_path "$target")" <<'PYEOF'
 import datetime
@@ -187,6 +190,7 @@ data = {
     "skills_filter": os.environ.get("AH_SKILLS_FILTER") or None,
     "with_hook": os.environ.get("AH_WITH_HOOK") == "true",
     "hooks_path": os.environ.get("AH_HOOKS_PATH") or None,
+    "previous_hooks_path": os.environ.get("AH_PREVIOUS_HOOKS_PATH") or None,
     "coverage_hook": os.environ.get("AH_COVERAGE_HOOK") == "true",
     "profile": os.environ.get("AH_PROFILE") or None,
     "installed_at": existing_installed_at,
@@ -339,7 +343,12 @@ copy_npm_durable_source() {
             tar_exclude="./${dst#"$HARNESS_DIR"/}"
             ;;
     esac
-    (cd "$HARNESS_DIR" && tar cf - --exclude=.git --exclude="$tar_exclude" .) | (cd "$dst" && tar xf -)
+    # Explicitly exclude sensitive/ephemeral files that npm pack's "files"
+    # allowlist has already pruned from a registry tarball but that may
+    # exist in a dev-checkout source (where this copy runs via 'npm mode').
+    # Without these excludes, an untracked .env* or a cache directory
+    # would silently land in every consumer's .agentharness-pkg/.
+    (cd "$HARNESS_DIR" && tar cf -         --exclude=.git         --exclude="$tar_exclude"         --exclude=".env"         --exclude=".env.*"         --exclude="*.env"         --exclude="node_modules"         --exclude=".cache"         --exclude="__pycache__"         --exclude="*.pyc"         --exclude=".worktrees"         .) | (cd "$dst" && tar xf -)
 }
 
 # Prefers package.json's version (meaningful for an npm-distributed source —
@@ -783,8 +792,10 @@ cmd_init() {
     source_remote="$(git -C "$skills_src_root" remote get-url origin 2>/dev/null || true)"
     local skills_csv
     skills_csv="$(IFS=,; echo "${linked_skills[*]}")"
+    # Pass the pre-install hooks path so uninstall can restore it (F-05)
     state_write "$target" "$mode" "$skills_csv" "$skills_filter" "$with_hook" \
-        "$profile" "$skills_src_root" "$source_revision" "$source_remote" "$installed_hooks_path" "$coverage_hook"
+        "$profile" "$skills_src_root" "$source_revision" "$source_remote" "$installed_hooks_path" "$coverage_hook" \
+        "${existing_hooks_path:-}"
 
     echo "Done."
 }
@@ -1625,8 +1636,17 @@ cmd_uninstall() {
         if [ -z "$recorded_hooks_path" ]; then
             echo "  core.hooksPath: no hooks_path was recorded for this install — leaving core.hooksPath ($actual_hooks_path) untouched" >&2
         elif [ "$actual_hooks_path" = "$recorded_hooks_path" ]; then
-            git -C "$target" config --unset core.hooksPath 2>/dev/null || true
-            echo "  Unset core.hooksPath"
+            # Restore the pre-install hooks path if one was recorded; unset otherwise
+            local previous_hooks_path
+            previous_hooks_path="$(state_field "$target" previous_hooks_path 2>/dev/null || echo "")"
+            [ "$previous_hooks_path" = "None" ] && previous_hooks_path=""
+            if [ -n "$previous_hooks_path" ]; then
+                git -C "$target" config core.hooksPath "$previous_hooks_path" 2>/dev/null || true
+                echo "  Restored core.hooksPath to previous value: $previous_hooks_path"
+            else
+                git -C "$target" config --unset core.hooksPath 2>/dev/null || true
+                echo "  Unset core.hooksPath (no previous value was recorded)"
+            fi
             # Both --mode copy and a coverage-hook install (P0-03) write
             # real, consumer-owned hook files at $target/.github/hooks/
             # (unlike link/submodule/npm's symlink-to-the-shared-dir case,

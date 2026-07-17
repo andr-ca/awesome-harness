@@ -17,7 +17,7 @@ line is the bug.
 
 - **Maintained by hand** — update it in the same PR that changes what it
   describes.
-- **Last verified against the tree:** 2026-07-13.
+- **Last verified against the tree:** 2026-07-16. (Updated by feat/public-launch-readiness PR).
 - **Standing caveat:** everything except Claude Code is implemented
   against each tool's *published* behavior, **not** dogfooded against a
   live session — see
@@ -26,7 +26,7 @@ line is the bug.
 
 ## Release
 
-- **Current version:** `v0.2.0` (git tag + `package.json`), published to
+- **Current version:** `v0.2.0` (npm `package.json`; `pyproject.toml` still at 0.1.0 — Python core is experimental/unreleased). Published to
   npm as `agentharness-toolkit`. See
   [RELEASING.md](./RELEASING.md) and [DECISIONS.md](./DECISIONS.md).
 

@@ -144,6 +144,20 @@ step "pytest: duplicate-policy detection (tools/tests/test_verify_content_qualit
 # threshold or a much larger test-writing task than B7 asked for.
 python3 -m pytest tools/tests/test_verify_content_quality.py -q
 
+step "pytest: bootstrap policy core (src/agentharness, >=65% coverage — experimental tier)"
+# Mirrors check-completion.sh's pytest-coverage gate so 'all checks passed'
+# locally cannot omit a CI gate. The bootstrap policy core is labeled
+# experimental/unreleased; the 65% threshold reflects that tier.
+# Excludes tests that require a pre-seeded runtime artifact cache (those
+# are covered by the runtime-bootstrap-exact-four CI job).
+python3 -m pytest tests/ \
+    --ignore=tests/integration/test_runtime_upgrade.py \
+    --ignore=tests/unit/runtime/test_runtime_lock.py \
+    --cov=src/agentharness \
+    --cov-branch \
+    --cov-fail-under=65 \
+    -q
+
 step "MANIFEST.md verification"
 bash tools/verify-manifest.sh
 
