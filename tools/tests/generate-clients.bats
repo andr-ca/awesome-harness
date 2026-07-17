@@ -86,11 +86,17 @@ teardown() {
     echo "# My Custom AGENTS" > "$consumer/AGENTS.md"
 
     run bash "$SCRIPT" generate-clients "$consumer" --client codex
+
+    # Verify file was not overwritten (check BEFORE rm -rf)
+    local file_content
+    file_content="$(cat "$consumer/AGENTS.md")"
     rm -rf "$consumer"
 
     # Must skip the file and report it, not silently overwrite
+    [ "$status" -eq 0 ]
     [[ "$output" == *"SKIP"* ]]
     [[ "$output" != *"codex/opencode/zed"* ]]
+    [[ "$file_content" == "# My Custom AGENTS" ]]
 }
 
 @test "generate-clients: --force overwrites non-harness file with warning" {
@@ -104,7 +110,8 @@ teardown() {
     generated_content="$(cat "$consumer/AGENTS.md" 2>/dev/null || echo '')"
     rm -rf "$consumer"
 
-    # Should write (not skip) and warn
+    # Should succeed, write, and warn
+    [ "$status" -eq 0 ]
     [[ "$output" == *"WARNING"* ]]
     [[ "$generated_content" == *"Generated"* ]]
 }
@@ -115,12 +122,16 @@ teardown() {
     git -C "$consumer" init -q
 
     run bash "$SCRIPT" generate-clients "$consumer" --client codex --dry-run
+
+    # AGENTS.md must NOT have been created (check BEFORE rm -rf)
+    local file_was_created=false
+    [ -f "$consumer/AGENTS.md" ] && file_was_created=true
     rm -rf "$consumer"
 
     # dry-run mode reported
     [[ "$output" == *"dry-run"* ]]
-    # AGENTS.md must NOT have been created
-    [ ! -f "$consumer/AGENTS.md" ] || [ "$(cat "$consumer/AGENTS.md")" = "" ]
+    # File must not have been written
+    [ "$file_was_created" = false ]
 }
 
 @test "generate-clients: overwrites harness-owned file without --force" {
@@ -134,6 +145,7 @@ teardown() {
     run bash "$SCRIPT" generate-clients "$consumer" --client codex
     rm -rf "$consumer"
 
+    [ "$status" -eq 0 ]
     [[ "$output" != *"SKIP"* ]]
     [[ "$output" != *"WARNING"* ]]
     [[ "$output" == *"codex/opencode/zed"* ]]

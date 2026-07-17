@@ -122,6 +122,8 @@ generate-clients options:
                                 Which client router/instruction files to
                                 generate into the target (default: all).
                                 Comma-separated list also accepted.
+  --dry-run                       Show what would be created/updated/skipped; no files written.
+  --force                         Overwrite pre-existing non-harness files (prints WARNING per file).
 
 Examples:
   $(basename "$0") init ~/my-project --with-hook
@@ -1726,7 +1728,8 @@ _gc_check_file() {
         return 0
     fi
     if [ "$force" = true ]; then
-        echo "  WARNING: overwriting non-harness file with --force: $label" >&2
+        # Only warn during actual writes, not during dry-run (no-op path)
+        [ "$dry_run" = false ] && echo "  WARNING: overwriting non-harness file with --force: $label" >&2
         [ "$dry_run" = true ] && echo "  [dry-run] would overwrite (--force): $label"
         return 0
     fi
@@ -1791,14 +1794,43 @@ cmd_generate_clients() {
                     skipped=$((skipped+1))
                 fi ;;
             copilot)
-                if _gc_check_file "$target/.github/copilot-instructions.md" ".github/copilot-instructions.md" "$dry_run" "$force"; then
+                # Guard primary file and also check for non-harness .github/instructions/ files
+                local copilot_ok=true
+                if ! _gc_check_file "$target/.github/copilot-instructions.md" ".github/copilot-instructions.md" "$dry_run" "$force"; then
+                    copilot_ok=false
+                fi
+                if [ "$copilot_ok" = true ] && [ -d "$target/.github/instructions" ]; then
+                    local inst_file
+                    for inst_file in "$target/.github/instructions/"*.instructions.md; do
+                        [ -f "$inst_file" ] || continue
+                        if ! _gc_is_harness_generated "$inst_file" && [ "$force" != true ]; then
+                            echo "  SKIP: .github/instructions/$(basename "$inst_file") exists and is not harness-generated. Use --force." >&2
+                            copilot_ok=false
+                            break
+                        fi
+                    done
+                fi
+                if [ "$copilot_ok" = true ]; then
                     [ "$dry_run" = false ] && bash "$gen/generate-copilot-instructions.sh" "$HARNESS_DIR" --output-dir "$target"
                     echo "  copilot -> .github/copilot-instructions.md (+ .github/instructions/)"
                 else
                     skipped=$((skipped+1))
                 fi ;;
             cursor)
-                if _gc_check_file "$target/.cursor/rules/agentharness-router.mdc" ".cursor/rules/" "$dry_run" "$force"; then
+                # Guard all .cursor/rules/*.mdc to avoid overwriting user's custom rules
+                local cursor_ok=true
+                if [ -d "$target/.cursor/rules" ]; then
+                    local mdc_file
+                    for mdc_file in "$target/.cursor/rules/"*.mdc; do
+                        [ -f "$mdc_file" ] || continue
+                        if ! _gc_is_harness_generated "$mdc_file" && [ "$force" != true ]; then
+                            echo "  SKIP: .cursor/rules/$(basename "$mdc_file") exists and is not harness-generated. Use --force." >&2
+                            cursor_ok=false
+                            break
+                        fi
+                    done
+                fi
+                if [ "$cursor_ok" = true ]; then
                     [ "$dry_run" = false ] && bash "$gen/generate-cursor-rules.sh" "$HARNESS_DIR" --output-dir "$target"
                     echo "  cursor -> .cursor/rules/"
                 else
