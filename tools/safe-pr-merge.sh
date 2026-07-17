@@ -340,7 +340,7 @@ main() {
 
     # Get PR details (base branch, etc.)
     local base_branch
-    base_branch="$(gh pr view "$pr_num" -R "$repo" -q '.baseRefName' 2>/dev/null || echo "")"
+    base_branch="$(gh pr view "$pr_num" -R "$repo" --json baseRefName -q '.baseRefName' 2>/dev/null || echo "")"
 
     if [ -z "$base_branch" ]; then
         log_error "Could not determine PR base branch"
