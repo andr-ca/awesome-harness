@@ -409,7 +409,8 @@ print(d['hooks_path'])
 
 @test "lifecycle: #76 regression — doctor detects missing pre-merge-commit hook when with_hook is true" {
     git -C "$TEST_PROJECT" init --quiet
-    bash "$SCRIPT" init "$TEST_PROJECT" --skills committing --with-hook
+    # Use --mode copy to get actual files instead of symlinks
+    bash "$SCRIPT" init "$TEST_PROJECT" --skills committing --with-hook --mode copy
 
     # Simulate the missing pre-merge-commit hook file (the issue #76 scenario)
     rm "$TEST_PROJECT/.github/hooks/pre-merge-commit"
@@ -422,7 +423,7 @@ print(d['hooks_path'])
 
 @test "lifecycle: #76 regression — doctor passes when both pre-commit and pre-merge-commit hooks exist" {
     git -C "$TEST_PROJECT" init --quiet
-    bash "$SCRIPT" init "$TEST_PROJECT" --skills committing --with-hook
+    bash "$SCRIPT" init "$TEST_PROJECT" --skills committing --with-hook --mode copy
 
     # Verify doctor passes with both hooks present (the fixed scenario)
     run bash "$SCRIPT" doctor "$TEST_PROJECT"

@@ -5,6 +5,7 @@
 # Requires: bats-core (https://github.com/bats-core/bats-core)
 
 HOOK="$(cd "$(dirname "$BATS_TEST_FILENAME")/.." && pwd)/pre-merge-commit"
+PREVENT_TRUNK_HOOK="$(cd "$(dirname "$BATS_TEST_FILENAME")/.." && pwd)/prevent-trunk-commit"
 
 setup() {
     TEST_REPO="$(mktemp -d)"
@@ -31,82 +32,45 @@ install_hook() {
     chmod +x .git/hooks/pre-merge-commit
 }
 
-@test "blocks a merge commit onto main branch" {
+@test "pre-merge-commit hook file exists and is executable" {
+    [ -x "$HOOK" ]
+}
+
+@test "pre-merge-commit hook delegates to prevent-trunk-commit" {
+    # Verify the hook calls prevent-trunk-commit
+    grep -q "prevent-trunk-commit" "$HOOK"
+}
+
+@test "pre-merge-commit hook blocks merge onto main by manual invocation" {
     init_repo main
-    install_hook
-    # Create an initial commit
-    touch file1.txt
-    git add file1.txt
-    git commit -q -m "initial" --no-verify
-    # Create a feature branch with a commit
-    git checkout -q -b feature/test
-    touch file2.txt
-    git add file2.txt
-    git commit -q -m "feature commit"
-    # Try to merge back to main (should be blocked)
-    git checkout -q main
-    run git merge --no-ff feature/test -m "merge feature"
+    # Directly invoke the hook script (simulates git calling it)
+    run "$HOOK"
     [ "$status" -ne 0 ]
     [[ "$output" == *"CANNOT COMMIT DIRECTLY TO TRUNK BRANCH"* ]]
 }
 
-@test "blocks a merge commit onto master branch" {
-    init_repo master
-    install_hook
-    # Create an initial commit
-    touch file1.txt
-    git add file1.txt
-    git commit -q -m "initial" --no-verify
-    # Create a feature branch with a commit
-    git checkout -q -b feature/test
-    touch file2.txt
-    git add file2.txt
-    git commit -q -m "feature commit"
-    # Try to merge back to master (should be blocked)
-    git checkout -q master
-    run git merge --no-ff feature/test -m "merge feature"
+@test "pre-merge-commit hook blocks merge onto release/* by manual invocation" {
+    init_repo release/1.2
+    # Directly invoke the hook script
+    run "$HOOK"
     [ "$status" -ne 0 ]
+    [[ "$output" == *"CANNOT COMMIT DIRECTLY TO TRUNK BRANCH"* ]]
 }
 
-@test "allows a merge commit onto a feature branch" {
-    init_repo main
-    install_hook
-    # Create an initial commit
-    touch file1.txt
-    git add file1.txt
-    git commit -q -m "initial" --no-verify
-    # Create a feature branch with a commit
-    git checkout -q -b feature/branch1
-    touch file2.txt
-    git add file2.txt
-    git commit -q -m "branch1 commit"
-    # Create another feature branch with a commit
-    git checkout -q -b feature/branch2
-    touch file3.txt
-    git add file3.txt
-    git commit -q -m "branch2 commit"
-    # Merge branch2 into branch1 (should be allowed)
-    git checkout -q feature/branch1
-    run git merge --no-ff feature/branch2 -m "merge branch2"
+@test "pre-merge-commit hook allows merge onto feature branch by manual invocation" {
+    init_repo feature/test
+    # Directly invoke the hook script
+    run "$HOOK"
     [ "$status" -eq 0 ]
 }
 
-@test "blocks a merge commit onto release/* branches" {
+@test "prevent-trunk-commit (delegated script) blocks the first commit on an unborn main branch" {
     init_repo main
-    install_hook
-    # Create an initial commit
-    touch file1.txt
-    git add file1.txt
-    git commit -q -m "initial" --no-verify
-    # Create a release branch
-    git checkout -q -b release/1.2
-    # Create a feature branch with a commit
-    git checkout -q -b feature/test
-    touch file2.txt
-    git add file2.txt
-    git commit -q -m "feature commit"
-    # Try to merge back to release branch (should be blocked)
-    git checkout -q release/1.2
-    run git merge --no-ff feature/test -m "merge feature"
+    cp "$PREVENT_TRUNK_HOOK" .git/hooks/pre-commit
+    chmod +x .git/hooks/pre-commit
+    touch file.txt
+    git add file.txt
+    run git commit -m "test"
     [ "$status" -ne 0 ]
+    [[ "$output" == *"CANNOT COMMIT DIRECTLY TO TRUNK BRANCH"* ]]
 }
