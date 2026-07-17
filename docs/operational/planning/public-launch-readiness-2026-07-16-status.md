@@ -35,11 +35,13 @@ Tracks progress against
 
 | Item | Status | Notes |
 |---|---|---|
+| F-01 automation caveat | ❌ | Addendum item 5: re-verify adapter-drift CI check is green in a clean checkout and formally close F-01’s “no automation” caveat in the disposition doc |
 | F-02 committing skill | ✅ | Updated `.claude/skills/committing/SKILL.md`: removed 'commit → push → PR mandatory', replaced with completion-gate + publish-authority model |
 | F-03 generate-clients safety | ✅ | Added `_gc_is_harness_generated()` + `_gc_check_file()`; non-harness files are skipped (with message); `--force` overwrites with warning; `--dry-run` shows plan; 4 new tests (12 total) |
 | F-04 npm durable copy `.env*` | ✅ | `copy_npm_durable_source` now explicitly excludes `.env`, `.env.*`, `*.env`, `node_modules`, `__pycache__`, `*.pyc`, `.worktrees` |
 | F-05 hooks path restoration | ✅ | `state_write` now records `previous_hooks_path`; `cmd_uninstall` restores it on uninstall (or unsets if no previous value was recorded) |
-| Disposition wrap-up | ❌ | fable-gpt5-sol-disposition-2026-07-14.md per-item statuses not yet updated to reflect A fixes |
+| Disposition wrap-up | ✅ | fable-gpt5-sol-disposition-2026-07-14.md F-02–F-05 entries updated to DONE with PR references; stale What/Action/Estimate blocks removed |
+| F-01 automation caveat | ❌ | Addendum item 5: re-verify adapter-drift CI check is green in a clean checkout and formally close F-01’s “no automation” caveat in the disposition doc |
 
 ---
 
@@ -54,7 +56,7 @@ Tracks progress against
 | E5 SECURITY.md refresh | ✅ | SECURITY.md now covers: npm distribution, git-config mutations, GitHub protection boundary, private reporting advisory; logged 2026-07-16 but status table was not updated at the time |
 | E6 setuptools CVE fix | ✅ | `pyproject.toml` and `requirements-dev.txt` bumped to `setuptools>=83.0.0` (CVE-2026-59890) |
 | E7 secret/history scan | ⏸ | Requires owner to run gitleaks or trufflehog and record result |
-| E8 RC smoke test | ⏸ | Requires clean environment; owner-triggered |
+| E8 RC smoke test | ⏸ | Requires clean environment: install packed npm artifact into a clean repo, exercise init/generate/update/doctor/uninstall, confirm current remote CI green. Owner-triggered. (Addendum E.8 + “clean-clone/packed-artifact/current-CI verification” from expanded DoD) |
 | E9 prune .worktrees/ from markdown scan | ✅ | `tools/verify-content-quality.py` markdown rglob now skips `.worktrees/` parts the same way the YAML scan skips excluded dirs |
 
 ---
@@ -92,17 +94,28 @@ Tracks progress against
 
 ---
 
+## Addendum DoD gates (not in original workstreams)
+
+From the Session 3 expanded definition of done in the plan file; no tracker row existed for these.
+
+| Item | Status | Notes |
+|---|---|---|
+| Article factual/adversarial review | ⏸ | External pre-publish gate — owner reviews the article for accuracy, unmeasured efficacy claims, and employer implication before it links to this repo |
+
+---
+
 ## Summary
 
 | Workstream | ✅ | 🔄 | ❌ | ⏸ |
 |---|---|---|---|---|
 | 0 — Clearance | 0 | 0 | 0 | 1 |
-| A — P0 fixes | 4 | 0 | 1 | 0 |
+| A — P0 fixes | 5 | 0 | 1 | 0 |
 | E — Release integrity | 6 | 1 | 0 | 2 |
 | D — Dogfood | 0 | 0 | 0 | 3 |
 | C — Doc accuracy | 2 | 0 | 1 | 0 |
 | B — Front door | 6 | 0 | 0 | 0 |
-| **Total** | **18** | **1** | **2** | **6** |
+| Addendum DoD | 0 | 0 | 0 | 1 |
+| **Total** | **19** | **1** | **2** | **7** |
 
 ---
 
@@ -130,4 +143,5 @@ Tracks progress against
 | 2026-07-17 | check-completion.sh | Aligned shellcheck to `-S warning` (consistent with check.sh; pre-existing SC1091 info messages) |
 | 2026-07-17 | Session 3: audit | Independent re-verification of all ✅ claims against `main` (`96ef3be`); findings appended as "Session 3" in the plan file (PR #75) |
 | 2026-07-17 | Session 3: E1 fix | Added `src/agentharness/` EXPERIMENTAL row to `manifest.yaml`, regenerated MANIFEST.md — closing the half of E1 the original ✅ claimed but never shipped |
-| 2026-07-17 | Session 3: C row | Marked STATUS.md re-verification ✅ (completed by PR #74's full sweep); refreshed stale E2 version note (npm v0.2.1 / pyproject 0.1.1) |
+| 2026-07-17 | A: Disposition wrap-up | fable-gpt5-sol-disposition-2026-07-14.md F-02–F-05 updated to ✅ DONE with PR references; stale action/estimate blocks removed |
+| 2026-07-17 | Status doc | Added F-01 automation caveat row, expanded E8 scope, added Addendum DoD section with article review gate; updated summary totals |

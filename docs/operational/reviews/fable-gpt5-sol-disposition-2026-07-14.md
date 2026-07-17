@@ -30,69 +30,29 @@ All five require implementation before next release. No additional scoping neede
 
 **Status:** This was done but not merged. **Action required:** Cherry-pick or reapply the regeneration to main to restore green CI gate. Recommend automating this — pre-commit hook or build step — so CLAUDE.md edits trigger adapter regeneration automatically.
 
-### 🛑 F-02 / GPT P0-06 — Fix committing skill contradiction
+### ✅ F-02 / GPT P0-06 — Fix committing skill contradiction
 
-**Status:** NOT STARTED — safety-relevant, high priority
+**Status:** DONE — merged in [PR #65](https://github.com/andr-ca/agentharness/pull/65) (2026-07-16)
 
-**What:** `.claude/skills/committing/SKILL.md` frontmatter + body still say "commit → push → PR. Don't stop at the commit" and "work is not done until the PR exists." This contradicts CLAUDE.md's current verify-and-stage default + opt-in publish authority (settled as B1 decision in DECISIONS.md). The skill installs into every consumer on all 8 platforms, instructing agents to take publish actions they may not be authorized for.
+**Resolution:** `.claude/skills/committing/SKILL.md` rewritten to the verify-and-stage default + opt-in publish-authority model. `.agents/skills/committing/SKILL.md` is a symlink to the same source and picks up the change automatically. Contradicting language removed.
 
-**Why critical:** Safety issue — the skill is telling consumers to do the opposite of what the trust model mandates.
+### ✅ F-03 / GPT P0-01 — Make generate-clients non-destructive
 
-**Action needed:**
-1. Update `.claude/skills/committing/SKILL.md` body to reflect verify-and-stage default
-2. Update frontmatter description (currently republished to all platforms, contradicts mandate)
-3. Regenerate `.cursor/rules/committing.mdc`, `.agents/skills/committing/SKILL.md`
-4. Test on all platforms (at least Claude Code + one other)
+**Status:** DONE — merged in [PR #66](https://github.com/andr-ca/agentharness/pull/66) (2026-07-16)
 
-**Estimate:** 30 min, low complexity, high impact.
+**Resolution:** Added `_gc_is_harness_generated()` and `_gc_check_file()` guards; non-harness files are skipped with a message; `--force` overwrites with a warning; `--dry-run` shows the plan without mutating. 4 new bats tests (12 total), all green.
 
-### F-03 / GPT P0-01 — Make generate-clients non-destructive
+### ✅ F-04 / GPT P0-03 — Restrict npm durable copying to allowlist
 
-**Status:** NOT STARTED
+**Status:** DONE — merged in [PR #65](https://github.com/andr-ca/agentharness/pull/65) (2026-07-16)
 
-**What:** `harness-link.sh cmd_generate_clients` (line 1668) writes `AGENTS.md`, `GEMINI.md`, Copilot/Cursor/Kilo files directly into the target with no existence check, no backup, no `--force`, no state record.
+**Resolution:** `copy_npm_durable_source` now explicitly excludes `.env`, `.env.*`, `*.env`, `node_modules`, `__pycache__`, `*.pyc`, `.worktrees` from the tar. Untracked `.env*` files are no longer copied into a consumer's `.agentharness-pkg`.
 
-**Reproduction:** Create a file `docs/gpt-5.6-sol-4th-...md`, run `generate-clients <target>`, file is silently replaced.
+### ✅ F-05 / GPT P0-02 — Persist and restore pre-existing hooks path
 
-**Action needed:**
-1. Refuse when target exists and is not harness-generated
-2. Add `--force` for explicit replacement, `--dry-run` for preview
-3. Record generated paths+hashes in state for doctor/uninstall
-4. Add acceptance tests: preserve sentinel file, refuse atomically, uninstall preserves user edits
+**Status:** DONE — merged in [PR #65](https://github.com/andr-ca/agentharness/pull/65) (2026-07-16)
 
-**Estimate:** 2 hours, medium complexity.
-
-### F-04 / GPT P0-03 — Restrict npm durable copying to allowlist
-
-**Status:** NOT STARTED
-
-**What:** `copy_npm_durable_source` (line 323) tars **all** of HARNESS_DIR except `.git` and destination. Comment assumes npm pruned it, but CLI accepts `--mode npm` from any checkout, so safety assumption isn't enforced. Verified: `--mode npm` from a git checkout copies untracked `.env`, `.env.local` into consumer's `.agentharness-pkg`.
-
-**Action needed:**
-1. Copy from explicit manifest/allowlist, or reject `--mode npm` unless source is recognized packed npm artifact
-2. Always exclude `.env*`, VCS metadata, caches, build artifacts
-3. Add acceptance tests: untracked `.env`, `node_modules`, symlinks, spaces, packed-tarball golden manifest
-
-**Estimate:** 1 hour, medium complexity, critical security boundary.
-
-### F-05 / GPT P0-02 — Persist and restore pre-existing hooks path
-
-**Status:** NOT STARTED
-
-**What:** `harness-link.sh` state records only installed `hooks_path`; pre-existing value is never persisted. Uninstall unsets rather than restores. Reproduction:
-```
-before init:      core.hooksPath=.preexisting-hooks
-after --force:    core.hooksPath=<agentharness>
-after uninstall:  core.hooksPath=<unset>   ❌ should be .preexisting-hooks
-```
-
-**Action needed:**
-1. Add `previous_hooks_path` to state (with "previously unset" representation)
-2. On uninstall, restore previous value if current is still harness-owned
-3. If user changed it after install, leave untouched + warn
-4. Add acceptance tests: unset→install→uninstall, foreign→refuse, foreign→force→restore, post-install user change→preserve
-
-**Estimate:** 1 hour, low complexity.
+**Resolution:** `state_write` now records `previous_hooks_path`; `cmd_uninstall` restores it on uninstall (or unsets if no previous value was recorded). The exact live-evidence failure class (dev checkout left with wrong `core.hooksPath`) was documented in the plan and is now closed.
 
 ---
 
