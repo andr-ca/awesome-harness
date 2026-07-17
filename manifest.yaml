@@ -412,7 +412,7 @@ sections:
   - asset: Harness lifecycle CLI
     path: tools/setup/harness-link.sh
     type: script
-    when_to_use: init/plan/status/doctor/audit/enforce-profile/generate-clients/update/uninstall; link/copy/submodule modes; state tracked in `<project>/.agentharness-state.json`
+    when_to_use: "init/plan/status/doctor/audit/audit-prs/enforce-profile/generate-clients/update/uninstall; link/copy/submodule modes; state tracked in `<project>/.agentharness-state.json`"
   - asset: Local check entrypoint
     path: tools/check.sh
     type: script
@@ -421,6 +421,10 @@ sections:
     path: tools/agent-lock.sh
     type: script
     when_to_use: Per-feature lock files for concurrent agent sessions — acquire/release/check/list/clean/suggest-branch
+  - asset: Safe PR merge script
+    path: tools/safe-pr-merge.sh
+    type: script
+    when_to_use: "Merge a PR safely while enforcing CLAUDE.md checklist: verify CI is green, detect automated reviewer, wait for review comments, verify all comments have replies, merge, poll post-merge CI"
   - asset: Structure analyzer
     path: tools/analyze_structure.py
     type: script

@@ -6,3 +6,5 @@ media/
 docs/operational/planning/public-launch-readiness-2026-07-16-status.md
 docs/operational/reviews/README.md
 docs/operational/harness-feedback.md
+tools/safe-pr-merge.sh
+tools/tests/safe-pr-merge.bats

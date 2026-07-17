@@ -40,7 +40,8 @@ through a PR on GitHub, never bypass it with a local merge commit.
 **Never merge a PR on CI status alone — wait for review comments, then
 address them, before merging.** A green CI run says nothing about
 feedback left on the diff itself (human or automated, e.g. GitHub
-Copilot's code review). Before merging:
+Copilot's code review). Use `tools/safe-pr-merge.sh <n>` to enforce this
+checklist automatically. Before merging:
 1. Give automated review time to post (its own check, separate from CI,
    e.g. "Copilot Code Review") — don't merge the instant CI turns green.
    Concretely: Check whether an automated reviewer is configured on this

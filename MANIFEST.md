@@ -140,9 +140,10 @@ they drift (`check_manifest_md_sync()` in `tools/verify-content-quality.py`).
 
 | Asset | Path | Type | When to use |
 |---|---|---|---|
-| Harness lifecycle CLI | `tools/setup/harness-link.sh` | script | init/plan/status/doctor/audit/enforce-profile/generate-clients/update/uninstall; link/copy/submodule modes; state tracked in `<project>/.agentharness-state.json` |
+| Harness lifecycle CLI | `tools/setup/harness-link.sh` | script | init/plan/status/doctor/audit/audit-prs/enforce-profile/generate-clients/update/uninstall; link/copy/submodule modes; state tracked in `<project>/.agentharness-state.json` |
 | Local check entrypoint | `tools/check.sh` | script | Runs every check CI runs (shellcheck, bats, ruff, mypy, pytest+coverage, manifest verify, skill-symlink integrity) in one command (P1-06) |
 | Agent lock manager | `tools/agent-lock.sh` | script | Per-feature lock files for concurrent agent sessions — acquire/release/check/list/clean/suggest-branch |
+| Safe PR merge script | `tools/safe-pr-merge.sh` | script | Merge a PR safely while enforcing CLAUDE.md checklist: verify CI is green, detect automated reviewer, wait for review comments, verify all comments have replies, merge, poll post-merge CI |
 | Structure analyzer | `tools/analyze_structure.py` | script | Analyze project structure and generate .agentharness-guarded-paths.json; also --recommend for early-stage projects |
 | File placement check | `tools/check-file-placement.sh` | script | Pre-commit hook check — blocks staged files in guarded paths; wired into .github/hooks/pre-commit alongside trunk protection |
 | Completion gate script | `tools/check-completion.sh` | script | Run before declaring work done — verifies lint, types, tests, coverage, content quality. Exit 0 = complete; exit 1 = incomplete |

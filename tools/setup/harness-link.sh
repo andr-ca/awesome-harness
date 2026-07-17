@@ -85,7 +85,7 @@ usage() {
 Usage: $(basename "$0") <subcommand> [target-project-dir] [OPTIONS]
        $(basename "$0") <target-project-dir> [OPTIONS]   (legacy: same as init)
 
-Subcommands: init, plan, status, doctor, audit, enforce-profile, generate-clients, update, uninstall
+Subcommands: init, plan, status, doctor, audit, audit-prs, enforce-profile, generate-clients, update, uninstall
 
 init options:
   --mode link|copy|submodule|npm
@@ -112,6 +112,10 @@ update/uninstall options:
 audit options:
   --json                        Machine-readable drift report (CI/scripting)
 
+audit-prs options:
+  (no options)                  Lists open PRs with stale unaddressed comments.
+                                Exit 0 if none found; exit 1 if any flagged.
+
 enforce-profile options:
   --strict                      Fail (non-zero) on a project type or test
                                 runner enforcement doesn't support, instead
@@ -131,6 +135,7 @@ Examples:
   $(basename "$0") status ~/my-project
   $(basename "$0") doctor ~/my-project
   $(basename "$0") audit ~/my-project --json
+  $(basename "$0") audit-prs
   $(basename "$0") enforce-profile ~/my-project
   $(basename "$0") enforce-profile ~/my-project --strict
   $(basename "$0") generate-clients ~/my-project --client copilot,cursor
@@ -1360,6 +1365,103 @@ enforce_js_ts_profile() {
     esac
 }
 
+# ----------------------------------------------------------------------------
+# audit-prs — list open PRs with stale unaddressed review comments
+# ----------------------------------------------------------------------------
+
+cmd_audit_prs() {
+    # Lists open PRs carrying stale unaddressed review feedback: a
+    # top-level comment with no reply that is newer than the PR's last
+    # commit, or older than 24h. One line per flagged PR; exit 1 if any
+    # (so it can gate), 0 otherwise.
+
+    if ! command -v gh >/dev/null 2>&1; then
+        echo "Error: 'gh' CLI not found. Install GitHub CLI to use audit-prs." >&2
+        return 1
+    fi
+
+    local repo
+    repo="$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null || true)"
+    if [ -z "$repo" ]; then
+        echo "Error: could not resolve a GitHub repository from the current directory." >&2
+        return 1
+    fi
+
+    AH_AUDIT_REPO="$repo" python3 - <<'PY'
+import json, os, subprocess, sys
+from datetime import datetime, timedelta, timezone
+
+repo = os.environ["AH_AUDIT_REPO"]
+
+
+def gh(*args):
+    out = subprocess.run(["gh", *args], capture_output=True, text=True)
+    return out.stdout if out.returncode == 0 else None
+
+
+def ts(value):
+    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+
+prs_raw = gh("pr", "list", "-R", repo, "--state", "open",
+             "--json", "number,title,author")
+prs = json.loads(prs_raw) if prs_raw else []
+if not prs:
+    print("No open PRs found.")
+    sys.exit(0)
+
+now = datetime.now(timezone.utc)
+flagged = 0
+for pr in prs:
+    num = str(pr["number"])
+    author = pr["author"]["login"]
+    view_raw = gh("pr", "view", num, "-R", repo, "--json", "comments,commits")
+    if view_raw is None:
+        continue
+    view = json.loads(view_raw)
+    commits = view.get("commits", [])
+    last_commit = ts(commits[-1]["committedDate"]) if commits else None
+
+    unanswered = []
+
+    # Issue-level comments have no threading; the reply convention is a
+    # later comment from the PR author.
+    comments = view.get("comments", [])
+    author_times = [ts(c["createdAt"]) for c in comments
+                    if c["author"]["login"] == author]
+    last_author = max(author_times) if author_times else None
+    for c in comments:
+        if c["author"]["login"] == author:
+            continue
+        created = ts(c["createdAt"])
+        if last_author is None or created > last_author:
+            unanswered.append(created)
+
+    # Inline review comments thread via in_reply_to_id.
+    inline_raw = gh("api", f"repos/{repo}/pulls/{num}/comments?per_page=100")
+    inline = json.loads(inline_raw) if inline_raw else []
+    replied_to = {c.get("in_reply_to_id") for c in inline if c.get("in_reply_to_id")}
+    for c in inline:
+        if c.get("in_reply_to_id") is None and c["id"] not in replied_to:
+            unanswered.append(ts(c["created_at"]))
+
+    stale = [t for t in unanswered
+             if (last_commit is not None and t > last_commit)
+             or (now - t > timedelta(hours=24))]
+    if stale:
+        oldest_hours = int((now - min(stale)).total_seconds() // 3600)
+        title = pr["title"]
+        print(f'#{num} "{title}" - {len(stale)} unanswered comment(s), '
+              f"oldest {oldest_hours}h")
+        flagged += 1
+
+if flagged:
+    print(f"Found {flagged} PR(s) with stale unaddressed comments.")
+    sys.exit(1)
+print("No PRs with stale unaddressed comments found.")
+PY
+}
+
 cmd_enforce_profile() {
     local target="" strict=false
     while [ $# -gt 0 ]; do
@@ -1879,7 +1981,7 @@ cmd_generate_clients() {
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     case "${1:-}" in
-        init|plan|status|doctor|audit|enforce-profile|generate-clients|update|uninstall)
+        init|plan|status|doctor|audit|audit-prs|enforce-profile|generate-clients|update|uninstall)
             cmd="$1"; shift
             ;;
         -h|--help)
@@ -1896,11 +1998,12 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
             ;;
     esac
 
-    # cmd_$cmd would break for "enforce-profile" (hyphen doesn't match the
-    # underscore-named function) — translate explicitly instead of
-    # renaming the function to something inconsistent with the rest.
+    # cmd_$cmd would break for "enforce-profile" and "audit-prs" (hyphens
+    # don't match underscore-named functions) — translate explicitly instead
+    # of renaming the functions to something inconsistent with the rest.
     case "$cmd" in
         enforce-profile) cmd_fn="cmd_enforce_profile" ;;
+        audit-prs) cmd_fn="cmd_audit_prs" ;;
         generate-clients) cmd_fn="cmd_generate_clients" ;;
         *) cmd_fn="cmd_$cmd" ;;
     esac
