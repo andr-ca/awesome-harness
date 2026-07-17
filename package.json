@@ -4,7 +4,7 @@
   "description": "Git conventions, coding guidelines, testing standards, and on-demand skills for coding agents (Claude Code, Codex) — written once, referenced everywhere.",
   "license": "MIT",
   "author": "Andrey (andr-ca)",
-  "homepage": "https://github.com/andr-ca/agentharness#readme",
+  "homepage": "https://andr.ca/agentharness",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/andr-ca/agentharness.git"

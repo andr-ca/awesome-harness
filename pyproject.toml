@@ -12,6 +12,10 @@ dependencies = [
     "PyYAML==6.0.3",
 ]
 
+[project.urls]
+Homepage = "https://andr.ca/agentharness"
+Repository = "https://github.com/andr-ca/agentharness"
+
 [project.scripts]
 agentharness = "agentharness.cli:main"
 
