@@ -36,7 +36,7 @@ Tracks progress against
 | Item | Status | Notes |
 |---|---|---|
 | F-02 committing skill | ✅ | Updated `.claude/skills/committing/SKILL.md`: removed 'commit → push → PR mandatory', replaced with completion-gate + publish-authority model |
-| F-03 generate-clients safety | ❌ | `cmd_generate_clients` has no existence check; no `--force` or `--dry-run` |
+| F-03 generate-clients safety | ✅ | Added `_gc_is_harness_generated()` + `_gc_check_file()`; non-harness files are skipped (with message); `--force` overwrites with warning; `--dry-run` shows plan; 4 new tests (12 total) |
 | F-04 npm durable copy `.env*` | ✅ | `copy_npm_durable_source` now explicitly excludes `.env`, `.env.*`, `*.env`, `node_modules`, `__pycache__`, `*.pyc`, `.worktrees` |
 | F-05 hooks path restoration | ✅ | `state_write` now records `previous_hooks_path`; `cmd_uninstall` restores it on uninstall (or unsets if no previous value was recorded) |
 | Disposition wrap-up | ❌ | Pending A items above |
@@ -97,12 +97,12 @@ Tracks progress against
 | Workstream | ✅ | 🔄 | ❌ | ⏸ |
 |---|---|---|---|---|
 | 0 — Clearance | 0 | 0 | 0 | 1 |
-| A — P0 fixes | 2 | 0 | 2 | 0 |
+| A — P0 fixes | 3 | 0 | 1 | 0 |
 | E — Release integrity | 6 | 1 | 0 | 2 |
 | D — Dogfood | 0 | 0 | 0 | 3 |
 | C — Doc accuracy | 0 | 1 | 2 | 0 |
 | B — Front door | 0 | 0 | 6 | 0 |
-| **Total** | **9** | **2** | **9** | **6** |
+| **Total** | **10** | **2** | **8** | **6** |
 
 ---
 
@@ -120,3 +120,4 @@ Tracks progress against
 | 2026-07-16 | E6 | setuptools bumped to >=83.0.0 (CVE-2026-59890) |
 | 2026-07-16 | E9 | verify-content-quality.py now prunes .worktrees/ from markdown scan |
 | 2026-07-16 | C partial | STATUS.md last-verified date updated to 2026-07-16 |
+| 2026-07-16 | F-03 | generate-clients: existence check, --force, --dry-run, provenance detection (4 new tests) |

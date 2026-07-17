@@ -73,3 +73,80 @@ teardown() {
     second="$(find "$TARGET" -type f -exec sha256sum {} + | sort -k2)"
     [ "$first" = "$second" ]
 }
+
+# ---------------------------------------------------------------------------
+# F-03: Sentinel-file safety tests
+# ---------------------------------------------------------------------------
+
+@test "generate-clients: skips non-harness files without --force" {
+    local consumer
+    consumer="$(mktemp -d)"
+    git -C "$consumer" init -q
+    # Create a non-harness AGENTS.md (no provenance header)
+    echo "# My Custom AGENTS" > "$consumer/AGENTS.md"
+
+    run bash "$SCRIPT" generate-clients "$consumer" --client codex
+
+    # Verify file was not overwritten (check BEFORE rm -rf)
+    local file_content
+    file_content="$(cat "$consumer/AGENTS.md")"
+    rm -rf "$consumer"
+
+    # Must skip the file and report it, not silently overwrite
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"SKIP"* ]]
+    [[ "$output" != *"codex/opencode/zed"* ]]
+    [[ "$file_content" == "# My Custom AGENTS" ]]
+}
+
+@test "generate-clients: --force overwrites non-harness file with warning" {
+    local consumer
+    consumer="$(mktemp -d)"
+    git -C "$consumer" init -q
+    echo "# My Custom AGENTS" > "$consumer/AGENTS.md"
+
+    run bash "$SCRIPT" generate-clients "$consumer" --client codex --force
+    local generated_content
+    generated_content="$(cat "$consumer/AGENTS.md" 2>/dev/null || echo '')"
+    rm -rf "$consumer"
+
+    # Should succeed, write, and warn
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"WARNING"* ]]
+    [[ "$generated_content" == *"Generated"* ]]
+}
+
+@test "generate-clients: --dry-run does not write files" {
+    local consumer
+    consumer="$(mktemp -d)"
+    git -C "$consumer" init -q
+
+    run bash "$SCRIPT" generate-clients "$consumer" --client codex --dry-run
+
+    # AGENTS.md must NOT have been created (check BEFORE rm -rf)
+    local file_was_created=false
+    [ -f "$consumer/AGENTS.md" ] && file_was_created=true
+    rm -rf "$consumer"
+
+    # dry-run mode reported
+    [[ "$output" == *"dry-run"* ]]
+    # File must not have been written
+    [ "$file_was_created" = false ]
+}
+
+@test "generate-clients: overwrites harness-owned file without --force" {
+    local consumer
+    consumer="$(mktemp -d)"
+    git -C "$consumer" init -q
+    # First run to create a harness-owned AGENTS.md
+    bash "$SCRIPT" generate-clients "$consumer" --client codex
+
+    # Second run should update silently (no SKIP, no WARNING)
+    run bash "$SCRIPT" generate-clients "$consumer" --client codex
+    rm -rf "$consumer"
+
+    [ "$status" -eq 0 ]
+    [[ "$output" != *"SKIP"* ]]
+    [[ "$output" != *"WARNING"* ]]
+    [[ "$output" == *"codex/opencode/zed"* ]]
+}
