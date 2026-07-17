@@ -35,6 +35,7 @@ Tracks progress against
 
 | Item | Status | Notes |
 |---|---|---|
+| F-01 automation caveat | ❌ | Addendum item 5: re-verify adapter-drift CI check is green in a clean checkout and formally close F-01’s “no automation” caveat in the disposition doc |
 | F-02 committing skill | ✅ | Updated `.claude/skills/committing/SKILL.md`: removed 'commit → push → PR mandatory', replaced with completion-gate + publish-authority model |
 | F-03 generate-clients safety | ✅ | Added `_gc_is_harness_generated()` + `_gc_check_file()`; non-harness files are skipped (with message); `--force` overwrites with warning; `--dry-run` shows plan; 4 new tests (12 total) |
 | F-04 npm durable copy `.env*` | ✅ | `copy_npm_durable_source` now explicitly excludes `.env`, `.env.*`, `*.env`, `node_modules`, `__pycache__`, `*.pyc`, `.worktrees` |

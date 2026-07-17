@@ -34,7 +34,7 @@ All five require implementation before next release. No additional scoping neede
 
 **Status:** DONE — merged in [PR #65](https://github.com/andr-ca/agentharness/pull/65) (2026-07-16)
 
-**Resolution:** `.claude/skills/committing/SKILL.md` rewritten to the verify-and-stage default + opt-in publish-authority model. `.agents/skills/committing/SKILL.md` regenerated (symlinked — same source). Contradicting language removed.
+**Resolution:** `.claude/skills/committing/SKILL.md` rewritten to the verify-and-stage default + opt-in publish-authority model. `.agents/skills/committing/SKILL.md` is a symlink to the same source and picks up the change automatically. Contradicting language removed.
 
 ### ✅ F-03 / GPT P0-01 — Make generate-clients non-destructive
 
