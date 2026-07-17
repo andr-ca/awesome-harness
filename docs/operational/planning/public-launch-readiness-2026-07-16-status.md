@@ -35,7 +35,7 @@ Tracks progress against
 
 | Item | Status | Notes |
 |---|---|---|
-| F-01 automation caveat | ❌ | Addendum item 5: re-verify adapter-drift CI check is green in a clean checkout and formally close F-01’s “no automation” caveat in the disposition doc |
+| F-01 automation caveat | ✅ | Adapter-drift CI automation verified: `verify-content-quality.py` runs 11 adapter-sync checks in CI (AGENTS.md, GEMINI.md, Kilo, Copilot, Cursor, 6 custom-agent generators). Current state green (`24e91a1`). F-01 disposition entry updated to reflect automation is in place. |
 | F-02 committing skill | ✅ | Updated `.claude/skills/committing/SKILL.md`: removed 'commit → push → PR mandatory', replaced with completion-gate + publish-authority model |
 | F-03 generate-clients safety | ✅ | Added `_gc_is_harness_generated()` + `_gc_check_file()`; non-harness files are skipped (with message); `--force` overwrites with warning; `--dry-run` shows plan; 4 new tests (12 total) |
 | F-04 npm durable copy `.env*` | ✅ | `copy_npm_durable_source` now explicitly excludes `.env`, `.env.*`, `*.env`, `node_modules`, `__pycache__`, `*.pyc`, `.worktrees` |
@@ -109,13 +109,13 @@ From the Session 3 expanded definition of done in the plan file; no tracker row 
 | Workstream | ✅ | 🔄 | ❌ | ⏸ |
 |---|---|---|---|---|
 | 0 — Clearance | 0 | 0 | 0 | 1 |
-| A — P0 fixes | 5 | 0 | 1 | 0 |
+| A — P0 fixes | 6 | 0 | 0 | 0 |
 | E — Release integrity | 6 | 1 | 0 | 2 |
 | D — Dogfood | 0 | 0 | 0 | 3 |
 | C — Doc accuracy | 2 | 0 | 1 | 0 |
 | B — Front door | 6 | 0 | 0 | 0 |
 | Addendum DoD | 0 | 0 | 0 | 1 |
-| **Total** | **19** | **1** | **2** | **7** |
+| **Total** | **20** | **1** | **1** | **7** |
 
 ---
 
@@ -145,3 +145,4 @@ From the Session 3 expanded definition of done in the plan file; no tracker row 
 | 2026-07-17 | Session 3: E1 fix | Added `src/agentharness/` EXPERIMENTAL row to `manifest.yaml`, regenerated MANIFEST.md — closing the half of E1 the original ✅ claimed but never shipped |
 | 2026-07-17 | A: Disposition wrap-up | fable-gpt5-sol-disposition-2026-07-14.md F-02–F-05 updated to ✅ DONE with PR references; stale action/estimate blocks removed |
 | 2026-07-17 | Status doc | Added F-01 automation caveat row, expanded E8 scope, added Addendum DoD section with article review gate; updated summary totals |
+| 2026-07-17 | A: F-01 caveat | Adapter-drift CI automation verified green (24e91a1); F-01 disposition entry updated; status row ❌ → ✅ |

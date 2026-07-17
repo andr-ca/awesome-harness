@@ -22,13 +22,13 @@ All five require implementation before next release. No additional scoping neede
 
 ### ✅ F-01 / GPT P0-04 — Regenerate drifted adapters
 
-**Status:** DONE (merged in PR #31 before it was closed)
+**Status:** DONE — re-verified 2026-07-17 against `main` (`24e91a1`)
 
 **What:** Commit `4f3e94b` edited CLAUDE.md without regenerating consuming `AGENTS.md`, `GEMINI.md`, `.kilo/rules/agentharness.md`.
 
 **Action taken:** Regenerated all three adapters. Commit [`1cad158`](https://github.com/andr-ca/agentharness/commit/1cad158) (in closed PR #31, never reached main).
 
-**Status:** This was done but not merged. **Action required:** Cherry-pick or reapply the regeneration to main to restore green CI gate. Recommend automating this — pre-commit hook or build step — so CLAUDE.md edits trigger adapter regeneration automatically.
+**Automation caveat — now closed:** The adapters are currently in sync (verified: `bash tools/check-completion.sh` content-quality gate passes, including adapter sync checks). CI automation is in place: `tools/verify-content-quality.py` runs `check_agents_md_sync()`, `check_gemini_md_sync()`, `check_kilo_rules_sync()`, `check_copilot_instructions_sync()`, `check_cursor_rules_sync()`, and six `_check_agent_generator_sync()` calls on every CI run. Any CLAUDE.md edit that leaves an adapter out of sync will fail the content-quality gate before the PR can merge. The "no automation guarding recurrence" observation in the original F-01 row is no longer accurate.
 
 ### ✅ F-02 / GPT P0-06 — Fix committing skill contradiction
 
