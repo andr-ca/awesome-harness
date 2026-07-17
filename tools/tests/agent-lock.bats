@@ -198,12 +198,23 @@ JSON
 }
 
 @test "check-branch: stale lock (dead pid) is removed and branch is FREE" {
-    sleep 0.1 &
-    local dead_pid=$!
-    wait "$dead_pid"
+    # A guaranteed-nonexistent pid (above the kernel's pid_max) instead of
+    # a reaped process's pid, which could be recycled on a busy host.
+    local dead_pid=$(( $(cat /proc/sys/kernel/pid_max 2>/dev/null || echo 4194304) + 1 ))
     _write_foreign_lock "feat/contested" "$dead_pid"
     run bash "$LOCK_SCRIPT" check-branch "feat/contested"
     [ "$status" -eq 0 ]
     [[ "$output" =~ "FREE" ]]
     [ ! -f "$TEST_ROOT/.agentharness-locks/foreign-feature-deadbeef.json" ]
+}
+
+@test "check-branch: owned lock does not mask a foreign live lock on the same branch" {
+    _acquire "my-own-feature" "feat/shared"
+    sleep 60 &
+    local other_pid=$!
+    _write_foreign_lock "feat/shared" "$other_pid"
+    run bash "$LOCK_SCRIPT" check-branch "feat/shared"
+    kill "$other_pid" 2>/dev/null || true
+    [ "$status" -eq 1 ]
+    [[ "$output" =~ "LOCKED" ]]
 }

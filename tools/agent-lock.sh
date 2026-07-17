@@ -221,19 +221,32 @@ cmd_check_branch() {
     # Exit 1: LOCKED by another live session.
     local branch="$1"
     mkdir -p "$LOCKS_DIR"
+    # Block if ANY live lock on this branch belongs to another session —
+    # an owned lock must not mask a foreign one, so scan every lock file
+    # before answering OWNED.
+    local owned_feature=""
     local f
     for f in "$LOCKS_DIR"/*.json; do
         [[ -f "$f" ]] || continue
         local info
-        info="$(python3 -c "
-import json
-d = json.load(open('$f'))
-print(d.get('branch', ''))
-print(d.get('agent_id', ''))
-print(d.get('pid', 0))
-print(d.get('feature', ''))
-print(d.get('started_at', ''))
-" 2>/dev/null)" || continue
+        # Path passed as argv, never interpolated into Python source; pid
+        # coerced to int and multiline field values flattened so the
+        # line-oriented read below can't be misaligned by crafted content.
+        info="$(python3 - "$f" 2>/dev/null <<'PYEOF'
+import json, sys
+d = json.load(open(sys.argv[1]))
+def line(v):
+    print(str(v if v is not None else '').replace('\n', ' ').replace('\r', ' '))
+line(d.get('branch', ''))
+line(d.get('agent_id', ''))
+try:
+    print(int(d.get('pid') or 0))
+except (TypeError, ValueError):
+    print(0)
+line(d.get('feature', ''))
+line(d.get('started_at', ''))
+PYEOF
+)" || continue
         local l_branch l_agent l_pid l_feature l_since
         {
             read -r l_branch
@@ -248,12 +261,12 @@ print(d.get('started_at', ''))
             continue
         fi
         if [[ -n "${AGENTHARNESS_AGENT_ID:-}" && "$l_agent" == "$AGENTHARNESS_AGENT_ID" ]]; then
-            echo "OWNED: branch '$branch' is locked by this session (feature '$l_feature')."
-            return 0
+            owned_feature="$l_feature"
+            continue
         fi
         if [[ "$l_pid" -gt 0 ]] && _is_ancestor_pid "$l_pid"; then
-            echo "OWNED: branch '$branch' is locked by this session's process tree (feature '$l_feature')."
-            return 0
+            owned_feature="$l_feature"
+            continue
         fi
         echo "LOCKED: branch '$branch' is held by another live agent session." >&2
         echo "  feature  : $l_feature" >&2
@@ -262,6 +275,10 @@ print(d.get('started_at', ''))
         echo "Wait for it to release, or coordinate — see patterns/multi-agent-coordination/COORDINATION.md" >&2
         return 1
     done
+    if [[ -n "$owned_feature" ]]; then
+        echo "OWNED: branch '$branch' is locked by this session (feature '$owned_feature')."
+        return 0
+    fi
     echo "FREE: no live lock for branch '$branch'"
     return 0
 }
