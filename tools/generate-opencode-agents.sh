@@ -63,7 +63,8 @@ model: $model
 EOF
     cat <<HEADER
 Generated from \`.claude/agents/$(basename "$agent_md")\` by
-\`tools/generate-opencode-agents.sh\` — do not hand-edit; regenerate
+\`tools/generate-opencode-agents.sh\` (https://github.com/andr-ca/agentharness)
+— do not hand-edit; regenerate
 instead. OpenCode's own tool/permission scoping is NOT ported
 (unverified against a live session) — re-specify it here by hand if
 this agent needs restricted tool access.

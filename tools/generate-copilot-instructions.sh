@@ -66,7 +66,8 @@ generate_repo_wide() {
 # GitHub Copilot Instructions
 
 Generated from this repo's own `CLAUDE.md` by
-`tools/generate-copilot-instructions.sh` — do not hand-edit; regenerate
+`tools/generate-copilot-instructions.sh`
+(https://github.com/andr-ca/agentharness) — do not hand-edit; regenerate
 instead (`tools/generate-copilot-instructions.sh --output-dir .`). A CI
 check keeps this file in sync with its source (see
 `.github/workflows/ci.yml`'s `content-quality` job).
@@ -116,7 +117,8 @@ description: "$description"
 EOF
     cat <<HEADER
 Generated from \`languages/$lang_name/CONVENTIONS.md\` by
-\`tools/generate-copilot-instructions.sh\` — do not hand-edit; regenerate
+\`tools/generate-copilot-instructions.sh\`
+(https://github.com/andr-ca/agentharness) — do not hand-edit; regenerate
 instead. Only applied by Copilot when editing a file matching
 \`$apply_to\`.
 

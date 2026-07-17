@@ -5,7 +5,8 @@ model: inherit
 ---
 
 Generated from `.claude/agents/coding-guidelines-reviewer.md` by
-`tools/generate-kilo-agents.sh` — do not hand-edit; regenerate
+`tools/generate-kilo-agents.sh` (https://github.com/andr-ca/agentharness)
+— do not hand-edit; regenerate
 instead. Kilo's own `permission`/`permission.task` fields are NOT
 ported (unverified against a live session) — re-specify them here by
 hand if this agent needs restricted tool/subagent access.

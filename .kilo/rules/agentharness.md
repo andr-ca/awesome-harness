@@ -1,7 +1,8 @@
 # Kilo Code Rules
 
 Generated from this repo's own `CLAUDE.md` by
-`tools/generate-kilo-rules.sh` — do not hand-edit; regenerate instead
+`tools/generate-kilo-rules.sh` (https://github.com/andr-ca/agentharness)
+— do not hand-edit; regenerate instead
 (`tools/generate-kilo-rules.sh --output .kilo/rules/agentharness.md`). A
 CI check keeps this file in sync with its source (see
 `.github/workflows/ci.yml`'s `content-quality` job).

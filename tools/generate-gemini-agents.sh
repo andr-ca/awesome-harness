@@ -69,7 +69,8 @@ model: $model
 EOF
     cat <<HEADER
 Generated from \`.claude/agents/$(basename "$agent_md")\` by
-\`tools/generate-gemini-agents.sh\` — do not hand-edit; regenerate
+\`tools/generate-gemini-agents.sh\` (https://github.com/andr-ca/agentharness)
+— do not hand-edit; regenerate
 instead. Gemini's own \`tools\`/\`temperature\`/\`max_turns\` fields are
 NOT ported (unverified against a live session) — re-specify them here
 by hand if this agent needs restricted tool access or different

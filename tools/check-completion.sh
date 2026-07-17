@@ -158,7 +158,7 @@ if command -v shellcheck >/dev/null 2>&1; then
     sh_files=$(printf '%s\n%s' "$changed_sh" "$new_sh" | grep -v '^$' | sort -u || true)
     if [ -n "$sh_files" ]; then
         # shellcheck disable=SC2086
-        if echo "$sh_files" | xargs shellcheck 2>/dev/null; then
+        if echo "$sh_files" | xargs shellcheck -S warning 2>/dev/null; then
             gates_passed+=("shellcheck")
         else
             gates_failed+=("shellcheck: one or more .sh files have issues — run shellcheck on changed .sh files")

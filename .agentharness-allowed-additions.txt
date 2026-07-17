@@ -4,3 +4,4 @@
 docs/operational/planning/public-launch-readiness-2026-07-16.md
 media/
 docs/operational/planning/public-launch-readiness-2026-07-16-status.md
+docs/operational/reviews/README.md

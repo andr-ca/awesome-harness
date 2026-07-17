@@ -1,7 +1,7 @@
 # GEMINI.md
 
 Generated from this repo's own `CLAUDE.md` by `tools/generate-gemini-md.sh`
-— do not hand-edit; regenerate instead
+(https://github.com/andr-ca/agentharness) — do not hand-edit; regenerate instead
 (`tools/generate-gemini-md.sh --output GEMINI.md`). A CI check keeps this
 file in sync with its source (see `.github/workflows/ci.yml`'s
 `content-quality` job).

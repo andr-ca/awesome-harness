@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/andr-ca/agentharness/actions/workflows/ci.yml/badge.svg)](https://github.com/andr-ca/agentharness/actions/workflows/ci.yml)
 
-**Home page:** [andr.ca/agentharness](https://andr.ca/agentharness)
+**Home page:** [andr.ca/agentharness](https://andr.ca/agentharness) · *npm package:* [`agentharness-toolkit`](https://www.npmjs.com/package/agentharness-toolkit)
 
 Portable engineering policies for coding agents — git, testing, logging,
 and language conventions written once and referenced everywhere, instead
@@ -46,6 +46,7 @@ tested, *enforced* product:
   real tree in CI, examples for Python/TypeScript/Go are verified across
   every install mode, and "one source of truth per rule" is a standing
   mandate — a duplicated number is treated as a bug.
+
 
 ## Purpose
 
@@ -105,6 +106,35 @@ project referencing it picks up the change the next time its harness
 checkout syncs (see "Pin, Upgrade, Rollback" in
 [docs/RELEASING.md](docs/RELEASING.md) for exactly when that happens per
 install mode).
+
+## What makes this different
+
+Most agent configuration is advisory — conventions a model is expected to
+follow, with no mechanical enforcement. agentharness layers in three
+governance mechanisms that most coding-agent setups lack:
+
+**Opt-in publish authority.** Agents verify and stage work locally, then
+stop and ask before pushing, opening a PR, or auto-implementing a
+recommendation. Full remote-write authority requires either a local
+`.agentharness-publish-mode` flag file or explicit per-task instruction from
+the user. An agent that declares work "complete" while it's only staged
+locally is considered incomplete. See
+[docs/INTEGRATION.md](docs/INTEGRATION.md)'s "Publish Authority" section.
+
+**Enforced completion gate.** Before an agent can declare done, it runs
+`bash tools/check-completion.sh` — verifies lint, types, tests, coverage,
+and content quality in one shot. The Stop hook in
+`.github/hooks/completion-gate.json` enforces this; the agent cannot end
+its session until the gate exits 0.
+
+**Review and merge mandates.** Merging on CI green alone is not enough. The
+mandate requires fetching both issue-level and inline PR comments, verifying
+each finding against current code before acting on it, fixing what's real,
+and replying to every comment with the action taken or a rationale for
+skipping. This closes the "agent silently ignored review feedback" failure
+class.
+
+See [docs/DEMO.md](docs/DEMO.md) for a walkthrough of these in practice.
 
 ## Product Contract
 

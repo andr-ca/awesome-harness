@@ -62,7 +62,7 @@ generate() {
 # AGENTS.md
 
 Generated from this repo's own `CLAUDE.md` by `tools/generate-agents-md.sh`
-— do not hand-edit; regenerate instead
+(https://github.com/andr-ca/agentharness) — do not hand-edit; regenerate instead
 (`tools/generate-agents-md.sh --output AGENTS.md`). A CI check keeps this
 file in sync with its source (see `.github/workflows/ci.yml`'s
 `content-quality` job).

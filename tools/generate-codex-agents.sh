@@ -63,7 +63,8 @@ generate_agent_toml() {
 
     cat <<EOF
 # Generated from \`.claude/agents/$(basename "$agent_md")\` by
-# tools/generate-codex-agents.sh — do not hand-edit; regenerate instead
+# tools/generate-codex-agents.sh (https://github.com/andr-ca/agentharness)
+# — do not hand-edit; regenerate instead
 # (tools/generate-codex-agents.sh --output-dir .). Codex's own
 # tool/permission scoping is NOT ported (unverified against a live
 # session) — re-specify it here by hand if this agent needs restricted

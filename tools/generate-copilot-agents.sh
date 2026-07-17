@@ -71,7 +71,8 @@ model: $model
 EOF
     cat <<HEADER
 Generated from \`.claude/agents/$(basename "$agent_md")\` by
-\`tools/generate-copilot-agents.sh\` — do not hand-edit; regenerate
+\`tools/generate-copilot-agents.sh\` (https://github.com/andr-ca/agentharness)
+— do not hand-edit; regenerate
 instead. Copilot's own \`tools\`/\`target\`/\`disable-model-invocation\`/
 \`user-invocable\` fields are NOT ported (unverified against a live
 session) — re-specify them here by hand if this agent needs restricted

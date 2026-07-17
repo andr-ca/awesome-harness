@@ -4,7 +4,8 @@ description: "Rust-specific naming conventions, style, and best practices"
 ---
 
 Generated from `languages/rust/CONVENTIONS.md` by
-`tools/generate-copilot-instructions.sh` — do not hand-edit; regenerate
+`tools/generate-copilot-instructions.sh`
+(https://github.com/andr-ca/agentharness) — do not hand-edit; regenerate
 instead. Only applied by Copilot when editing a file matching
 `*.rs`.
 
