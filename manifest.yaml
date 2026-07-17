@@ -46,6 +46,10 @@ sections:
     path: .github/hooks/pre-push
     type: git hook
     when_to_use: Runs bats + pytest suites and blocks the push if anything fails or Python coverage drops below 80%. Installed the same way as the hooks above (git only needs a file literally named `pre-push`)
+  - asset: Claude Code push lock guard
+    path: .github/hooks/claude-push-lock-guard.sh
+    type: agent hook
+    when_to_use: PreToolUse guard wired in `.claude/settings.json` — blocks a `git push` Bash call when another live agent session holds the multi-agent lock for the current branch (`tools/agent-lock.sh check-branch`); pre-push enforces the same rule at the git layer
   - asset: Bubblewrap AppArmor profile
     path: .github/apparmor/agentharness-bwrap
     type: CI sandbox policy

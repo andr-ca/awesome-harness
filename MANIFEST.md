@@ -20,6 +20,7 @@ they drift (`check_manifest_md_sync()` in `tools/verify-content-quality.py`).
 | prevent-trunk-commit hook | `.github/hooks/prevent-trunk-commit` | git hook | The enforcement logic. Installed via `git config core.hooksPath .github/hooks` (done in this repo) |
 | pre-commit dispatcher | `.github/hooks/pre-commit` | git hook | Required alongside the hook above — `core.hooksPath` only invokes a file literally named `pre-commit`; this execs `prevent-trunk-commit` |
 | pre-push test/coverage hook | `.github/hooks/pre-push` | git hook | Runs bats + pytest suites and blocks the push if anything fails or Python coverage drops below 80%. Installed the same way as the hooks above (git only needs a file literally named `pre-push`) |
+| Claude Code push lock guard | `.github/hooks/claude-push-lock-guard.sh` | agent hook | PreToolUse guard wired in `.claude/settings.json` — blocks a `git push` Bash call when another live agent session holds the multi-agent lock for the current branch (`tools/agent-lock.sh check-branch`); pre-push enforces the same rule at the git layer |
 | Bubblewrap AppArmor profile | `.github/apparmor/agentharness-bwrap` | CI sandbox policy | Allows only the trusted system bubblewrap launcher to create the user namespace used by mandatory Ubuntu runtime-upgrade isolation tests |
 
 ## Language Conventions
