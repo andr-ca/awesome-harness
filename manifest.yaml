@@ -283,6 +283,10 @@ sections:
     path: .claude/skills/audit-review-followup/SKILL.md
     type: skill
     when_to_use: Verifying that review recommendations were actually implemented; re-scoring
+  - asset: Harness feedback
+    path: .claude/skills/harness-feedback/SKILL.md
+    type: skill
+    when_to_use: "Triggered on harness friction events (hook failures, ambiguous guidance, violated mandates, mismatched reality); agent logs locally and files upstream by default"
   - asset: Port agent config
     path: .claude/skills/port-agent-config/SKILL.md
     type: skill

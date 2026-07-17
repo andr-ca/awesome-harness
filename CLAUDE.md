@@ -264,6 +264,7 @@ referenced everywhere instead of drifting across projects. Full rationale:
   session holds. Never force-push: a repo-wide GitHub ruleset rejects
   non-fast-forward pushes on every branch, so when a push is rejected,
   fetch and rebase instead. See the multi-agent-coordination skill.
+- **Harness friction is a first-class finding.** When using this harness, friction (hook failures, ambiguous guidance, violated mandates, mismatched tool output) discovered during any session must be addressed, logged locally to `docs/operational/harness-feedback.md`, and filed upstream to andr-ca/agentharness by default — without waiting for the operator to ask. See the harness-feedback skill. Skip upstream filing only if `.agentharness-no-upstream-feedback` exists at the repo root.
 
 ## Operational Documents
 

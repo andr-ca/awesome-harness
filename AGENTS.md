@@ -283,6 +283,7 @@ referenced everywhere instead of drifting across projects. Full rationale:
   session holds. Never force-push: a repo-wide GitHub ruleset rejects
   non-fast-forward pushes on every branch, so when a push is rejected,
   fetch and rebase instead. See the multi-agent-coordination skill.
+- **Harness friction is a first-class finding.** When using this harness, friction (hook failures, ambiguous guidance, violated mandates, mismatched tool output) discovered during any session must be addressed, logged locally to `docs/operational/harness-feedback.md`, and filed upstream to andr-ca/agentharness by default — without waiting for the operator to ask. See the harness-feedback skill. Skip upstream filing only if `.agentharness-no-upstream-feedback` exists at the repo root.
 
 ### Operational Documents
 
@@ -313,6 +314,7 @@ Temporary/working docs (research notes, agent logs, planning) go in
 - `.agents/skills/error-handling/SKILL.md` — Use when building error recovery, handling exceptions, designing error flows, or implementing logging for errors — covers retry, circuit-breaker, error wrapping, structured logging.
 - `.agents/skills/file-placement-policy/SKILL.md` — Use before creating any new file or directory in an established project — covers guarded root paths, docs/, src/, conf/, the allowed-additions escape hatch, and how to ask for permission. Load this skill at the start of every session in a project that has .agentharness-guarded-paths.json.
 - `.agents/skills/go-conventions/SKILL.md` — Use when writing, reviewing, or refactoring Go code — naming conventions, receiver naming, error wrapping, interface design, goroutine safety, and common pitfalls (goroutine leaks, defer-in-loop, nil map writes).
+- `.agents/skills/harness-feedback/SKILL.md` — Triggers on harness friction events (hook failures, ambiguous guidance, violated mandates, mismatched reality) encountered during any session. Agent must: address the immediate problem, log it locally to docs/operational/harness-feedback.md, and file it upstream to andr-ca/agentharness. Default-on; skip upstream filing only if .agentharness-no-upstream-feedback exists at repo root.
 - `.agents/skills/logging/SKILL.md` — Use when adding logging to an application, reviewing log output, choosing log levels, structuring logs for observability, or configuring logging backends — covers structured logging, YAML config patterns, what NOT to log, and local vs. production output.
 - `.agents/skills/multi-agent-coordination/SKILL.md` — Use when two or more agent sessions may work on the same repository concurrently — covers the per-feature lock-file protocol, stale-lock detection, worktree isolation rules, and what to do when a feature is already locked.
 - `.agents/skills/mutation-testing/SKILL.md` — Use when writing tests for critical business logic, auditing test suite quality beyond line coverage, or interpreting surviving mutants — covers mutation operators, mutation score thresholds, and tooling (mutmut, Stryker, gremlins) for Python, TypeScript/JS, and Go.
