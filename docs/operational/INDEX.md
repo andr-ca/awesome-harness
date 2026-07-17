@@ -23,6 +23,9 @@ Items currently under development:
 
 Documents ready to be promoted to harness or archived:
 
+See [`reviews/README.md`](reviews/README.md) for the full cycle-by-cycle
+index of all review documents. Summary below for quick navigation:
+
 - `reviews/fable-review.md` — full repo review, 2026-07-11. Findings
   consolidated into MANIFEST.md/ROADMAP.md/CHANGELOG.md and the P0/P1/P2
   fixes across the repo; kept here as the historical record rather than

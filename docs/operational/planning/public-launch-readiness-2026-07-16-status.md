@@ -1,6 +1,6 @@
 ---
 date: 2026-07-16
-last_updated: 2026-07-16
+last_updated: 2026-07-17
 author: AI agent (GitHub Copilot, Claude Sonnet 4.6)
 topic: status
 purpose: Progress tracking for public-launch readiness plan
@@ -39,7 +39,7 @@ Tracks progress against
 | F-03 generate-clients safety | ✅ | Added `_gc_is_harness_generated()` + `_gc_check_file()`; non-harness files are skipped (with message); `--force` overwrites with warning; `--dry-run` shows plan; 4 new tests (12 total) |
 | F-04 npm durable copy `.env*` | ✅ | `copy_npm_durable_source` now explicitly excludes `.env`, `.env.*`, `*.env`, `node_modules`, `__pycache__`, `*.pyc`, `.worktrees` |
 | F-05 hooks path restoration | ✅ | `state_write` now records `previous_hooks_path`; `cmd_uninstall` restores it on uninstall (or unsets if no previous value was recorded) |
-| Disposition wrap-up | ❌ | Pending A items above |
+| Disposition wrap-up | ❌ | fable-gpt5-sol-disposition-2026-07-14.md per-item statuses not yet updated to reflect A fixes |
 
 ---
 
@@ -51,7 +51,7 @@ Tracks progress against
 | E2 reconcile versions | 🔄 | STATUS.md acknowledges the gap; pyproject.toml version pin at 0.1.0 matches experimental status; full reconciliation + tagging deferred to post-launch (E2 is a label issue, not a breakage) |
 | E3 dedupe acceptance verifiers | ✅ | Removed `tools/acceptance/verify_matrix.py` (underscore variant); `verify-matrix.py` is canonical |
 | E4 check.sh parity | ✅ | `tools/check.sh` now runs `pytest tests/ --cov=src/agentharness --cov-fail-under=65` with same excludes as `check-completion.sh` |
-| E5 SECURITY.md refresh | ❌ | No current SECURITY.md covering npm distribution, git-config mutations, GitHub protection, private reporting |
+| E5 SECURITY.md refresh | ✅ | SECURITY.md now covers: npm distribution, git-config mutations, GitHub protection boundary, private reporting advisory; logged 2026-07-16 but status table was not updated at the time |
 | E6 setuptools CVE fix | ✅ | `pyproject.toml` and `requirements-dev.txt` bumped to `setuptools>=83.0.0` (CVE-2026-59890) |
 | E7 secret/history scan | ⏸ | Requires owner to run gitleaks or trufflehog and record result |
 | E8 RC smoke test | ⏸ | Requires clean environment; owner-triggered |
@@ -75,7 +75,7 @@ Tracks progress against
 |---|---|---|
 | STATUS.md re-verification | 🔄 | Last-verified date updated to 2026-07-16; version gap and experimental label added; full row-by-row sweep deferred to Workstream C milestone |
 | KNOWN_LIMITATIONS.md re-verification | ❌ | Pending dogfood (D) and A/E items |
-| F-07 archive review cycles | ❌ | `docs/operational/reviews/` still flat; 15 files |
+| F-07 archive review cycles | ✅ | Created `docs/operational/reviews/README.md` — cycle-by-cycle index (5 named cycles, all 16 files described); INDEX.md updated to reference it. Files kept flat to preserve cross-references |
 
 ---
 
@@ -97,12 +97,12 @@ Tracks progress against
 | Workstream | ✅ | 🔄 | ❌ | ⏸ |
 |---|---|---|---|---|
 | 0 — Clearance | 0 | 0 | 0 | 1 |
-| A — P0 fixes | 3 | 0 | 1 | 0 |
-| E — Release integrity | 7 | 0 | 0 | 2 |
+| A — P0 fixes | 4 | 0 | 1 | 0 |
+| E — Release integrity | 6 | 1 | 0 | 2 |
 | D — Dogfood | 0 | 0 | 0 | 3 |
-| C — Doc accuracy | 0 | 1 | 2 | 0 |
+| C — Doc accuracy | 1 | 1 | 1 | 0 |
 | B — Front door | 0 | 0 | 6 | 0 |
-| **Total** | **11** | **1** | **7** | **6** |
+| **Total** | **11** | **2** | **8** | **6** |
 
 ---
 
@@ -122,3 +122,5 @@ Tracks progress against
 | 2026-07-16 | C partial | STATUS.md last-verified date updated to 2026-07-16 |
 | 2026-07-16 | F-03 | generate-clients: existence check, --force, --dry-run, provenance detection (4 new tests) |
 | 2026-07-16 | E5 | SECURITY.md: added npm distribution, git config mutations, GitHub protection, supported boundary |
+| 2026-07-16 | One-branch enforcement | feat: PR #68 — enforce multi-agent mutex; branch-keyed push locks, Claude Code PreToolUse guard, updated CLAUDE.md/AGENTS.md/GEMINI.md (4 new bats tests, docs, adapters regen) |
+| 2026-07-17 | F-07 | Created `docs/operational/reviews/README.md`; INDEX.md updated to reference it |
