@@ -74,13 +74,14 @@ as [#94](https://github.com/andr-ca/agentharness/issues/94).
 
 ## 2026-07-18 – `safe-pr-merge.sh` reproduced the just-fixed false-green bug by running a stale copy of itself
 
-**What happened:** Immediately after #94/#96 (above) merged, merging PR
-#95 from a local checkout still on branch `docs/harness-feedback-ci-race-94`
-— forked from `main` *before* #96 landed — ran that branch's pre-fix
-copy of `tools/safe-pr-merge.sh`. It reported "Post-merge CI is green"
-for run `29650734547`, whose `headSha` (`98b7e124`) did not match PR
-#95's actual merge commit (`db75a6e2`); the real run (`29651378346`)
-was still `in_progress` at that moment.
+**What happened:** Immediately after #94/#96 (above) merged, merging
+PR #95 from a local checkout still on branch
+`docs/harness-feedback-ci-race-94` — forked from `main` *before* #96
+landed — ran that branch's pre-fix copy of `tools/safe-pr-merge.sh`. It
+reported "Post-merge CI is green" for run `29650734547`, whose
+`headSha` (`98b7e124`) did not match PR #95's actual merge commit
+(`db75a6e2`); the real run (`29651378346`) was still `in_progress` at
+that moment.
 
 **Root cause:** the script's correctness depends entirely on which
 version happens to be checked out in the caller's shell — it has no
