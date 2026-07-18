@@ -8,3 +8,4 @@ docs/operational/reviews/README.md
 docs/operational/harness-feedback.md
 tools/safe-pr-merge.sh
 tools/tests/safe-pr-merge.bats
+docs/superpowers/specs/2026-07-17-existing-surface-integration-design.md
