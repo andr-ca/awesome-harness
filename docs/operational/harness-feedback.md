@@ -71,3 +71,34 @@ that exact SHA appears.
 (`gh run watch 29646923757 --exit-status`) before reporting PR #93 as
 done, so no false-green reached the user this session. Logged upstream
 as [#94](https://github.com/andr-ca/agentharness/issues/94).
+
+## 2026-07-18 – `safe-pr-merge.sh` reproduced the just-fixed false-green bug by running a stale copy of itself
+
+**What happened:** Immediately after #94/#96 (above) merged, merging
+PR #95 from a local checkout still on branch
+`docs/harness-feedback-ci-race-94` — forked from `main` *before* #96
+landed — ran that branch's pre-fix copy of `tools/safe-pr-merge.sh`. It
+reported "Post-merge CI is green" for run `29650734547`, whose
+`headSha` (`98b7e124`) did not match PR #95's actual merge commit
+(`db75a6e2`); the real run (`29651378346`) was still `in_progress` at
+that moment.
+
+**Root cause:** the script's correctness depends entirely on which
+version happens to be checked out in the caller's shell — it has no
+self-check against `origin/main`, so a long-lived branch that forked
+before a fix lands silently regresses the exact bug that fix closed.
+
+**Impact:** a normal, correct workflow (working on a branch that forked
+before a fix merged, then running the merge helper from that same
+shell without an explicit `git checkout main` first) reintroduces a
+just-fixed correctness bug with no warning from the tool itself.
+
+**What agentharness should change:** `safe-pr-merge.sh` should warn (or
+refuse) when invoked from a non-`main` branch, and/or compare its own
+content against `origin/main`'s copy before trusting its own output.
+
+**Corrective action taken:** Manually diffed the reported run's
+`headSha` against `gh pr view --json mergeCommit` before trusting the
+script's "complete" output, then watched the real run to a genuine
+green. Logged upstream as
+[#99](https://github.com/andr-ca/agentharness/issues/99).
