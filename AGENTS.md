@@ -74,7 +74,13 @@ checklist automatically. Before merging:
    *completes* (allow up to ~30 minutes total) — a check-run that has
    started is a reason to keep waiting, not to stop. A single immediate
    check does not satisfy this step — the wait is the point, not just a
-   verification of absence.
+   verification of absence. **Exception:** if the automated reviewer's
+   check-run has already reached a *completed* state (not merely
+   started/pending) with zero comments attached, that completed run
+   already is the wait — stop polling immediately rather than sitting
+   out the rest of the window for a review that has demonstrably already
+   finished and found nothing to say. `tools/safe-pr-merge.sh` implements
+   this check.
 2. Fetch *both* comment types — issue-level (`gh pr view <n> --json
    comments`) and inline review comments (`gh api
    repos/<owner>/<repo>/pulls/<n>/comments`); the first call alone misses

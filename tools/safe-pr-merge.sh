@@ -19,7 +19,10 @@
 # Checklist (enforced in order):
 #   1. Verify PR's CI checks are green
 #   2. Detect whether an automated reviewer is configured on this repo
-#   3. If configured: poll for new review comments on THIS PR (up to 20 min)
+#   3. If configured: poll for new review comments on THIS PR (up to 20 min,
+#      short-circuits immediately once the reviewer's check-run completes
+#      with zero comments — a finished review satisfies the wait even if it
+#      found nothing to say)
 #   4. Verify all review comments have replies
 #   5. Merge the PR
 #   6. Poll post-merge CI to terminal state and report conclusion
@@ -122,6 +125,24 @@ detect_automated_reviewer() {
     return 1  # Not configured
 }
 
+# True if the automated reviewer's check-run for the PR's current head
+# commit has reached a *completed* state (started-but-pending doesn't
+# count — only a finished run means "the review already happened").
+review_check_run_completed() {
+    local pr_num="$1"
+    local repo="$2"
+
+    local head_sha
+    head_sha="$(gh pr view "$pr_num" -R "$repo" --json headRefOid -q '.headRefOid' 2>/dev/null || echo "")"
+    if [ -z "$head_sha" ]; then
+        return 1
+    fi
+
+    gh api repos/"$repo"/commits/"$head_sha"/check-runs \
+        -q '.check_runs[] | select(.name | test("bot|copilot|github-actions"; "i")) | select(.status == "completed") | .name' \
+        2>/dev/null | grep -q .
+}
+
 # Poll for review comments on the PR (up to timeout)
 poll_for_review_comments() {
     local pr_num="$1"
@@ -147,6 +168,16 @@ poll_for_review_comments() {
         if [ "$total_comments" -gt 0 ]; then
             log_info "Found $total_comments review comments on PR #$pr_num"
             return 0  # Found comments
+        fi
+
+        # A completed review check-run IS the wait this step exists to
+        # enforce — a started-but-still-running run is not (see CLAUDE.md's
+        # PR-merge checklist exception). Sitting out the rest of a 20-minute
+        # window after the reviewer has already finished and left nothing
+        # to address only delays the merge for no benefit.
+        if review_check_run_completed "$pr_num" "$repo"; then
+            log_info "Automated review check-run already completed on PR #$pr_num with zero comments — review has already happened, no need to wait out the rest of the window"
+            return 1  # No comments, but the wait is satisfied
         fi
 
         elapsed=$(($(date +%s) - start_time))
