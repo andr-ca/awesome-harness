@@ -209,6 +209,31 @@ with open(path, "w") as f:
 PYEOF
 }
 
+# Repo-level install lock — excludes concurrent init/update runs against the
+# SAME target repo (spec section 6). Distinct from tools/agent-lock.sh,
+# which coordinates branches inside the harness repo itself; this lock lives
+# inside the consumer's own repo and has no branch/feature concept.
+
+install_lock_path() { echo "$1/.agentharness-install.lock"; }
+
+acquire_install_lock() {
+    local target="$1"
+    local lock_dir
+    lock_dir="$(install_lock_path "$target")"
+    if ! mkdir "$lock_dir" 2>/dev/null; then
+        echo "Error: another agentharness install/update is already in progress in $target (lock: $lock_dir)." >&2
+        echo "If no other process is actually running, remove the lock directory manually and retry." >&2
+        return 1
+    fi
+    echo "$$" > "$lock_dir/pid" 2>/dev/null || true
+    return 0
+}
+
+release_install_lock() {
+    local target="$1"
+    rm -rf "$(install_lock_path "$target")"
+}
+
 # Dotted-path field accessor. Lists print comma-joined; missing -> exit 1.
 state_field() {
     local target="$1" field="$2"
@@ -1981,6 +2006,12 @@ cmd_generate_clients() {
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     case "${1:-}" in
+        __test_acquire_install_lock)
+            shift; acquire_install_lock "$1"; exit $?
+            ;;
+        __test_release_install_lock)
+            shift; release_install_lock "$1"; exit $?
+            ;;
         init|plan|status|doctor|audit|audit-prs|enforce-profile|generate-clients|update|uninstall)
             cmd="$1"; shift
             ;;

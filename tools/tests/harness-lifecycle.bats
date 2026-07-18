@@ -934,3 +934,21 @@ PYEOF
 
     rm -rf "$remote"
 }
+
+@test "install lock: acquire and release round-trip" {
+    run bash "$SCRIPT" __test_acquire_install_lock "$TEST_PROJECT"
+    [ "$status" -eq 0 ]
+    [ -d "$TEST_PROJECT/.agentharness-install.lock" ]
+    run bash "$SCRIPT" __test_release_install_lock "$TEST_PROJECT"
+    [ "$status" -eq 0 ]
+    [ ! -d "$TEST_PROJECT/.agentharness-install.lock" ]
+}
+
+@test "install lock: second acquire fails while first is held" {
+    run bash "$SCRIPT" __test_acquire_install_lock "$TEST_PROJECT"
+    [ "$status" -eq 0 ]
+    run bash "$SCRIPT" __test_acquire_install_lock "$TEST_PROJECT"
+    [ "$status" -ne 0 ]
+    [[ "$output" =~ "already in progress" ]] || [[ "$output" =~ "lock" ]]
+    bash "$SCRIPT" __test_release_install_lock "$TEST_PROJECT"
+}
