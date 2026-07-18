@@ -77,23 +77,11 @@ def acquire_lock(
     """Acquire a lock for *feature* in *project_root*.
 
     Raises FileExistsError if a non-stale lock already exists for *feature*.
-    Uses atomic write (temp + rename) to prevent races.
+    Uses O_CREAT|O_EXCL to atomically create the lock file, eliminating the
+    TOCTOU race between the existence check and the write.
     """
     path = lock_path(project_root, feature)
     path.parent.mkdir(parents=True, exist_ok=True)
-
-    # Check for existing non-stale lock
-    if path.exists():
-        try:
-            existing = _load_lock(path)
-            if not existing.is_stale():
-                raise FileExistsError(
-                    f"Feature {feature!r} is already locked by agent "
-                    f"{existing.agent_id!r} on branch {existing.branch!r} "
-                    f"(pid {existing.pid}). Create a new branch or wait."
-                )
-        except (json.JSONDecodeError, KeyError):
-            pass  # Corrupted lock — overwrite it
 
     lock = AgentLock(
         agent_id=_make_agent_id(),
@@ -103,8 +91,31 @@ def acquire_lock(
         started_at=datetime.now(tz=UTC).isoformat(),
         pid=os.getpid(),
     )
-    _atomic_write(path, lock)
-    return lock
+
+    while True:
+        try:
+            # Atomic create: fails immediately if the file already exists,
+            # regardless of what another process is doing concurrently.
+            fd = os.open(str(path), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
+            with os.fdopen(fd, "w", encoding="utf-8") as fh:
+                json.dump(lock.to_dict(), fh, indent=2, sort_keys=True)
+                fh.write("\n")
+            return lock
+        except FileExistsError:
+            # The file exists — check if the lock is stale.
+            try:
+                existing = _load_lock(path)
+                if not existing.is_stale():
+                    raise FileExistsError(
+                        f"Feature {feature!r} is already locked by agent "
+                        f"{existing.agent_id!r} on branch {existing.branch!r} "
+                        f"(pid {existing.pid}). Create a new branch or wait."
+                    )
+                # Stale lock — delete and retry.
+                path.unlink(missing_ok=True)
+            except (json.JSONDecodeError, KeyError):
+                # Corrupted lock — delete and retry.
+                path.unlink(missing_ok=True)
 
 
 def release_lock(project_root: Path, feature: str, agent_id: str) -> bool:
@@ -121,7 +132,8 @@ def release_lock(project_root: Path, feature: str, agent_id: str) -> bool:
         if existing.agent_id != agent_id:
             return False
     except (json.JSONDecodeError, KeyError):
-        pass
+        # Cannot prove ownership of a corrupt lock — refuse to release it.
+        return False
     path.unlink(missing_ok=True)
     return True
 

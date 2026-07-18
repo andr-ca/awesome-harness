@@ -19,3 +19,5 @@ examples/existing-surface-project/.cursor/rules/testing.mdc
 examples/existing-surface-project/.gitignore
 examples/existing-surface-project/verify.sh
 examples/existing-surface-project/README.md
+src/agentharness_locks/__init__.py
+tests/unit/test_agentharness_locks.py
