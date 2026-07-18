@@ -128,6 +128,54 @@ print(d['with_hook'])
     [[ "$output" =~ "all checks passed" ]]
 }
 
+@test "lifecycle: init warns about untracked files when target is a git repo (issue #88)" {
+    git -C "$TEST_PROJECT" init --quiet
+    git -C "$TEST_PROJECT" -c user.email=test@example.com -c user.name=Test commit --quiet --allow-empty -m init
+
+    run bash "$SCRIPT" init "$TEST_PROJECT" --skills committing
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "untracked file(s)" ]]
+}
+
+@test "lifecycle: init does not print the untracked-files note for a non-git target" {
+    run bash "$SCRIPT" init "$TEST_PROJECT" --skills committing
+    [ "$status" -eq 0 ]
+    [[ ! "$output" =~ "untracked file(s)" ]]
+}
+
+@test "lifecycle: plan/--dry-run never prints the untracked-files note" {
+    git -C "$TEST_PROJECT" init --quiet
+    git -C "$TEST_PROJECT" -c user.email=test@example.com -c user.name=Test commit --quiet --allow-empty -m init
+
+    run bash "$SCRIPT" plan "$TEST_PROJECT" --skills committing
+    [ "$status" -eq 0 ]
+    [[ ! "$output" =~ "untracked file(s)" ]]
+}
+
+@test "lifecycle: doctor warns when installed skills are untracked by git (issue #88)" {
+    git -C "$TEST_PROJECT" init --quiet
+    git -C "$TEST_PROJECT" -c user.email=test@example.com -c user.name=Test commit --quiet --allow-empty -m init
+    bash "$SCRIPT" init "$TEST_PROJECT" --skills committing
+
+    run bash "$SCRIPT" doctor "$TEST_PROJECT"
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "untracked by git" ]]
+    [[ "$output" =~ "all checks passed" ]]
+}
+
+@test "lifecycle: doctor stops warning once the installed skills are committed" {
+    git -C "$TEST_PROJECT" init --quiet
+    git -C "$TEST_PROJECT" -c user.email=test@example.com -c user.name=Test commit --quiet --allow-empty -m init
+    bash "$SCRIPT" init "$TEST_PROJECT" --skills committing
+    git -C "$TEST_PROJECT" add -A
+    git -C "$TEST_PROJECT" -c user.email=test@example.com -c user.name=Test commit --quiet -m "add skills"
+
+    run bash "$SCRIPT" doctor "$TEST_PROJECT"
+    [ "$status" -eq 0 ]
+    [[ ! "$output" =~ "untracked by git" ]]
+    [[ "$output" =~ "all checks passed" ]]
+}
+
 @test "lifecycle: doctor fails when a bundled resource link is broken" {
     # --mode copy, deliberately: in --mode link, .claude/skills/<name> in
     # $TEST_PROJECT is itself a symlink to *this actual repo's* skill

@@ -669,6 +669,40 @@ print(json.dumps(data))
     return 0
 }
 
+# Print a visibility note if init/update left untracked files behind
+# (issue #88): a fresh install can write dozens of files (skills,
+# generated instruction docs, state files) straight into the target's
+# working tree, and nothing about the process stages or commits them.
+# Left silent, that content is invisible to every other clone, PR, or CI
+# run of the consumer's own repo until someone happens to run 'git
+# status' — this is a message only, deliberately not an auto-'git add':
+# silently staging is its own footgun (surprising diffs, or sweeping in
+# unrelated pre-existing untracked files this run didn't create).
+warn_if_untracked() {
+    local target="$1"
+    local dry_run="$2"
+
+    if [ "$dry_run" = true ]; then
+        return 0
+    fi
+
+    if ! git -C "$target" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        return 0
+    fi
+
+    local untracked_count
+    untracked_count="$(git -C "$target" status --porcelain --untracked-files=all 2>/dev/null | grep -c '^??' || true)"
+
+    if [ "${untracked_count:-0}" -gt 0 ]; then
+        echo ""
+        echo "Note: $untracked_count untracked file(s) in $target after this install."
+        echo "  Skills, generated instruction docs, and state files just written here"
+        echo "  aren't part of your repo's history until committed — review with"
+        echo "  'git status' and 'git add' them, or they stay invisible to every"
+        echo "  other clone, PR, and CI run of this repo."
+    fi
+}
+
 # ----------------------------------------------------------------------------
 # init / plan
 # ----------------------------------------------------------------------------
@@ -1067,6 +1101,8 @@ cmd_init() {
         "$profile" "$skills_src_root" "$source_revision" "$source_remote" "$installed_hooks_path" "$coverage_hook" \
         "${existing_hooks_path:-}"
 
+    warn_if_untracked "$target" "$dry_run"
+
     echo "Done."
 }
 
@@ -1128,6 +1164,14 @@ cmd_doctor() {
     local failed=0
     echo "Checking agentharness install in $target..."
 
+    # issue #88: an install can leave every skill file untracked by git,
+    # invisible to clones/PRs/CI, with nothing in doctor's other checks
+    # (which only look at the working tree) ever catching it. Soft-warn,
+    # not fail — a "copy" install outside a git repo, or a project that
+    # deliberately gitignores skills like a local cache, are legitimate.
+    local in_git_repo=false
+    git -C "$target" rev-parse --is-inside-work-tree >/dev/null 2>&1 && in_git_repo=true
+
     local skills_csv
     skills_csv="$(state_field "$target" skills)"
     IFS=',' read -ra skills <<< "$skills_csv"
@@ -1150,6 +1194,16 @@ cmd_doctor() {
                 fi
             done < <(find -L "$dir" -type l 2>/dev/null)
             [ "$broken" -eq 0 ] && echo "  ✓ $skill: bundled resources resolve ($dest_subdir)"
+
+            # Check the skill directory itself, not "$dir/SKILL.md" — in
+            # symlink modes (link/npm/submodule) the skill dir is itself a
+            # symlink, and git tracks the symlink as its own entry rather
+            # than anything path-appended past it, so a path ending in
+            # /SKILL.md never matches even when the symlink is committed.
+            if [ "$in_git_repo" = true ] && ! git -C "$target" ls-files --error-unmatch \
+                "$dest_subdir/$skill" >/dev/null 2>&1; then
+                echo "  (warn) $skill: $dir is untracked by git ($dest_subdir) — invisible to clones, PRs, and CI until committed"
+            fi
         done
     done
 
@@ -2057,6 +2111,9 @@ cmd_update() {
 
     state_write "$target" "$mode" "$new_skills_csv" "$skills_filter" "$with_hook" \
         "$profile" "$source_path" "$source_revision" "$source_remote" "$hooks_path" "$coverage_hook"
+
+    warn_if_untracked "$target" false
+
     echo "Updated."
 }
 
