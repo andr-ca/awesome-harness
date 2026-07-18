@@ -481,7 +481,7 @@ build_surfaces_spec() {
     python3 -c "
 import json, sys
 target, body, version = sys.argv[1], sys.argv[2], sys.argv[3]
-files = ['CLAUDE.md', 'AGENTS.md']
+files = ['CLAUDE.md', 'AGENTS.md', 'GEMINI.md', '.github/copilot-instructions.md']
 print(json.dumps([
     {'path': f'{target}/{f}', 'is_block_surface': True, 'block_body': body,
      'block_id': 'core-instructions', 'block_version': version}

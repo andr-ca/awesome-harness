@@ -973,3 +973,11 @@ PYEOF
     second_hash="$(sha256sum "$TEST_PROJECT/AGENTS.md" | cut -d' ' -f1)"
     [ "$first_hash" = "$second_hash" ]
 }
+
+@test "init: creates managed block in .github/copilot-instructions.md (parent dir doesn't exist)" {
+    [ ! -d "$TEST_PROJECT/.github" ]
+    run bash "$SCRIPT" init "$TEST_PROJECT" --mode copy --skills committing
+    [ "$status" -eq 0 ]
+    [ -f "$TEST_PROJECT/.github/copilot-instructions.md" ]
+    grep -q "agentharness:begin id=core-instructions" "$TEST_PROJECT/.github/copilot-instructions.md"
+}

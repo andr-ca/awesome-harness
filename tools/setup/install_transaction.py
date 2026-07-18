@@ -261,6 +261,7 @@ def apply_plan(
         rel_path = _rel(surface.path, base_dir)
 
         if action.kind == "upsert_block":
+            surface.path.parent.mkdir(parents=True, exist_ok=True)
             existing = (
                 surface.path.read_text() if surface.path.exists() else ""
             )

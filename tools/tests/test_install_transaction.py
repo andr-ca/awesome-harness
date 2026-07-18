@@ -468,3 +468,25 @@ def test_cli_apply_writes_file_via_subprocess(tmp_path):
     payload = json.loads(result.stdout)
     assert payload["ok"] is True
     assert "agentharness:begin" in target.read_text()
+
+
+def test_apply_plan_creates_parent_dirs_for_upsert_block(tmp_path):
+    # Regression test: upsert_block should create parent directories
+    # (e.g., .github/) if they don't exist yet
+    target = tmp_path / ".github" / "copilot-instructions.md"
+    assert not (tmp_path / ".github").exists()
+    surfaces = [it.Surface(
+        path=target, is_block_surface=True, block_body="rendered\n"
+    )]
+    plan = it.build_plan(
+        surfaces, state={"collision_decisions": []},
+        install_id="x", base_dir=tmp_path, decide=lambda i: None
+    )
+    state = it.load_state(tmp_path / ".agentharness-state.json")
+    it.apply_plan(
+        plan, state=state, base_dir=tmp_path,
+        journal_path=tmp_path / ".agentharness-state.pending.json",
+        install_id="x"
+    )
+    assert target.exists()
+    assert "agentharness:begin" in target.read_text()
