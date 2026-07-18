@@ -99,3 +99,42 @@ def find_blocks(content: str, block_id: str) -> list[BlockMatch]:
         real_end += 1
 
     return [BlockMatch(start=begin_start, end=real_end, version=version)]
+
+
+def render_block(block_id: str, version: str, body: str) -> str:
+    if not body.endswith("\n"):
+        body += "\n"
+    return (
+        f"<!-- agentharness:begin id={block_id} version={version} -->\n"
+        f"{body}"
+        f"<!-- agentharness:end id={block_id} -->\n"
+    )
+
+
+def upsert_block(content: str, block_id: str, version: str, body: str) -> str:
+    """Insert or replace the block for block_id. Content outside the
+    matched region is preserved byte-for-byte (spec section 1)."""
+    matches = find_blocks(content, block_id)
+    rendered = render_block(block_id, version, body)
+
+    if not matches:
+        # Insert at end of file: one blank line before the block,
+        # respecting whether content already ends with a newline.
+        prefix = content
+        if prefix and not prefix.endswith("\n"):
+            prefix += "\n"
+        if prefix and not prefix.endswith("\n\n"):
+            prefix += "\n"
+        return prefix + rendered
+
+    match = matches[0]
+    return content[: match.start] + rendered + content[match.end :]
+
+
+def remove_block(content: str, block_id: str) -> str:
+    """Remove the block for block_id if present; no-op otherwise."""
+    matches = find_blocks(content, block_id)
+    if not matches:
+        return content
+    match = matches[0]
+    return content[: match.start] + content[match.end :]
