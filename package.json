@@ -30,6 +30,8 @@
     "patterns/",
     "frameworks/",
     "tools/setup/harness-link.sh",
+    "tools/setup/install_transaction.py",
+    "tools/setup/block_installer.py",
     ".github/hooks/prevent-trunk-commit",
     ".github/hooks/pre-commit",
     ".github/hooks/pre-push",

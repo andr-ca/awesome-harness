@@ -101,13 +101,24 @@ init options:
   --with-coverage-hook          Like --with-hook, plus a generated
                                 pre-push hook that runs 'enforce-profile'
                                 against this project on every push
-  --force                       Overwrite an existing, different core.hooksPath
+  --force                       Overwrite an existing, different core.hooksPath;
+                                also auto-overwrite whole-file collisions
+                                without prompting
   --profile prototype|internal|production
                                 Write .agentharness-profile
-  --dry-run                    Show the plan; change nothing (same as 'plan')
+  --dry-run                     Show the plan; change nothing (same as 'plan');
+                                reports whole-file collisions without resolving
+  --keep-existing               Auto-keep all whole-file collisions (do not
+                                overwrite pre-existing surfaces)
 
-update/uninstall options:
-  --yes                        Skip the confirmation prompt
+update options:
+  --yes                         Skip the confirmation prompt
+  --force                       Auto-overwrite whole-file collisions without prompting
+  --dry-run                     Show what would happen, make no changes
+  --keep-existing               Auto-keep all whole-file collisions
+
+uninstall options:
+  --yes                         Skip the confirmation prompt
 
 audit options:
   --json                        Machine-readable drift report (CI/scripting)
@@ -179,11 +190,23 @@ import datetime
 import json
 import os
 import sys
+from pathlib import Path
 
 path = sys.argv[1]
 skills_csv = os.environ.get("AH_SKILLS_CSV", "")
 now = datetime.datetime.now(datetime.timezone.utc).isoformat()
 existing_installed_at = os.environ.get("AH_EXISTING_INSTALLED_AT") or now
+
+# Preserve v2 fields from existing state if present
+v2_fields = {}
+if Path(path).exists():
+    try:
+        existing = json.loads(Path(path).read_text())
+        for field in ("managed_blocks", "collision_decisions", "overwritten_files"):
+            if field in existing:
+                v2_fields[field] = existing[field]
+    except (OSError, json.JSONDecodeError):
+        pass
 
 data = {
     "version": 1,
@@ -203,10 +226,37 @@ data = {
     "installed_at": existing_installed_at,
     "updated_at": now,
 }
+# Merge in v2 fields if they exist
+data.update(v2_fields)
 with open(path, "w") as f:
     json.dump(data, f, indent=2)
     f.write("\n")
 PYEOF
+}
+
+# Repo-level install lock — excludes concurrent init/update runs against the
+# SAME target repo (spec section 6). Distinct from tools/agent-lock.sh,
+# which coordinates branches inside the harness repo itself; this lock lives
+# inside the consumer's own repo and has no branch/feature concept.
+
+install_lock_path() { echo "$1/.agentharness-install.lock"; }
+
+acquire_install_lock() {
+    local target="$1"
+    local lock_dir
+    lock_dir="$(install_lock_path "$target")"
+    if ! mkdir "$lock_dir" 2>/dev/null; then
+        echo "Error: another agentharness install/update is already in progress in $target (lock: $lock_dir)." >&2
+        echo "If no other process is actually running, remove the lock directory manually and retry." >&2
+        return 1
+    fi
+    echo "$$" > "$lock_dir/pid" 2>/dev/null || true
+    return 0
+}
+
+release_install_lock() {
+    local target="$1"
+    rm -rf "$(install_lock_path "$target")"
 }
 
 # Dotted-path field accessor. Lists print comma-joined; missing -> exit 1.
@@ -426,13 +476,206 @@ EOF
     chmod +x "$target/.github/hooks/pre-push"
 }
 
+# Managed-block rendering and collision handling — renders core-instructions
+# block into existing instructions files and handles whole-file collisions
+# on directory-style generated surfaces. Wired into cmd_init (Task 12) and
+# cmd_update (Task 13).
+
+render_core_instructions_block() {
+    local target="$1" skills_csv="$2"
+    local skills_list
+    skills_list="$(echo "$skills_csv" | tr ',' '\n' | sed 's/^/- /')"
+    cat <<EOF
+This project uses [agentharness](https://github.com/andr-ca/agentharness)
+for engineering policies (git conventions, testing, review workflow).
+
+**Precedence:** harness-enforced constraints (hooks, completion gate)
+cannot be weakened by this file's instructions; this file's own
+instructions take precedence over harness *defaults* everywhere else.
+
+Installed skills:
+$skills_list
+
+Full policy: see the harness's own CLAUDE.md via your install mode, or
+https://github.com/andr-ca/agentharness/blob/main/CLAUDE.md
+EOF
+}
+
+build_surfaces_spec() {
+    local target="$1" block_body="$2" block_version="$3"
+    python3 -c "
+import json, sys
+target, body, version = sys.argv[1], sys.argv[2], sys.argv[3]
+block_files = ['CLAUDE.md', 'AGENTS.md', 'GEMINI.md', '.github/copilot-instructions.md']
+print(json.dumps([
+    {'path': f'{target}/{f}', 'is_block_surface': True, 'block_body': body,
+     'block_id': 'core-instructions', 'block_version': version}
+    for f in block_files
+]))
+" "$target" "$block_body" "$block_version"
+}
+
+resolve_collisions_and_apply() {
+    local target="$1" surfaces_json="$2" install_id="$3" force="$4" dry_run="$5" keep_existing="$6"
+
+    # Step 1: Plan the installation (identifies collisions)
+    local plan_result
+    plan_result="$(python3 "$HARNESS_DIR/tools/setup/install_transaction.py" plan \
+        --surfaces <(echo "$surfaces_json") \
+        --state "$(state_path "$target")" \
+        --base-dir "$target" --install-id "$install_id" 2>&1)" || {
+        echo "Error: existing-surface planning failed:" >&2
+        echo "$plan_result" >&2
+        return 1
+    }
+
+    # Extract the collisions list from the plan result
+    local collisions
+    collisions="$(echo "$plan_result" | python3 -c "
+import json, sys
+plan = json.load(sys.stdin)
+collisions = plan.get('collisions', [])
+for c in collisions:
+    print(c)
+" 2>/dev/null)"
+
+    # --dry-run must never call 'apply' — regardless of whether there
+    # are any collisions. This check used to live only inside the
+    # collisions branch below, which meant the common case (a plan with
+    # zero whole-file collisions, e.g. just the four block-managed
+    # instructions files) fell through to the unconditional "no
+    # collisions, just apply" branch further down and silently mutated
+    # the target even under --dry-run.
+    if [ "$dry_run" = true ]; then
+        if [ -n "$collisions" ]; then
+            echo "  File collisions (would prompt for resolution in normal mode):"
+            echo "$collisions" | sed 's/^/    - /'
+        fi
+        echo "$plan_result" | python3 -c '
+import json, sys
+d = json.load(sys.stdin)
+for a in d["actions"]:
+    kind = a["kind"]
+    path = a["path"]
+    print(f"  {kind}: {path}")
+'
+        return 0
+    fi
+
+    # If there are collisions, resolve them
+    if [ -n "$collisions" ]; then
+        # Build the decisions map based on user preferences
+        local decisions_json="{}"
+        local collision_count=0
+        local report_only_paths=()
+
+        # Set up fd 3 for reading prompts (stdin in the main shell context)
+        exec 3<&0
+
+        # Process each collision
+        while IFS= read -r collision_path; do
+            [ -z "$collision_path" ] && continue
+            collision_count=$((collision_count + 1))
+
+            local decision
+            if [ "$force" = true ]; then
+                decision="overwrite"
+            elif [ "$keep_existing" = true ]; then
+                decision="keep-existing"
+            else
+                # Interactive prompt via fd 3
+                local reply
+                if ! read -u 3 -r -p "Collision: $collision_path — [o]verwrite/[k]eep/[a]ll-overwrite/[n]one? " reply 2>/dev/null; then
+                    # EOF on stdin in non-interactive mode without --force/--keep-existing:
+                    # collect the path and report error after loop
+                    report_only_paths+=("$collision_path")
+                    continue
+                fi
+                case "$reply" in
+                    o|overwrite) decision="overwrite" ;;
+                    k|keep) decision="keep-existing" ;;
+                    a|all)
+                        decision="overwrite"
+                        force=true  # Switch to --force mode for remaining collisions
+                        ;;
+                    n|none)
+                        decision="keep-existing"
+                        keep_existing=true  # Switch to --keep-existing mode
+                        ;;
+                    *)
+                        echo "Invalid choice. Using default (keep-existing)."
+                        decision="keep-existing"
+                        ;;
+                esac
+            fi
+
+            # Add the decision to the JSON map
+            decisions_json="$(python3 -c "
+import json, sys
+data = json.loads(sys.argv[1])
+data[sys.argv[2]] = sys.argv[3]
+print(json.dumps(data))
+" "$decisions_json" "$collision_path" "$decision")"
+        done <<< "$collisions"
+
+        # Close fd 3
+        exec 3<&-
+
+        # If there are unresolved collisions from EOF, report and fail
+        if [ "${#report_only_paths[@]}" -gt 0 ]; then
+            echo "Error: stdin closed without resolving collisions. Use --force, --keep-existing, or provide responses interactively:" >&2
+            printf '  - %s\n' "${report_only_paths[@]}" >&2
+            return 1
+        fi
+
+        if [ "$collision_count" -gt 0 ]; then
+            echo "  Resolved $collision_count collision(s)"
+        fi
+
+        # Write decisions to a temporary file for apply
+        local decisions_file
+        decisions_file="$(mktemp)"
+        echo "$decisions_json" > "$decisions_file"
+
+        # Step 2: Apply the installation with the decisions
+        local apply_result
+        apply_result="$(python3 "$HARNESS_DIR/tools/setup/install_transaction.py" apply \
+            --surfaces <(echo "$surfaces_json") \
+            --state "$(state_path "$target")" \
+            --base-dir "$target" --install-id "$install_id" \
+            --journal "$target/.agentharness-state.pending.json" \
+            --decisions "$decisions_file" 2>&1)" || {
+            echo "Error: existing-surface apply failed:" >&2
+            echo "$apply_result" >&2
+            rm -f "$decisions_file"
+            return 1
+        }
+
+        rm -f "$decisions_file"
+    else
+        # No collisions, just apply
+        local apply_result
+        apply_result="$(python3 "$HARNESS_DIR/tools/setup/install_transaction.py" apply \
+            --surfaces <(echo "$surfaces_json") \
+            --state "$(state_path "$target")" \
+            --base-dir "$target" --install-id "$install_id" \
+            --journal "$target/.agentharness-state.pending.json" 2>&1)" || {
+            echo "Error: existing-surface apply failed:" >&2
+            echo "$apply_result" >&2
+            return 1
+        }
+    fi
+
+    return 0
+}
+
 # ----------------------------------------------------------------------------
 # init / plan
 # ----------------------------------------------------------------------------
 
 cmd_init() {
     local target="" mode="link" skills_filter="" with_hook=false force=false
-    local profile="" dry_run=false coverage_hook=false
+    local profile="" dry_run=false coverage_hook=false keep_existing=false
 
     while [ $# -gt 0 ]; do
         case "$1" in
@@ -443,6 +686,7 @@ cmd_init() {
             --force) force=true; shift ;;
             --profile) profile="$2"; shift 2 ;;
             --dry-run) dry_run=true; shift ;;
+            --keep-existing) keep_existing=true; shift ;;
             -h|--help) usage; exit 0 ;;
             *)
                 if [ -z "$target" ]; then target="$1"; else echo "Unexpected argument: $1" >&2; usage; exit 1; fi
@@ -500,6 +744,7 @@ cmd_init() {
             echo "  Hook: install trunk-protection hook only — not coverage (mode: $mode; see --with-coverage-hook)"
         fi
         [ -n "$profile" ] && echo "  Profile: write $PROFILE_FILE_NAME = $profile"
+        echo "  Managed blocks: update CLAUDE.md, AGENTS.md, GEMINI.md, .github/copilot-instructions.md"
         echo "  State: write $target/$STATE_FILE_NAME"
         echo "(dry run — nothing was changed)"
         return 0
@@ -799,6 +1044,24 @@ cmd_init() {
     source_remote="$(git -C "$skills_src_root" remote get-url origin 2>/dev/null || true)"
     local skills_csv
     skills_csv="$(IFS=,; echo "${linked_skills[*]}")"
+
+    # Existing-surface integration (docs/superpowers/specs/2026-07-17-existing-surface-integration-design.md):
+    # render managed blocks into any instructions files the consumer
+    # already has, and handle whole-file collisions on generated
+    # directory-style surfaces the same way. Reuses this function's
+    # existing $force/$dry_run.
+    acquire_install_lock "$target" || exit 1
+    local surfaces_json rendered_block install_id
+    install_id="$(python3 -c 'import uuid; print(uuid.uuid4().hex[:8])')"
+    rendered_block="$(render_core_instructions_block "$target" "$skills_csv")"
+    surfaces_json="$(build_surfaces_spec "$target" "$rendered_block" "$source_revision")"
+
+    resolve_collisions_and_apply "$target" "$surfaces_json" "$install_id" "$force" "$dry_run" "$keep_existing" || {
+        release_install_lock "$target"
+        exit 1
+    }
+    release_install_lock "$target"
+
     # Pass the pre-install hooks path so uninstall can restore it (F-05)
     state_write "$target" "$mode" "$skills_csv" "$skills_filter" "$with_hook" \
         "$profile" "$skills_src_root" "$source_revision" "$source_remote" "$installed_hooks_path" "$coverage_hook" \
@@ -961,6 +1224,72 @@ cmd_doctor() {
             failed=1
         fi
     fi
+
+    # Existing-surface integration: leftover crash journal
+    local journal_status
+    if journal_status="$(python3 "$HARNESS_DIR/tools/setup/install_transaction.py" journal-status \
+        --journal "$target/.agentharness-state.pending.json" 2>&1)"; then
+        local journal_pending
+        journal_pending="$(echo "$journal_status" | python3 -c 'import json,sys; print(json.load(sys.stdin)["pending"])' 2>/dev/null || echo "")"
+        if [ "$journal_pending" = "True" ]; then
+            echo "  ✗ an install/update was interrupted mid-apply (pending journal found)." >&2
+            echo "$journal_status" | python3 -c '
+import json, sys
+for s in json.load(sys.stdin)["summary"]:
+    print("    " + s)
+'
+            echo "    Recovery: re-run '\''init'\''/'\''update'\'' to complete the interrupted apply, or" >&2
+            echo "    inspect .agentharness-state.pending.json and remove it if safe." >&2
+            failed=1
+        elif [ -z "$journal_pending" ]; then
+            echo "  ✗ could not parse journal-status output — the pending journal file may be corrupted." >&2
+            echo "$journal_status" >&2
+            failed=1
+        fi
+    else
+        echo "  ✗ journal-status check itself failed to run:" >&2
+        echo "$journal_status" >&2
+        failed=1
+    fi
+
+    # Managed-block drift: does the block currently on disk still match
+    # what was recorded (by hash) when it was last installed/updated?
+    python3 -c "
+import hashlib
+import sys
+sys.path.insert(0, '$HARNESS_DIR/tools/setup')
+import install_transaction as it
+import block_installer as bi
+
+state = it.load_state('$(state_path "$target")')
+any_drift = False
+for entry in state.get('managed_blocks', []):
+    path = '$target/' + entry['file']
+    try:
+        content = open(path, encoding='utf-8').read()
+    except FileNotFoundError:
+        print(f'  WARN: {entry[\"file\"]}: recorded as managed but file is missing')
+        continue
+    try:
+        matches = bi.find_blocks(content, entry['block_id'])
+    except bi.MarkerError:
+        print(f'  WARN: {entry[\"file\"]}: malformed markers, cannot verify drift')
+        any_drift = True
+        continue
+    if len(matches) != 1:
+        print(f'  WARN: {entry[\"file\"]}: expected one managed block, found {len(matches)}')
+        any_drift = True
+        continue
+    m = matches[0]
+    current_block_text = content[m.start:m.end]
+    current_hash = bi.sha256_bytes(current_block_text.encode('utf-8'))
+    if current_hash != entry.get('rendered_sha256'):
+        print(f'  drift: {entry[\"file\"]}: on-disk managed block does not match last-recorded render (hand-edited, or a version bump is pending — re-run update)')
+        any_drift = True
+    else:
+        print(f'  OK: {entry[\"file\"]}: managed block matches last-recorded render')
+sys.exit(1 if any_drift else 0)
+" || failed=1
 
     if [ "$failed" -ne 0 ]; then
         echo "doctor: FAILED — see ✗ items above."
@@ -1540,10 +1869,13 @@ confirm() {
 }
 
 cmd_update() {
-    local target="" yes=false
+    local target="" yes=false force=false dry_run=false keep_existing=false
     while [ $# -gt 0 ]; do
         case "$1" in
             --yes) yes=true; shift ;;
+            --force) force=true; shift ;;
+            --dry-run) dry_run=true; shift ;;
+            --keep-existing) keep_existing=true; shift ;;
             -h|--help) usage; exit 0 ;;
             *) if [ -z "$target" ]; then target="$1"; else echo "Unexpected argument: $1" >&2; exit 1; fi; shift ;;
         esac
@@ -1617,59 +1949,90 @@ cmd_update() {
     [ "${#to_remove[@]}" -gt 0 ] && printf '  - remove: %s\n' "${to_remove[@]}"
     [ "${#to_refresh[@]}" -gt 0 ] && printf '  ~ content changed upstream: %s\n' "${to_refresh[@]}"
 
-    if [ "${#to_add[@]}" -eq 0 ] && [ "${#to_remove[@]}" -eq 0 ] && [ "${#to_refresh[@]}" -eq 0 ]; then
-        echo "  (nothing to do)"
+    if [ "$dry_run" = true ]; then
+        # --dry-run must never mutate: skip skill sync, .gitignore merge,
+        # and state_write entirely, and pass dry_run through to the
+        # managed-block/collision flow too (parity with 'init --dry-run').
+        # source_revision/new_skills_csv aren't computed yet at this point
+        # in the function (that happens later, only on the real-apply
+        # path) — compute local equivalents from what's already available
+        # ($source_path, $current) instead of reusing those names early.
+        local dry_run_source_revision dry_run_skills_csv
+        dry_run_source_revision="$(source_revision_for "$source_path" "$mode")"
+        dry_run_skills_csv="$(IFS=,; echo "${current[*]}")"
+
+        acquire_install_lock "$target" || exit 1
+        local surfaces_json rendered_block install_id
+        install_id="$(python3 -c 'import uuid; print(uuid.uuid4().hex[:8])')"
+        rendered_block="$(render_core_instructions_block "$target" "$dry_run_skills_csv")"
+        surfaces_json="$(build_surfaces_spec "$target" "$rendered_block" "$dry_run_source_revision")"
+        resolve_collisions_and_apply "$target" "$surfaces_json" "$install_id" "$force" "$dry_run" "$keep_existing" || {
+            release_install_lock "$target"
+            exit 1
+        }
+        release_install_lock "$target"
+        echo "(dry run — nothing was changed)"
         return 0
     fi
 
-    confirm "$yes" "Apply this update?" || { echo "Aborted."; return 1; }
+    if [ "${#to_add[@]}" -eq 0 ] && [ "${#to_remove[@]}" -eq 0 ] && [ "${#to_refresh[@]}" -eq 0 ]; then
+        # Preserve the original "(nothing to do)" wording several existing
+        # tests assert on. We still fall through to the unconditional
+        # managed-block flow below (outside this if/else) to catch drifted
+        # blocks even when no skills changed — that flow is idempotent
+        # (atomic_write no-ops on unchanged content) and silent when
+        # there's nothing to fix, so it doesn't contradict this message.
+        echo "  (nothing to do)"
+    else
+        confirm "$yes" "Apply this update?" || { echo "Aborted."; return 1; }
 
-    for name in "${to_remove[@]}"; do
-        for dest_subdir in "${SKILL_DEST_SUBDIRS[@]}"; do
-            local dst="$target/$dest_subdir/$name"
-            if [ -L "$dst" ] || [ -d "$dst" ]; then
-                rm -rf "$dst"
-            fi
-        done
-        echo "  Removed: $name"
-    done
-
-    for name in "${current[@]}"; do
-        for dest_subdir in "${SKILL_DEST_SUBDIRS[@]}"; do
-            mkdir -p "$target/$dest_subdir"
-            local src="$source_path/.claude/skills/$name"
-            local dst="$target/$dest_subdir/$name"
-            case "$mode" in
-                link|submodule|npm)
-                    [ -e "$dst" ] && [ ! -L "$dst" ] && continue
-                    [ -L "$dst" ] && rm "$dst"
-                    ln -s "$src" "$dst"
-                    ;;
-                copy)
+        for name in "${to_remove[@]}"; do
+            for dest_subdir in "${SKILL_DEST_SUBDIRS[@]}"; do
+                local dst="$target/$dest_subdir/$name"
+                if [ -L "$dst" ] || [ -d "$dst" ]; then
                     rm -rf "$dst"
-                    # -L: dereference symlinks instead of copying them as
-                    # symlinks. Skills bundle relative symlinks back to
-                    # patterns/<name>/ (see P1-03) that only resolve from
-                    # inside this checkout; a plain `cp -r` would copy those
-                    # links literally into the target, where they point at a
-                    # patterns/ directory copy mode never creates.
-                    cp -rL "$src" "$dst"
-                    ;;
-            esac
+                fi
+            done
+            echo "  Removed: $name"
         done
-    done
-    echo "  Re-synced ${#current[@]} skill(s)"
 
-    local gitignore_template="$HARNESS_DIR/.github/.gitignore.template"
-    local gitignore_dst="$target/.gitignore"
-    if [ -f "$gitignore_template" ] && [ -f "$gitignore_dst" ]; then
-        local new_entries
-        new_entries="$(comm -23 \
-            <(grep -vE '^\s*(#|$)' "$gitignore_template" | sort -u) \
-            <(grep -vE '^\s*(#|$)' "$gitignore_dst" | sort -u))"
-        if [ -n "$new_entries" ]; then
-            { echo ""; echo "$GITIGNORE_MARKER"; echo "$new_entries"; } >> "$gitignore_dst"
-            echo "  Merged new .gitignore entries"
+        for name in "${current[@]}"; do
+            for dest_subdir in "${SKILL_DEST_SUBDIRS[@]}"; do
+                mkdir -p "$target/$dest_subdir"
+                local src="$source_path/.claude/skills/$name"
+                local dst="$target/$dest_subdir/$name"
+                case "$mode" in
+                    link|submodule|npm)
+                        [ -e "$dst" ] && [ ! -L "$dst" ] && continue
+                        [ -L "$dst" ] && rm "$dst"
+                        ln -s "$src" "$dst"
+                        ;;
+                    copy)
+                        rm -rf "$dst"
+                        # -L: dereference symlinks instead of copying them as
+                        # symlinks. Skills bundle relative symlinks back to
+                        # patterns/<name>/ (see P1-03) that only resolve from
+                        # inside this checkout; a plain `cp -r` would copy those
+                        # links literally into the target, where they point at a
+                        # patterns/ directory copy mode never creates.
+                        cp -rL "$src" "$dst"
+                        ;;
+                esac
+            done
+        done
+        echo "  Re-synced ${#current[@]} skill(s)"
+
+        local gitignore_template="$HARNESS_DIR/.github/.gitignore.template"
+        local gitignore_dst="$target/.gitignore"
+        if [ -f "$gitignore_template" ] && [ -f "$gitignore_dst" ]; then
+            local new_entries
+            new_entries="$(comm -23 \
+                <(grep -vE '^\s*(#|$)' "$gitignore_template" | sort -u) \
+                <(grep -vE '^\s*(#|$)' "$gitignore_dst" | sort -u))"
+            if [ -n "$new_entries" ]; then
+                { echo ""; echo "$GITIGNORE_MARKER"; echo "$new_entries"; } >> "$gitignore_dst"
+                echo "  Merged new .gitignore entries"
+            fi
         fi
     fi
 
@@ -1679,6 +2042,19 @@ cmd_update() {
     source_remote="$(git -C "$source_path" remote get-url origin 2>/dev/null || true)"
     local new_skills_csv
     new_skills_csv="$(IFS=,; echo "${current[*]}")"
+
+    # Existing-surface integration: same as cmd_init
+    acquire_install_lock "$target" || exit 1
+    local surfaces_json rendered_block install_id
+    install_id="$(python3 -c 'import uuid; print(uuid.uuid4().hex[:8])')"
+    rendered_block="$(render_core_instructions_block "$target" "$new_skills_csv")"
+    surfaces_json="$(build_surfaces_spec "$target" "$rendered_block" "$source_revision")"
+    resolve_collisions_and_apply "$target" "$surfaces_json" "$install_id" "$force" "$dry_run" "$keep_existing" || {
+        release_install_lock "$target"
+        exit 1
+    }
+    release_install_lock "$target"
+
     state_write "$target" "$mode" "$new_skills_csv" "$skills_filter" "$with_hook" \
         "$profile" "$source_path" "$source_revision" "$source_remote" "$hooks_path" "$coverage_hook"
     echo "Updated."
@@ -1803,6 +2179,15 @@ cmd_uninstall() {
         rm -rf "${target:?}/${NPM_DURABLE_PATH:?}"
         echo "  Removed the $NPM_DURABLE_PATH durable source copy"
     fi
+
+    local uninstall_json
+    uninstall_json="$(python3 "$HARNESS_DIR/tools/setup/install_transaction.py" uninstall \
+        --state "$(state_path "$target")" --base-dir "$target")"
+    echo "$uninstall_json" | python3 -c '
+import json, sys
+for line in json.load(sys.stdin)["log"]:
+    print("  " + line)
+'
 
     rm -f "$(state_path "$target")"
     echo "Uninstalled."
@@ -1981,6 +2366,15 @@ cmd_generate_clients() {
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     case "${1:-}" in
+        __test_acquire_install_lock)
+            shift; acquire_install_lock "$1"; exit $?
+            ;;
+        __test_release_install_lock)
+            shift; release_install_lock "$1"; exit $?
+            ;;
+        __test_resolve_collisions_and_apply)
+            shift; resolve_collisions_and_apply "$@"; exit $?
+            ;;
         init|plan|status|doctor|audit|audit-prs|enforce-profile|generate-clients|update|uninstall)
             cmd="$1"; shift
             ;;

@@ -412,7 +412,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        fixture: [python-project, typescript-project, go-project]
+        fixture: [python-project, typescript-project, go-project, existing-surface-project]
         mode: [link, copy, submodule]
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -437,3 +437,11 @@ jobs:
           # Uninstall must be complete: no state file, no lingering skills.
           [ ! -f "$TMP/.agentharness-state.json" ]
           [ ! -e "$TMP/.claude/skills/committing" ]
+
+          if [ "${{ matrix.fixture }}" = "existing-surface-project" ]; then
+            # Managed block removed, pre-existing content and the unrelated
+            # .cursor/rules/testing.mdc file survive exactly as they were.
+            ! grep -q "agentharness:begin" "$TMP/AGENTS.md"
+            grep -qF "Custom project note: do not delete this line in tests." "$TMP/AGENTS.md"
+            grep -qF "This is the consumer's own pre-existing Cursor rule file" "$TMP/.cursor/rules/testing.mdc"
+          fi

@@ -1,0 +1,7 @@
+This is the consumer's own pre-existing Cursor rule file, unrelated to
+anything harness-link.sh's init/update currently manages. It must never
+be touched, modified, or deleted by init/update/uninstall — the
+managed-block/collision machinery only applies to the four block-managed
+instructions files (CLAUDE.md, AGENTS.md, GEMINI.md,
+.github/copilot-instructions.md); this file exists in the fixture purely
+to verify the harness leaves everything else in the project alone.

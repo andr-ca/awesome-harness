@@ -122,6 +122,10 @@ Copied from agentharness @ $harness_rev
 EOF
 ```
 
+The hand-append above is what `harness-link.sh init`/`update` now do for you
+automatically, and more carefully (idempotent, reversible, never touching
+your file's other content) — see "Existing Agent Surfaces" below.
+
 **Pros:** Independent of harness changes. **Cons:** Manual sync when the
 harness improves (`harness-link.sh update` automates the sync itself, but
 you still decide when to run it).
@@ -174,6 +178,57 @@ diffing the copy against itself would always report "nothing to do".
 durable copy is local-only state, not tracked in your project's git
 history (add `.agentharness-pkg/` to `.gitignore`, which the harness's
 own gitignore template already does).
+
+## Existing Agent Surfaces
+
+If your project already has a `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, or
+`.github/copilot-instructions.md` before you ever run `harness-link.sh`,
+you don't need to hand-merge anything. `init` and `update` render a
+marker-delimited block into each of those files that already exists (or
+create the file if it doesn't), leaving everything else in the file byte-
+for-byte untouched:
+
+```
+<!-- agentharness:begin id=core-instructions version=0.2.1 -->
+... harness routing/precedence content, regenerated on every init/update ...
+<!-- agentharness:end id=core-instructions -->
+```
+
+Re-running `init`/`update` replaces only the content between those
+markers — never anything outside them. `uninstall` removes the block
+entirely and restores your file to what it would have looked like without
+the harness, preserving your own content exactly.
+
+**Precedence:** where the harness enforces something mechanically (a git
+hook, the completion gate), your project's own instructions cannot weaken
+it — but for everything else, your project's own instructions in that
+same file take precedence over the harness's *defaults*. See
+[the design spec, section 3](superpowers/specs/2026-07-17-existing-surface-integration-design.md#3-precedence)
+for the exact wording this block itself carries.
+
+**Whole-file generated surfaces** (directory-style outputs like
+`.cursor/rules/*.mdc` from `generate-cursor-rules.sh` — see the Cursor
+section below) use a different, coarser mechanism: since there's no safe
+way to merge a whole generated file the way a marker block merges into an
+existing one, a pre-existing file at that exact path is a *collision*,
+and `init`/`update` will:
+
+- **prompt interactively** (`[o]verwrite / [k]eep yours / [a]ll / [n]one`)
+  when stdin is a real, attended session;
+- **skip and report, exiting non-zero**, if unattended and neither flag
+  below is given — an unattended run never silently overwrites a file the
+  harness doesn't own;
+- honor **`--force`** to overwrite every collision (backing up what it
+  replaces to `<file>.pre-agentharness.<install-id>` first — restorable
+  by `uninstall` if the file is later removed and hasn't been edited
+  since), or **`--keep-existing`** to skip every collision without asking.
+- **`--dry-run`** shows the full plan — including any collisions found —
+  without writing anything.
+
+Run `harness-link.sh doctor` at any time to check for a managed block
+that's drifted from what the harness would currently render (hand-edited,
+or stale relative to the harness's current source revision), or a crash
+journal left behind by an install/update that was interrupted mid-apply.
 
 ## Per-Component Integration
 
@@ -330,6 +385,14 @@ the closest native analog to SKILL.md's own progressive disclosure).
 Re-run it whenever `CLAUDE.md` or the skill catalog changes. **Not
 verified against a live Cursor session** — built from public docs as of
 2026-07-14.
+
+Generating cursor rules is a separate, manual step from `init`/`update` —
+running `generate-cursor-rules.sh` is not currently part of the automatic
+existing-surface collision handling described above; if you run it
+against a project where `.cursor/rules/*.mdc` files already exist, it
+follows its own overwrite rules (see `--help`), independent of the
+`--force`/`--keep-existing` collision flow `init`/`update` use for the
+four instructions files.
 
 ### Custom Agents (sub-agent delegation)
 

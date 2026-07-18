@@ -9,3 +9,13 @@ docs/operational/harness-feedback.md
 tools/safe-pr-merge.sh
 tools/tests/safe-pr-merge.bats
 docs/superpowers/specs/2026-07-17-existing-surface-integration-design.md
+docs/superpowers/plans/2026-07-17-existing-surface-integration.md
+tools/setup/block_installer.py
+tools/tests/test_block_installer.py
+tools/setup/install_transaction.py
+tools/tests/test_install_transaction.py
+examples/existing-surface-project/AGENTS.md
+examples/existing-surface-project/.cursor/rules/testing.mdc
+examples/existing-surface-project/.gitignore
+examples/existing-surface-project/verify.sh
+examples/existing-surface-project/README.md

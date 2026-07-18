@@ -1,0 +1,4 @@
+# Pre-existing, realistic .gitignore — used to verify harness-link.sh's
+# merge is additive and never disturbs entries already here.
+local-notes.txt
+*.mytool-cache/

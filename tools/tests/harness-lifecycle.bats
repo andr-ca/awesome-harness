@@ -431,6 +431,35 @@ print(d['hooks_path'])
     [[ "$output" =~ "both pre-commit and pre-merge-commit hooks present" ]]
 }
 
+@test "doctor: reports a leftover crash journal" {
+    echo "# My project" > "$TEST_PROJECT/AGENTS.md"
+    bash "$SCRIPT" init "$TEST_PROJECT" --mode copy --skills committing
+    echo '{"plan_summary": ["AGENTS.md: upsert_block"]}' > "$TEST_PROJECT/.agentharness-state.pending.json"
+    run bash "$SCRIPT" doctor "$TEST_PROJECT"
+    [ "$status" -ne 0 ]
+    [[ "$output" =~ "pending" ]] || [[ "$output" =~ "journal" ]] || [[ "$output" =~ "interrupted" ]]
+    rm -f "$TEST_PROJECT/.agentharness-state.pending.json"
+}
+
+@test "doctor: flags a managed block that has drifted from current render" {
+    echo "# My project" > "$TEST_PROJECT/AGENTS.md"
+    bash "$SCRIPT" init "$TEST_PROJECT" --mode copy --skills committing
+    sed -i 's/version=[^ ]* -->/version=0.0.1 -->/' "$TEST_PROJECT/AGENTS.md" 2>/dev/null || \
+        sed -i '' 's/version=[^ ]* -->/version=0.0.1 -->/' "$TEST_PROJECT/AGENTS.md"
+    run bash "$SCRIPT" doctor "$TEST_PROJECT"
+    [[ "$output" =~ "drift" ]]
+}
+
+@test "doctor: fails when pending journal is corrupted/unparseable" {
+    echo "# My project" > "$TEST_PROJECT/AGENTS.md"
+    bash "$SCRIPT" init "$TEST_PROJECT" --mode copy --skills committing
+    echo "not valid json" > "$TEST_PROJECT/.agentharness-state.pending.json"
+    run bash "$SCRIPT" doctor "$TEST_PROJECT"
+    [ "$status" -ne 0 ]
+    [[ "$output" =~ "corrupted" ]] || [[ "$output" =~ "parse" ]] || [[ "$output" =~ "failed to run" ]]
+    rm -f "$TEST_PROJECT/.agentharness-state.pending.json"
+}
+
 @test "lifecycle: uninstall declines without confirmation" {
     bash "$SCRIPT" init "$TEST_PROJECT" --skills committing
 
@@ -933,4 +962,196 @@ PYEOF
     [ "$status" -eq 0 ]
 
     rm -rf "$remote"
+}
+
+@test "install lock: acquire and release round-trip" {
+    run bash "$SCRIPT" __test_acquire_install_lock "$TEST_PROJECT"
+    [ "$status" -eq 0 ]
+    [ -d "$TEST_PROJECT/.agentharness-install.lock" ]
+    run bash "$SCRIPT" __test_release_install_lock "$TEST_PROJECT"
+    [ "$status" -eq 0 ]
+    [ ! -d "$TEST_PROJECT/.agentharness-install.lock" ]
+}
+
+@test "install lock: second acquire fails while first is held" {
+    run bash "$SCRIPT" __test_acquire_install_lock "$TEST_PROJECT"
+    [ "$status" -eq 0 ]
+    run bash "$SCRIPT" __test_acquire_install_lock "$TEST_PROJECT"
+    [ "$status" -ne 0 ]
+    [[ "$output" =~ "already in progress" ]] || [[ "$output" =~ "lock" ]]
+    run bash "$SCRIPT" __test_release_install_lock "$TEST_PROJECT"
+    [ "$status" -eq 0 ]
+}
+
+@test "init: renders managed block into pre-existing AGENTS.md" {
+    echo "# My project" > "$TEST_PROJECT/AGENTS.md"
+    run bash "$SCRIPT" init "$TEST_PROJECT" --mode copy --skills committing
+    [ "$status" -eq 0 ]
+    grep -q "agentharness:begin id=core-instructions" "$TEST_PROJECT/AGENTS.md"
+    grep -q "# My project" "$TEST_PROJECT/AGENTS.md"
+}
+
+@test "init: re-running is idempotent on the managed block" {
+    echo "# My project" > "$TEST_PROJECT/AGENTS.md"
+    bash "$SCRIPT" init "$TEST_PROJECT" --mode copy --skills committing
+    local first_hash
+    first_hash="$(sha256sum "$TEST_PROJECT/AGENTS.md" | cut -d' ' -f1)"
+    run bash "$SCRIPT" update "$TEST_PROJECT" --yes
+    [ "$status" -eq 0 ]
+    local second_hash
+    second_hash="$(sha256sum "$TEST_PROJECT/AGENTS.md" | cut -d' ' -f1)"
+    [ "$first_hash" = "$second_hash" ]
+}
+
+@test "init: creates managed block in .github/copilot-instructions.md (parent dir doesn't exist)" {
+    [ ! -d "$TEST_PROJECT/.github" ]
+    run bash "$SCRIPT" init "$TEST_PROJECT" --mode copy --skills committing
+    [ "$status" -eq 0 ]
+    [ -f "$TEST_PROJECT/.github/copilot-instructions.md" ]
+    grep -q "agentharness:begin id=core-instructions" "$TEST_PROJECT/.github/copilot-instructions.md"
+}
+
+@test "init: releases lock if resolve_collisions_and_apply fails (regression: lock leak prevention)" {
+    # Force a failure by creating a file with malformed markers (no end tag)
+    # This causes classification HARD_FAIL, apply exits 1, but lock must be released
+    echo "<!-- agentharness:begin id=core-instructions version=0.1.0 -->" > "$TEST_PROJECT/AGENTS.md"
+    echo "no end marker" >> "$TEST_PROJECT/AGENTS.md"
+    run bash "$SCRIPT" init "$TEST_PROJECT" --mode copy --skills committing
+    [ "$status" -ne 0 ]
+    [ ! -d "$TEST_PROJECT/.agentharness-install.lock" ]
+}
+
+@test "init --dry-run prints plan without writing" {
+    echo "# existing" > "$TEST_PROJECT/AGENTS.md"
+    run bash "$SCRIPT" init "$TEST_PROJECT" --mode copy --skills committing --dry-run
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "AGENTS.md" ]]
+    ! grep -q "agentharness:begin" "$TEST_PROJECT/AGENTS.md"
+}
+
+@test "init does NOT create any .cursor/rules files (no fabricated whole-file surfaces)" {
+    bash "$SCRIPT" init "$TEST_PROJECT" --mode copy --skills committing
+    [ ! -e "$TEST_PROJECT/.cursor" ]
+    [ ! -e "$TEST_PROJECT/.cursor/rules" ]
+    [ ! -e "$TEST_PROJECT/.cursor/rules/testing.mdc" ]
+}
+
+@test "init: whole-file collision prompts and honors 'keep' via stdin" {
+    # Test __test_resolve_collisions_and_apply with a synthetic whole-file surface
+    mkdir -p "$TEST_PROJECT/.cursor/rules"
+    echo "my own rule" > "$TEST_PROJECT/.cursor/rules/test-surface.txt"
+
+    run bash -c "printf 'k\n' | bash '$SCRIPT' __test_resolve_collisions_and_apply '$TEST_PROJECT' '[{\"path\": \"$TEST_PROJECT/.cursor/rules/test-surface.txt\", \"is_block_surface\": false, \"content\": \"harness content\"}]' testid false false false"
+    [ "$status" -eq 0 ]
+    grep -q "my own rule" "$TEST_PROJECT/.cursor/rules/test-surface.txt"
+}
+
+@test "init --force overwrites whole-file collision with backup" {
+    # Test __test_resolve_collisions_and_apply with --force flag
+    mkdir -p "$TEST_PROJECT/.cursor/rules"
+    echo "my own rule" > "$TEST_PROJECT/.cursor/rules/test-surface.txt"
+
+    run bash "$SCRIPT" __test_resolve_collisions_and_apply "$TEST_PROJECT" '[{"path": "'$TEST_PROJECT'/.cursor/rules/test-surface.txt", "is_block_surface": false, "content": "harness content"}]' testid true false false
+    [ "$status" -eq 0 ]
+    ! grep -q "my own rule" "$TEST_PROJECT/.cursor/rules/test-surface.txt"
+    grep -q "harness content" "$TEST_PROJECT/.cursor/rules/test-surface.txt"
+    compgen -G "$TEST_PROJECT/.cursor/rules/test-surface.txt.pre-agentharness.*" >/dev/null
+}
+
+@test "init --keep-existing skips all collisions without prompting" {
+    # Test __test_resolve_collisions_and_apply with --keep-existing flag
+    mkdir -p "$TEST_PROJECT/.cursor/rules"
+    echo "my own rule" > "$TEST_PROJECT/.cursor/rules/test-surface.txt"
+
+    run bash "$SCRIPT" __test_resolve_collisions_and_apply "$TEST_PROJECT" '[{"path": "'$TEST_PROJECT'/.cursor/rules/test-surface.txt", "is_block_surface": false, "content": "harness content"}]' testid false false true
+    [ "$status" -eq 0 ]
+    grep -q "my own rule" "$TEST_PROJECT/.cursor/rules/test-surface.txt"
+}
+
+@test "resolve_collisions_and_apply returns 1 on stdin EOF without --force/--keep-existing (safety: unattended runs must not auto-overwrite)" {
+    # Regression test: when stdin closes (EOF) without user response and no --force/--keep-existing,
+    # the function must report the error and fail, not silently overwrite the consumer's file.
+    # This safety behavior was violated in Task 13 and must not regress.
+    mkdir -p "$TEST_PROJECT/.cursor/rules"
+    echo "existing consumer content" > "$TEST_PROJECT/.cursor/rules/test.txt"
+
+    run bash -c "bash '$SCRIPT' __test_resolve_collisions_and_apply '$TEST_PROJECT' '[{\"path\": \"$TEST_PROJECT/.cursor/rules/test.txt\", \"is_block_surface\": false, \"content\": \"harness content\"}]' id false false false < /dev/null"
+    [ "$status" -ne 0 ]
+    [[ "$output" =~ "stdin closed" ]]
+    # Verify the file was NOT overwritten
+    grep -q "existing consumer content" "$TEST_PROJECT/.cursor/rules/test.txt"
+}
+
+@test "update: re-renders drifted managed block back to current content" {
+    bash "$SCRIPT" init "$TEST_PROJECT" --mode copy --skills committing
+    sed -i 's/Installed skills/DRIFTED TEXT/' "$TEST_PROJECT/AGENTS.md" 2>/dev/null || \
+        sed -i '' 's/Installed skills/DRIFTED TEXT/' "$TEST_PROJECT/AGENTS.md"
+    run bash "$SCRIPT" update "$TEST_PROJECT" --yes
+    [ "$status" -eq 0 ]
+    grep -q "Installed skills" "$TEST_PROJECT/AGENTS.md"
+}
+
+@test "update --dry-run makes no filesystem or state changes (regression: PR #90 review)" {
+    bash "$SCRIPT" init "$TEST_PROJECT" --mode copy --skills committing
+    local state_before
+    state_before="$(cat "$TEST_PROJECT/.agentharness-state.json")"
+    local agents_before
+    agents_before="$(sha256sum "$TEST_PROJECT/AGENTS.md" | cut -d' ' -f1)"
+
+    run bash "$SCRIPT" update "$TEST_PROJECT" --dry-run
+    [ "$status" -eq 0 ]
+
+    [ "$state_before" = "$(cat "$TEST_PROJECT/.agentharness-state.json")" ]
+    [ "$agents_before" = "$(sha256sum "$TEST_PROJECT/AGENTS.md" | cut -d' ' -f1)" ]
+}
+
+@test "uninstall: removes managed block, preserves surrounding content" {
+    echo "# My project" > "$TEST_PROJECT/AGENTS.md"
+    echo "custom line" >> "$TEST_PROJECT/AGENTS.md"
+    bash "$SCRIPT" init "$TEST_PROJECT" --mode copy --skills committing
+    run bash "$SCRIPT" uninstall "$TEST_PROJECT" --yes
+    [ "$status" -eq 0 ]
+    ! grep -q "agentharness:begin" "$TEST_PROJECT/AGENTS.md"
+    grep -q "# My project" "$TEST_PROJECT/AGENTS.md"
+    grep -q "custom line" "$TEST_PROJECT/AGENTS.md"
+}
+
+@test "uninstall: restores backup for an unmodified overwritten file" {
+    bash "$SCRIPT" init "$TEST_PROJECT" --mode copy --skills committing
+    mkdir -p "$TEST_PROJECT/.cursor/rules"
+    echo "my own rule" > "$TEST_PROJECT/.cursor/rules/testing.mdc"
+    # Seed a real overwritten_files state entry via the collision-resolution
+    # helper (same one Task 13's tests use), targeting the state file that
+    # init just created, so uninstall has something real to reverse.
+    local surfaces_json
+    surfaces_json="$(python3 -c "import json; print(json.dumps([{'path': '$TEST_PROJECT/.cursor/rules/testing.mdc', 'is_block_surface': False, 'content': 'harness content\n'}]))")"
+    run bash "$SCRIPT" __test_resolve_collisions_and_apply "$TEST_PROJECT" "$surfaces_json" testid true false false
+    [ "$status" -eq 0 ]
+    run bash "$SCRIPT" uninstall "$TEST_PROJECT" --yes
+    [ "$status" -eq 0 ]
+    grep -q "my own rule" "$TEST_PROJECT/.cursor/rules/testing.mdc"
+}
+
+@test "uninstall: leaves post-install user edits in place with a warning" {
+    bash "$SCRIPT" init "$TEST_PROJECT" --mode copy --skills committing
+    mkdir -p "$TEST_PROJECT/.cursor/rules"
+    echo "my own rule" > "$TEST_PROJECT/.cursor/rules/testing.mdc"
+    local surfaces_json
+    surfaces_json="$(python3 -c "import json; print(json.dumps([{'path': '$TEST_PROJECT/.cursor/rules/testing.mdc', 'is_block_surface': False, 'content': 'harness content\n'}]))")"
+    run bash "$SCRIPT" __test_resolve_collisions_and_apply "$TEST_PROJECT" "$surfaces_json" testid true false false
+    [ "$status" -eq 0 ]
+    echo "edited after install" > "$TEST_PROJECT/.cursor/rules/testing.mdc"
+    run bash "$SCRIPT" uninstall "$TEST_PROJECT" --yes
+    [ "$status" -eq 0 ]
+    grep -q "edited after install" "$TEST_PROJECT/.cursor/rules/testing.mdc"
+    [[ "$output" =~ "backup" ]] || [[ "$output" =~ "edited" ]]
+}
+
+@test "uninstall: called twice is a no-op the second time" {
+    echo "# My project" > "$TEST_PROJECT/AGENTS.md"
+    bash "$SCRIPT" init "$TEST_PROJECT" --mode copy --skills committing
+    bash "$SCRIPT" uninstall "$TEST_PROJECT" --yes
+    run bash "$SCRIPT" uninstall "$TEST_PROJECT" --yes
+    [ "$status" -ne 0 ]  # require_state fails: no state file left — expected message, not a crash
+    [[ "$output" =~ "no .agentharness-state.json" ]] || [[ "$output" =~ "init" ]]
 }
