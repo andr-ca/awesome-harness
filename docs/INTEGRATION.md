@@ -508,6 +508,33 @@ This doesn't override an explicit instruction in a given request either
 way — telling an agent "commit and push this" (or "just stage this,
 don't push") always wins for that one task regardless of the flag.
 
+### PR Merge Checklist (`tools/safe-pr-merge.sh`)
+
+`CLAUDE.md`'s merge mandate — wait for automated review (not just green
+CI), reply to every comment, then verify the *actual* post-merge CI run
+on the base branch before reporting anything done — is easy to skip
+under time pressure when it's only prose an agent has to remember and
+re-derive every time (see [#97](https://github.com/andr-ca/agentharness/issues/97)
+for a real case where it was). `tools/safe-pr-merge.sh` bakes that
+checklist into one script instead:
+
+```bash
+~/agentharness/tools/safe-pr-merge.sh <pr-number> [--delete-branch]
+```
+
+Run it from the project whose PR you're merging (it reads that
+project's own `git remote origin` to resolve the repo, same as `gh`
+does) — it doesn't need to be copied into the project itself. It
+refuses with a clear error at whichever step fails (CI red, unreplied
+comments, post-merge CI red) instead of silently reporting success.
+
+It also self-checks: if the copy of the script you're running differs
+from the version on agentharness's own default branch, it prints a
+warning (not a hard failure) before doing anything else — a stale local
+checkout of the *harness* can otherwise silently regress an
+already-fixed bug in the merge tool itself
+([#99](https://github.com/andr-ca/agentharness/issues/99)).
+
 ## Project-Specific CLAUDE.md Template
 
 ```markdown

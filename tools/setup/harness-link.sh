@@ -496,6 +496,16 @@ instructions take precedence over harness *defaults* everywhere else.
 Installed skills:
 $skills_list
 
+**PR merge checklist:** never merge on green CI alone. Wait for
+automated review (e.g. GitHub Copilot) to post *or* its check-run to
+reach a completed state before proceeding; reply to every review
+comment (issue-level and inline) with what you did about it; then
+watch the post-merge CI run on the base branch to an actual terminal
+state — "pushed"/"merged" and "verified green" are different claims,
+only the second means done. If this checkout has agentharness's own
+\`tools/safe-pr-merge.sh\` available (see its INTEGRATION.md section),
+prefer it over doing these steps by hand — it enforces the sequence.
+
 Full policy: see the harness's own CLAUDE.md via your install mode, or
 https://github.com/andr-ca/agentharness/blob/main/CLAUDE.md
 EOF
