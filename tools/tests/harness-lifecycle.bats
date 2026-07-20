@@ -722,7 +722,11 @@ with open('$TEST_PROJECT/.agentharness-state.json') as f: print(json.load(f)['so
 
     [ -d "$TEST_PROJECT/.agentharness-pkg" ]
     [ ! -e "$TEST_PROJECT/.agentharness-pkg/.git" ]
-    target="$(readlink "$TEST_PROJECT/.claude/skills/agentic-loops")"
+    # npm mode's symlink is relative (issue #109 — an absolute symlink
+    # here would still break after committing and cloning elsewhere,
+    # even though the durable copy itself already travels with the
+    # clone), so resolve it before checking where it actually points.
+    target="$(readlink -f "$TEST_PROJECT/.claude/skills/agentic-loops")"
     [[ "$target" == "$TEST_PROJECT/.agentharness-pkg"* ]]
 
     run python3 -c "
@@ -841,7 +845,8 @@ with open(path, 'w') as f:
     [ "$status" -eq 0 ]
     [[ "$output" =~ "+ add: committing" ]]
     [ -L "$TEST_PROJECT/.claude/skills/committing" ]
-    [ "$(readlink "$TEST_PROJECT/.claude/skills/committing")" = "$TEST_PROJECT/.agentharness-pkg/.claude/skills/committing" ]
+    # Relative symlink (issue #109) -- resolve before comparing.
+    [ "$(readlink -f "$TEST_PROJECT/.claude/skills/committing")" = "$TEST_PROJECT/.agentharness-pkg/.claude/skills/committing" ]
 }
 
 @test "lifecycle: --mode npm uninstall removes the durable source copy" {

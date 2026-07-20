@@ -8,6 +8,51 @@ go at the top.
 
 Format: **Decision** / **Status** / **Context** / **Consequences**.
 
+## Relative symlinks for submodule/npm install modes
+
+**Status:** Settled.
+
+**Context:** [#106](https://github.com/andr-ca/agentharness/issues/106)
+fixed `--mode link`'s absolute-path symlinks by changing the *default*
+mode to `copy`, but [#109](https://github.com/andr-ca/agentharness/issues/109)
+(a Copilot review comment on #106's own PR) pointed out the same failure
+class survives one layer down in `--mode submodule` and `--mode npm`:
+both already made the *source* portable (a submodule/durable copy
+travels with a `git clone`), but the skill symlinks pointing at that
+source were still created via a plain `ln -s "$src" "$dst"`, where
+`$src` is built from `$target` — resolved to an absolute path via
+`cd "$target" && pwd` at install time. Install with `--mode submodule`
+or `--mode npm`, commit the result, clone the whole project onto a
+different machine or a different absolute path on the same machine —
+the symlinks still point at the old absolute location and resolve to
+nothing, identical to #106's failure mode.
+
+**Consequences:** `tools/setup/harness-link.sh`'s new `relative_symlink()`
+helper computes a path relative to the symlink's own parent directory
+(via `python3 -c 'import os; os.path.relpath(...)'`, already a hard
+dependency of this script — no new one added) before calling `ln -s`,
+used for both `submodule` and `npm` modes, in both `cmd_init`'s and
+`cmd_update`'s skill-linking loops. `--mode link` deliberately keeps
+absolute symlinks: it's documented (per #106's fix) as the
+same-machine, same-checkout, not-for-committing case, so a relative
+path adds nothing there and adds one more thing that could go stale if
+the *project* moves relative to the harness checkout instead of the
+reverse. Verified by installing with each mode, moving the installed
+project to a different absolute path, and confirming `doctor` still
+passes — this reproduces the exact scenario #106/#109 were filed
+against, not just a symlink-format check.
+
+Live-testing this fix also surfaced a related-but-separate bug:
+`cmd_update` and part of `cmd_doctor` read the recorded `source.path`
+from `.agentharness-state.json` verbatim for `submodule`/`npm` modes,
+which is *also* a stale absolute path after the whole project moves —
+`cmd_update` hard-fails on it rather than recomputing
+`$target/.agentharness` or `$target/.agentharness-pkg` fresh the way
+`cmd_init` does. Filed separately as
+[#124](https://github.com/andr-ca/agentharness/issues/124) rather than
+folded into this fix, since it's a different code path (state-recorded
+source location, not symlink target format) with its own scope.
+
 ## Label-gated, unverified-by-default automated issue analysis
 
 **Status:** Settled — narrowed scope, this repo only, not a harness

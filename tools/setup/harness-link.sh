@@ -422,6 +422,28 @@ copy_npm_durable_source() {
     (cd "$HARNESS_DIR" && tar cf -         --exclude=.git         --exclude="$tar_exclude"         --exclude=".env"         --exclude=".env.*"         --exclude="*.env"         --exclude="node_modules"         --exclude=".cache"         --exclude="__pycache__"         --exclude="*.pyc"         --exclude=".worktrees"         .) | (cd "$dst" && tar xf -)
 }
 
+# Symlinks $dst -> $src using a path relative to $dst's parent directory,
+# instead of the absolute $src most callers would naturally construct.
+# submodule/npm modes already made the *source* portable (the submodule/
+# durable copy travels with a `git clone`), but a plain `ln -s "$src" "$dst"`
+# would still bake in whatever absolute path $target happened to resolve to
+# on THIS machine at install time — so a symlink recorded in git still
+# breaks after a clone onto a different machine or path, same failure mode
+# as #106 one layer down. See issue #109. Not used for --mode link, which
+# stays absolute on purpose (documented as the same-machine,
+# same-checkout, not-for-committing case, so relative paths add nothing
+# there and add one more thing that could go stale if the *project* moves
+# relative to the harness checkout instead of vice versa).
+relative_symlink() {
+    local src="$1" dst="$2"
+    local rel_src
+    rel_src="$(python3 -c "
+import os, sys
+print(os.path.relpath(sys.argv[1], os.path.dirname(sys.argv[2])))
+" "$src" "$dst")"
+    ln -s "$rel_src" "$dst"
+}
+
 # Prefers package.json's version (meaningful for an npm-distributed source —
 # "0.2.0" tells a consumer far more than a git SHA they can't independently
 # look up) and falls back to a git revision for link/copy/submodule modes,
@@ -934,7 +956,11 @@ cmd_init() {
                         echo "  Skipping $skill ($dest_subdir): $dst exists and is not a symlink (not overwriting)" >&2
                         continue
                     fi
-                    ln -s "$src" "$dst"
+                    if [ "$mode" = "link" ]; then
+                        ln -s "$src" "$dst"
+                    else
+                        relative_symlink "$src" "$dst"
+                    fi
                     echo "  Linked skill: $skill ($dest_subdir)"
                     ;;
                 copy)
@@ -2097,7 +2123,11 @@ cmd_update() {
                     link|submodule|npm)
                         [ -e "$dst" ] && [ ! -L "$dst" ] && continue
                         [ -L "$dst" ] && rm "$dst"
-                        ln -s "$src" "$dst"
+                        if [ "$mode" = "link" ]; then
+                            ln -s "$src" "$dst"
+                        else
+                            relative_symlink "$src" "$dst"
+                        fi
                         ;;
                     copy)
                         rm -rf "$dst"
