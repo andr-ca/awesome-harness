@@ -7,7 +7,7 @@ this repo today — see [MANIFEST.md](../MANIFEST.md) for the inventory.
 ## The Fast Path
 
 ```bash
-~/agentharness/tools/setup/harness-link.sh init /path/to/your-project --mode link
+~/agentharness/tools/setup/harness-link.sh init /path/to/your-project
 ```
 
 This is `harness-link.sh`'s lifecycle CLI: `init` symlinks (or copies, or
@@ -65,42 +65,17 @@ integrating a single component by hand instead of everything at once.
 
 ## Integration Methods
 
-### Method 1: Symlinks (recommended for active development)
+### Method 1: Copy (default — portable, safe to commit and share)
 
-Keep your project in sync with harness updates automatically.
+Physically copies skill files into your project. No dependency on the
+harness being checked out locally at any particular path — the result
+is portable across machines and safe to commit and clone elsewhere.
 
-Automated: `harness-link.sh init ~/my-project --mode link` (the default —
-`--mode` can be omitted).
-
-Manual, what that does under the hood (symlinking each skill
-individually, not the whole `skills/` directory as one symlink — that
-way your project can still have its own local skills alongside the
-harness's, and you can pick a subset):
-
-```bash
-cd ~/my-project
-mkdir -p .claude/skills
-for skill in ~/agentharness/.claude/skills/*/; do
-  ln -s "$skill" ".claude/skills/$(basename "$skill")"
-done
-```
-
-**Pros:** Always up-to-date. **Cons:** Requires the harness checked out
-locally at that exact path; breaks if you move it.
-
-⚠️ Never symlink into `~/.claude` (your global Claude Code config) — that
-clobbers or fights with settings that aren't part of this harness.
-Symlink into the *project's* `.claude/`, not your home directory.
-
-### Method 2: Copy (for release stability)
-
-Lock to a specific snapshot of harness components — no drift, no
-dependency on the harness being checked out locally.
-
-Automated: `harness-link.sh init ~/my-project --mode copy`. Run
-`harness-link.sh update ~/my-project` later to see (and, after
-confirming) apply upstream changes — it diffs your copy against the
-current source first, so local edits aren't silently overwritten.
+Automated: `harness-link.sh init ~/my-project` (`--mode copy` is the
+default; `--mode` can be omitted). Run `harness-link.sh update
+~/my-project` later to see (and, after confirming) apply upstream
+changes — it diffs your copy against the current source first, so
+local edits aren't silently overwritten.
 
 Manual, what that does under the hood (`-L` dereferences any bundled-
 resource symlinks inside a skill — e.g. agentic-loops' `agent_loop.py` —
@@ -130,6 +105,58 @@ your file's other content) — see "Existing Agent Surfaces" below.
 harness improves (`harness-link.sh update` automates the sync itself, but
 you still decide when to run it).
 
+### Method 2: Symlinks (for co-developing the harness itself)
+
+Keep a project in sync with harness edits automatically, with zero
+re-sync step — but only within one machine's checkout.
+
+Automated: `harness-link.sh init ~/my-project --mode link`.
+
+Manual, what that does under the hood (symlinking each skill
+individually, not the whole `skills/` directory as one symlink — that
+way your project can still have its own local skills alongside the
+harness's, and you can pick a subset):
+
+```bash
+cd ~/my-project
+mkdir -p .claude/skills
+for skill in ~/agentharness/.claude/skills/*/; do
+  ln -s "$skill" ".claude/skills/$(basename "$skill")"
+done
+```
+
+**Pros:** Always up-to-date, no re-sync step. **Cons:** The symlinks are
+*absolute paths* anchored to this exact harness checkout's location on
+this machine — they don't resolve for anyone who clones your project
+elsewhere, or if you move the checkout
+([#106](https://github.com/andr-ca/agentharness/issues/106)). Use this
+only when you're actively co-developing the harness itself alongside a
+project on the same machine, not for anything you intend to commit and
+share — that's what Method 1 is for, and why it's the default.
+
+⚠️ Never symlink into `~/.claude` (your global Claude Code config) — that
+clobbers or fights with settings that aren't part of this harness.
+Symlink into the *project's* `.claude/`, not your home directory.
+
+#### Migrating from link mode
+
+If a project ended up on `--mode link` (an old default, or picked
+explicitly) and you want the portable default instead, just re-run
+`init` with the new mode against the same target — it materializes the
+new mode fresh and re-records state; no `uninstall` step needed, and
+your recorded skill selection carries over automatically if you omit
+`--skills`:
+
+```bash
+harness-link.sh init ~/my-project --mode copy
+harness-link.sh doctor ~/my-project   # confirm it's healthy afterward
+```
+
+If the project was cloned onto a machine where the old symlinks are
+already broken (pointing at a path that doesn't exist here), `doctor`
+will fail clearly on each affected skill before you fix it — that's
+expected, and the same command above fixes it.
+
 ### Method 3: Git Submodule (for teams, or heavier integrations)
 
 Automated: `harness-link.sh init ~/my-project --mode submodule` — adds
@@ -138,7 +165,7 @@ the submodule's own commit, not a mutable external path) and symlinks
 skills from there.
 
 Manual, what that does under the hood (per-skill symlinks again, same
-reasoning as Method 1):
+reasoning as Method 2):
 
 ```bash
 cd ~/my-project
@@ -278,7 +305,7 @@ Codex's own metadata scan has something to match against before it lists
 Re-run it whenever `CLAUDE.md` or the skill catalog changes, the same
 way you'd re-run `update` for skills — there's no CI check keeping
 *your* project's copy in sync (only this harness's own root `AGENTS.md`
-has that), so treat it as a copy-mode integration (see Method 2 above):
+has that), so treat it as a copy-mode integration (see Method 1 above):
 pin it, regenerate deliberately.
 
 Redesigning this adapter (previously an 880-line/33.7KB file

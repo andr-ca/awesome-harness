@@ -78,7 +78,7 @@ print(sorted(d['skills']))
 print(d['with_hook'])
 "
     [ "$status" -eq 0 ]
-    [[ "$output" =~ "link" ]]
+    [[ "$output" =~ "copy" ]]
     [[ "$output" =~ "branching" ]]
     [[ "$output" =~ "committing" ]]
     [[ "$output" =~ "False" ]]
@@ -109,7 +109,7 @@ print(d['with_hook'])
 
     run bash "$SCRIPT" status "$TEST_PROJECT"
     [ "$status" -eq 0 ]
-    [[ "$output" =~ "mode:          link" ]]
+    [[ "$output" =~ "mode:          copy" ]]
     [[ "$output" =~ "skills:        committing" ]]
     [[ "$output" =~ "with_hook:     true" ]]
 }

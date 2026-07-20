@@ -8,6 +8,47 @@ go at the top.
 
 Format: **Decision** / **Status** / **Context** / **Consequences**.
 
+## Copy as the default install mode, reversing symlink-as-default
+
+**Status:** Settled — reverses "Symlink as the default install mode, not
+copy or submodule" below, which is kept for history and marked
+superseded rather than deleted.
+
+**Context:** [#106](https://github.com/andr-ca/agentharness/issues/106)
+reported a real failure this default caused: `--mode link` symlinks are
+*absolute paths* anchored to the harness checkout's exact location on
+the machine that ran `init`. A project installed that way, committed,
+and cloned onto a different machine (or even the same machine under a
+different checkout path) gets skill symlinks that resolve to nothing —
+silently, since nothing prompts a fresh clone to run `doctor`, which is
+the only thing that currently notices. The original decision weighed
+symlink/copy/submodule as a sync-freshness trade-off and picked the
+"always current" option; it didn't fully weigh that the *default* is
+what everyone gets who doesn't stop to read the trade-off, and for a
+tool whose entire purpose is being installed into *other people's*
+repos, "works only on the machine that ran init" is a bad property for
+a default to have. It's also inconsistent with this repo's own npm/npx
+distribution path (`bin/cli.js`), which already defaults to `--mode
+npm` — a durable copy, not a symlink — for exactly this class of
+portability reason (see "npm as the low-friction distribution channel"
+below).
+
+**Consequences:** `harness-link.sh init`'s default (`--mode` omitted)
+is now `copy`, matching what `--mode npm` already effectively
+preferred. `--mode link` remains fully supported and is still the right
+choice for one specific case — actively co-developing the harness
+itself alongside a project on the same machine — and is documented as
+such in `docs/INTEGRATION.md`'s "Method 2: Symlinks" section, not
+removed or discouraged outright. Existing installs aren't silently
+migrated (their recorded `mode` in `.agentharness-state.json` is
+unaffected by this change); `docs/INTEGRATION.md`'s "Migrating from
+link mode" subsection documents the one-command fix (`init --mode
+copy` re-run against the same target). The rendered core-instructions
+block installed into every consumer's `CLAUDE.md`/`AGENTS.md` also now
+carries a `doctor` hint for the "skill looks empty/unreadable" symptom,
+and inline git-conventions text that doesn't depend on the `branching`/
+`committing` skills being readable at all.
+
 ## Deterministic-only eval infrastructure; live agent invocation deliberately unimplemented
 
 **Status:** Settled for now — revisit once a user explicitly funds a run.
@@ -181,7 +222,10 @@ none of them live-verified but all of them honestly labeled."
 
 ## Symlink as the default install mode, not copy or submodule
 
-**Status:** Settled.
+**Status:** Superseded — see "Copy as the default install mode,
+reversing symlink-as-default" at the top of this file
+([#106](https://github.com/andr-ca/agentharness/issues/106)). Kept here
+for history, not applied.
 
 **Context:** `harness-link.sh init` needed a default among three real
 trade-offs: symlink (always current, but mutates if the harness checkout

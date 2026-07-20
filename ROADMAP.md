@@ -136,13 +136,15 @@ GitHub Copilot, and Gemini CLI via the Agent Skills open standard.
 
 - ~~Sample integration project~~ — **IMPLEMENTED** (item 23, expanded
   under P1-05). `examples/sample-project/` (blank/generic) is validated
-  by CI's `sample-project-integration` job against link mode +
-  `--with-hook`. `examples/{python,typescript,go}-project/` (each with a
-  realistic pre-existing `.gitignore`) are validated by the
-  `fixture-matrix` job across all three install modes (link/copy/
-  submodule) plus `doctor`/`status`/`update`/`uninstall` — not just
-  install-and-check. Finding this gap live is what turned up the
-  --mode copy bundled-resource-symlink bug fixed alongside P1-05.
+  by CI's `sample-project-integration` job against the default install
+  mode (`copy` as of [#106](https://github.com/andr-ca/agentharness/issues/106);
+  was `link` before that) + `--with-hook`.
+  `examples/{python,typescript,go}-project/` (each with a realistic
+  pre-existing `.gitignore`) are validated by the `fixture-matrix` job
+  across all three install modes (link/copy/submodule) plus
+  `doctor`/`status`/`update`/`uninstall` — not just install-and-check.
+  Finding this gap live is what turned up the --mode copy
+  bundled-resource-symlink bug fixed alongside P1-05.
 
 - ~~Logging config loader~~ — **IMPLEMENTED** (item 12). Python utility
   `config_loader.py` with tests for loading YAML configs with `${VAR:-default}`

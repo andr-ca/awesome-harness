@@ -46,12 +46,20 @@
 # CLI won't have one; run 'init' first.
 #
 # Install modes (--mode, init/update only):
-#   link       (default) Symlink skills from this harness checkout. Fast,
-#              always current, but the target depends on this checkout
-#              persisting on disk.
-#   copy       Physically copy skill files into the target. No dependency
-#              on this checkout, but content is a snapshot — re-run 'update'
-#              to pull in changes.
+#   copy       (default) Physically copy skill files into the target. No
+#              dependency on this checkout persisting or staying at the
+#              same path — portable across machines and safe to commit
+#              and clone elsewhere. Content is a snapshot; re-run
+#              'update' to pull in upstream changes.
+#   link       Symlink skills from this harness checkout instead of
+#              copying. Always current with zero re-sync step, but the
+#              symlinks are absolute paths anchored to *this exact
+#              checkout's location on this machine* — they break for
+#              anyone who clones the target elsewhere, or if this
+#              checkout moves (see issue #106). Use only when you're
+#              actively co-developing the harness itself alongside a
+#              project on the same machine; not recommended for
+#              anything you'll commit and share.
 #   submodule  Add this harness as a git submodule at <target>/.agentharness
 #              (version-pinned in the target's own history) and symlink
 #              skills from there instead of this checkout.
@@ -61,6 +69,12 @@
 #              (bin/cli.js) defaults 'init'/'plan' to when no --mode is
 #              given — its own HARNESS_DIR is an ephemeral npx cache/temp
 #              extraction, so 'link' would silently break on cache cleanup.
+#
+# Migrating an existing --mode link install to --mode copy (or any other
+# mode): just re-run init with the new --mode against the same target —
+# it materializes the new mode's install fresh and re-records state,
+# no uninstall step needed. See docs/INTEGRATION.md's "Migrating from
+# link mode" section.
 #
 # Requires python3 (used for reading/writing the JSON state file).
 # ============================================================================
@@ -89,7 +103,7 @@ Subcommands: init, plan, status, doctor, audit, audit-prs, enforce-profile, gene
 
 init options:
   --mode link|copy|submodule|npm
-                                Install mode (default: link; the npm/npx
+                                Install mode (default: copy; the npm/npx
                                 CLI shim defaults to npm instead — see
                                 docs/INTEGRATION.md#method-4-npmnpx)
   --skills a,b,c               Comma-separated list of skills (default:
@@ -496,6 +510,19 @@ instructions take precedence over harness *defaults* everywhere else.
 Installed skills:
 $skills_list
 
+If a skill above looks empty, missing, or won't load, this install may
+be broken (e.g. a moved/renamed harness checkout, or a fresh clone of
+a project that used \`--mode link\` — see issue #106) — run
+\`harness-link.sh doctor <this-project-path>\` from the harness
+checkout to check, and \`$STATE_FILE_NAME\` in this project to see how
+it was installed.
+
+**Git conventions** (from the \`branching\`/\`committing\` skills above —
+stated here directly so they hold even if a skill is unreadable): never
+commit directly to a trunk branch (\`main\`/\`master\`/\`release/*\`);
+create a feature branch first (\`git checkout -b <type>/<short-description>\`);
+open a PR for review before merging into the trunk branch.
+
 **PR merge checklist:** never merge on green CI alone. Wait for
 automated review (e.g. GitHub Copilot) to post *or* its check-run to
 reach a completed state before proceeding; reply to every review
@@ -718,7 +745,7 @@ warn_if_untracked() {
 # ----------------------------------------------------------------------------
 
 cmd_init() {
-    local target="" mode="link" skills_filter="" with_hook=false force=false
+    local target="" mode="copy" skills_filter="" with_hook=false force=false
     local profile="" dry_run=false coverage_hook=false keep_existing=false
 
     while [ $# -gt 0 ]; do

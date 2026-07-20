@@ -184,14 +184,19 @@ should work but hasn't been verified.
 lifecycle CLI — also exposes `plan`/`status`/`doctor`/`audit`/`update`/
 `uninstall`; see [docs/INTEGRATION.md](docs/INTEGRATION.md)) into a
 consuming project:
-- Selected (or all) `.claude/skills/<name>` directories, symlinked
-  (`--mode link`, default for a `git clone` install), physically copied
-  (`--mode copy`), symlinked from a git submodule this creates at
-  `.agentharness` (`--mode submodule` — the one mode that does reach the
-  network, to add that submodule), or symlinked from a durable local copy
-  this creates at `.agentharness-pkg` (`--mode npm`, the default when
-  installed via `npx`/`npm` — see "npm distribution" below for why `link`
-  isn't safe there).
+- Selected (or all) `.claude/skills/<name>` directories, physically
+  copied (`--mode copy`, the default for a `git clone` install —
+  portable, safe to commit and clone elsewhere), symlinked (`--mode
+  link` — always current with zero re-sync step, but the symlinks are
+  absolute paths anchored to this exact checkout's location on this
+  machine, so use it only when actively co-developing the harness
+  itself alongside a project on the same machine), symlinked from a git
+  submodule this creates at `.agentharness` (`--mode submodule` — the
+  one mode that does reach the network, to add that submodule), or
+  symlinked from a durable local copy this creates at
+  `.agentharness-pkg` (`--mode npm`, the default when installed via
+  `npx`/`npm` — see "npm distribution" below for why `link` isn't safe
+  there either).
 - A merge of `.github/.gitignore.template` into the project's `.gitignore`
   (additive — never overwrites existing entries).
 - With `--with-hook`: `core.hooksPath` pointed at this repo's

@@ -39,7 +39,7 @@ file_hash() {
 }
 
 @test "harness-link.sh: symlinks individual skills into .claude/skills/" {
-    bash "$SCRIPT" "$TEST_PROJECT"
+    bash "$SCRIPT" "$TEST_PROJECT" --mode link
 
     # The script symlinks each skill individually into .claude/skills/,
     # it does not symlink .claude/skills/ itself.
@@ -51,7 +51,7 @@ file_hash() {
 }
 
 @test "harness-link.sh: also symlinks each skill into .agents/skills/ for Codex's real on-demand discovery (P0-06)" {
-    bash "$SCRIPT" "$TEST_PROJECT"
+    bash "$SCRIPT" "$TEST_PROJECT" --mode link
 
     [ -d "$TEST_PROJECT/.agents/skills" ]
     [ ! -L "$TEST_PROJECT/.agents/skills" ]
@@ -64,7 +64,7 @@ file_hash() {
 }
 
 @test "harness-link.sh: --skills filters which skills are linked" {
-    bash "$SCRIPT" "$TEST_PROJECT" --skills committing,branching
+    bash "$SCRIPT" "$TEST_PROJECT" --mode link --skills committing,branching
 
     [ -L "$TEST_PROJECT/.claude/skills/committing" ]
     [ -L "$TEST_PROJECT/.claude/skills/branching" ]
@@ -312,14 +312,14 @@ print(len(d['skills']))
 @test "harness-link.sh: is idempotent (run twice safely, same resulting state)" {
     git -C "$TEST_PROJECT" init --quiet
 
-    run bash "$SCRIPT" "$TEST_PROJECT" --with-hook
+    run bash "$SCRIPT" "$TEST_PROJECT" --mode link --with-hook
     [ "$status" -eq 0 ]
     initial_links=$(find "$TEST_PROJECT/.claude" -type l | sort)
     initial_gitignore=$(file_hash "$TEST_PROJECT/.gitignore")
     initial_hooks_path=$(git -C "$TEST_PROJECT" config core.hooksPath)
 
     # Run again
-    run bash "$SCRIPT" "$TEST_PROJECT" --with-hook
+    run bash "$SCRIPT" "$TEST_PROJECT" --mode link --with-hook
     [ "$status" -eq 0 ]
     final_links=$(find "$TEST_PROJECT/.claude" -type l | sort)
     final_gitignore=$(file_hash "$TEST_PROJECT/.gitignore")
