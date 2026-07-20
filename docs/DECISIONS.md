@@ -82,10 +82,11 @@ unconfirmed and plausibly transient, added
 triggered by `workflow_run: types: [completed]` that reruns the whole
 issue-analysis run via `gh run rerun` (not `--failed`, which only
 reruns `failure`-conclusion jobs and would silently skip the
-`timed_out`/`cancelled` case this exists for — Copilot review, PR
-#118; the workflow has a single job, so rerunning the whole run is
-equivalent on success and correct for every failure mode), up to 2
-retries (bounded by `github.event.workflow_run.run_attempt < 3`,
+`timed_out`/`cancelled` case this exists for — caught by Copilot
+review on the pull request that introduced this file; the workflow has
+a single job, so rerunning the whole run is equivalent on success and
+correct for every failure mode), up to 2 retries (bounded by
+`github.event.workflow_run.run_attempt < 3`,
 so a persistent failure still surfaces after 3 total attempts instead
 of looping forever). Has to be a separate workflow rather than a step
 inside issue-analysis.yml's own job: the rerun API only accepts a run
