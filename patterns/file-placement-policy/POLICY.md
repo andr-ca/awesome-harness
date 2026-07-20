@@ -50,6 +50,16 @@ python3 -c "import json; print(json.load(open('.agentharness-guarded-paths.json'
 4. Create the file.
 5. Commit it — the hook will read the allowed-additions list.
 
+**One standing exception:** `docs/operational/harness-feedback.md` — the
+harness-feedback skill already carries its own standing authorization
+to create this exact file without asking (see that skill's "no
+ask-the-user step for logging" rule), which would otherwise directly
+contradict this policy's ask-first default for any consumer with a
+guarded `docs/`. `tools/check-file-placement.sh` exempts this one path
+outright rather than requiring every consumer to remember to pre-seed
+`.agentharness-allowed-additions.txt` (issue #110). Nothing else under
+`docs/operational/` gets this exemption.
+
 ## For new projects: recommend structure first
 
 If `.agentharness-guarded-paths.json` does not exist, the project may

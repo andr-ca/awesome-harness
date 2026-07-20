@@ -95,6 +95,41 @@ EOF
     [[ $rc -ne 0 ]]
 }
 
+@test "check: exits 0 for docs/operational/harness-feedback.md under a fresh guarded docs/ config, no allowed-additions entry needed (issue #110)" {
+    cat > "$TEST_ROOT/.agentharness-guarded-paths.json" << 'EOF'
+{
+  "schema_version": 1,
+  "guard_root_level_new_items": false,
+  "guarded_dirs": ["docs/"],
+  "guarded_root_files": [],
+  "message": "test"
+}
+EOF
+    mkdir -p "$TEST_ROOT/docs/operational"
+    echo "# Harness Feedback Log" > "$TEST_ROOT/docs/operational/harness-feedback.md"
+    (cd "$TEST_ROOT" && git add docs/operational/harness-feedback.md)
+    run bash "$CHECK_SCRIPT" "$TEST_ROOT"
+    [[ $status -eq 0 ]]
+}
+
+@test "check: still blocks other new files under docs/operational/ (exemption is scoped to harness-feedback.md only)" {
+    cat > "$TEST_ROOT/.agentharness-guarded-paths.json" << 'EOF'
+{
+  "schema_version": 1,
+  "guard_root_level_new_items": false,
+  "guarded_dirs": ["docs/"],
+  "guarded_root_files": [],
+  "message": "test"
+}
+EOF
+    mkdir -p "$TEST_ROOT/docs/operational"
+    echo "content" > "$TEST_ROOT/docs/operational/some-other-file.md"
+    (cd "$TEST_ROOT" && git add docs/operational/some-other-file.md)
+    local rc=0
+    bash "$CHECK_SCRIPT" "$TEST_ROOT" 2>/dev/null || rc=$?
+    [[ $rc -ne 0 ]]
+}
+
 # ---------------------------------------------------------------------------
 # Non-guarded directory — file allowed
 # ---------------------------------------------------------------------------

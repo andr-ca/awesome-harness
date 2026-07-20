@@ -74,8 +74,22 @@ if [[ -f "$ALLOWED_FILE" ]]; then
     done < "$ALLOWED_FILE"
 fi
 
+# The harness-feedback skill already carries its own standing
+# authorization to create this exact file without asking first
+# ("no ask-the-user step for logging" — .claude/skills/harness-feedback/
+# SKILL.md), but this hook's guarded-dirs check has no way to know that
+# and blocks it identically to any other new file under a guarded
+# docs/ — a real, always-reproducible conflict between two harness
+# mandates (issue #110), not just an ambiguity an agent could read
+# around. Exempt this one path outright rather than requiring every
+# consumer to remember to pre-seed .agentharness-allowed-additions.txt.
+STANDING_EXEMPTIONS=("docs/operational/harness-feedback.md")
+
 is_allowed() {
     local path="$1"
+    for exempt in "${STANDING_EXEMPTIONS[@]}"; do
+        [[ "$path" == "$exempt" ]] && return 0
+    done
     for allowed in "${allowed_additions[@]}"; do
         if [[ "$path" == "$allowed" || "$path" == "$allowed/"* ]]; then
             return 0
