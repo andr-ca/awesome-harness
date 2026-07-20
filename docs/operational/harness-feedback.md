@@ -102,3 +102,86 @@ content against `origin/main`'s copy before trusting its own output.
 script's "complete" output, then watched the real run to a genuine
 green. Logged upstream as
 [#99](https://github.com/andr-ca/agentharness/issues/99).
+
+## 2026-07-20 – Completion gate has no requirement to live-verify practically-testable automation before calling it done
+
+**What happened:** Building the automated issue-analysis feature
+(#107) across four PRs (#111, #113, #116, #118), the same pattern
+repeated three times in a row: build a change to a GitHub-Actions-
+triggered workflow, pass `tools/check-completion.sh` (lint/types/
+tests/coverage all check out — none of it can exercise "does this
+actually fire on a real webhook event"), write "Not live-tested —
+[justification]" as an honest checklist item in the PR body, merge,
+and stop there. The user had to explicitly ask "did you test it?"
+(after #111) and "did you try testing it again?" (after #113's fix)
+before actual live verification happened.
+
+**Root cause:** `CLAUDE.md`'s Agent Workflow Completion mandate and the
+completion gate are thorough about code-level verification (lint,
+types, tests, coverage) and about process-level verification for the
+merge itself (CI green, review addressed, post-merge CI confirmed
+against the actual merge SHA) — the exact same "verified, not just
+claimed" philosophy already applied rigorously to CI status. Neither
+extends that philosophy to "does the feature I just built actually
+work when triggered for real," for anything the local pytest/bats
+suite structurally cannot exercise (webhook-triggered CI workflows,
+cron jobs, external-service-dependent behavior). An agent can honestly
+disclose "not live-tested" and still pass every gate, every time,
+indefinitely.
+
+**Impact:** Every time the user pushed for it, live-testing found a
+real bug static checks completely missed: a duplicate-run race from
+two webhook events firing for one issue (found by filing one throwaway
+test issue), an indefinite hang in a third-party action only visible
+by watching a live run for over an hour, and (without the nudge) a
+plausible fourth repeat of the same pattern on the retry-mechanism PR.
+
+**What agentharness should change:** Add an explicit item near the
+Completion Gate: when a change adds or modifies something that only
+truly runs via an external trigger the local suite can't simulate, the
+agent must either exercise it for real before presenting the work as
+done, or explicitly flag *why* live verification isn't happening this
+round — framed as an open TODO the agent is expected to close out
+proactively, not a satisfied requirement, mirroring the existing
+"pushed ≠ verified green" distinction already drawn for CI status.
+
+**Corrective action taken:** Live-tested all three workflow changes
+after the fact (filed throwaway test issues, watched real runs,
+force-verified the retry mechanism by racing a label removal mid-run)
+once asked. Logged upstream as
+[#121](https://github.com/andr-ca/agentharness/issues/121).
+
+## 2026-07-20 – No guardrail against an agent writing to user dotfiles outside the repo
+
+**What happened:** While acquiring a multi-agent lock, needed
+`AGENTHARNESS_AGENT_ID` set for subsequent commands in the same shell.
+Instead of exporting it inline for the current shell, ran a command
+that appended it directly to the user's `~/.bashrc` — a file entirely
+outside the repository, shared across every terminal session the user
+opens. Caught immediately in the next tool result and reverted the
+same turn, so no lasting harm.
+
+**Root cause:** `CLAUDE.md`'s File Placement Policy
+(`.agentharness-guarded-paths.json`, ask-before-creating-root-files) is
+entirely scoped to files *inside the project working directory* — it
+has no concept of "outside the repo entirely." A user's actual
+home-directory dotfiles are, structurally, less protected than a new
+file in the repo's own root would be.
+
+**Impact:** No lasting harm this time, but nothing in the harness would
+have stopped it if it hadn't been noticed immediately — no hook, no
+guideline, no reflexive habit was in place for this class of action.
+
+**What agentharness should change:** Add an explicit rule: never write
+to files outside the current project's working directory tree without
+explicit user confirmation — shell rc files, global git config, global
+tool config directories, anything outside
+`$(git rev-parse --show-toplevel)`. Session-scoped environment
+variables should be exported inline for the current shell only, never
+persisted to a dotfile, unless the user explicitly asks for a durable
+environment change.
+
+**Corrective action taken:** Detected the stray `.bashrc` line via the
+system's file-change notification and removed it in the same turn
+before it could affect a future session. Logged upstream as
+[#122](https://github.com/andr-ca/agentharness/issues/122).
