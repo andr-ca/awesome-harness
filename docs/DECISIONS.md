@@ -75,6 +75,27 @@ model backend's reliability. Mitigated with a job-level
 ~1-minute runtime, so a future hang fails fast instead of running for
 hours.
 
+**2026-07-20 update (auto-retry, issue #115):** a timeout alone just
+fails fast, it doesn't recover — since the hang's root cause is
+unconfirmed and plausibly transient, added
+`.github/workflows/issue-analysis-retry.yml`, a **separate** workflow
+triggered by `workflow_run: types: [completed]` that reruns the whole
+issue-analysis run via `gh run rerun` (not `--failed`, which only
+reruns `failure`-conclusion jobs and would silently skip the
+`timed_out`/`cancelled` case this exists for — caught by Copilot
+review on the pull request that introduced this file; the workflow has
+a single job, so rerunning the whole run is equivalent on success and
+correct for every failure mode), up to 2 retries (bounded by
+`github.event.workflow_run.run_attempt < 3`,
+so a persistent failure still surfaces after 3 total attempts instead
+of looping forever). Has to be a separate workflow rather than a step
+inside issue-analysis.yml's own job: the rerun API only accepts a run
+that has reached a completed/terminal state, so a still-running job
+can't rerun itself. Composes safely with the dedupe fix above — a
+rerun re-executes the job from scratch, including the dedupe gate,
+which correctly finds `needs-analysis` still present (a failed attempt
+never reached the relabel step) and proceeds normally.
+
 ## Copy as the default install mode, reversing symlink-as-default
 
 **Status:** Settled — reverses "Symlink as the default install mode, not

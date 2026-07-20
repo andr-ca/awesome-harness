@@ -180,6 +180,7 @@ they drift (`check_manifest_md_sync()` in `tools/verify-content-quality.py`).
 | Scheduled link check | `.github/workflows/link-check-scheduled.yml` | workflow | Weekly online external-link validation, separate from the offline PR gate (P1-08) |
 | Release workflow | `.github/workflows/release.yml` | workflow | Runs `npm publish` on a `v*` tag push; inert until `NPM_TOKEN` secret exists (P2-03) |
 | Automated issue analysis | `.github/workflows/issue-analysis.yml` | workflow | This-repo-only, opt-in: posts an explicitly-unverified opencode-generated YAML analysis when a maintainer labels an issue `needs-analysis`; relabels to `auto-analyzed`, never `analyzed` (#107) |
+| Automated issue analysis retry | `.github/workflows/issue-analysis-retry.yml` | workflow | Reruns the issue-analysis workflow up to 2x on timeout/failure (bounded via run_attempt); separate workflow because a run can only be rerun once it's reached a completed state (#115) |
 | OpenCode config | `opencode.json` | config | Registers `.opencode/skills` as opencode's skill path, for the issue-analysis workflow above |
 | Markdownlint config | `.markdownlint-cli2.yaml` | config | Rules enforced in CI's content-quality job; documents why purely-stylistic rules are off (P1-08) |
 | Content-quality checker | `tools/verify-content-quality.py` | script | YAML validity, skill frontmatter schema, tested Python/bash/console-snippet syntax (P1-08, B3); `AGENTS.md` sync (P2-02); duplicate-policy number detection (B7); `MANIFEST.md` sync (B2) |

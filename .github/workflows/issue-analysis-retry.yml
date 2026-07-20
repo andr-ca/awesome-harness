@@ -1,0 +1,45 @@
+name: Issue Analysis Retry
+#
+# Auto-retries the Issue Analysis workflow (#107, #112, #115) after a
+# timeout or failure, up to a bounded number of attempts, since the
+# root cause of the one confirmed hang (#115, the third-party
+# anomalyco/opencode/github action itself) is unconfirmed — treating it
+# as possibly-transient buys a couple of fresh tries before requiring a
+# human to look, without retrying forever.
+#
+# This MUST be a separate workflow triggered by workflow_run, not a step
+# inside issue-analysis.yml's own job: a run can only be rerun via the
+# API once it has reached a completed/terminal state, so a still-running
+# job cannot rerun itself. Composes safely with #112/#113's dedupe fix —
+# a rerun re-executes the same job from scratch, including the dedupe
+# gate, which correctly finds needs-analysis still present (the failed
+# attempt never reached the relabel step) and proceeds.
+
+on:
+  workflow_run:
+    workflows: ["Issue Analysis"]
+    types: [completed]
+
+permissions:
+  actions: write
+
+jobs:
+  retry:
+    # run_attempt is 1 on the first failure; retrying while it's < 3
+    # allows two retries (attempts 2 and 3) before giving up, so a
+    # persistent failure still surfaces instead of looping forever.
+    if: |
+      (github.event.workflow_run.conclusion == 'failure' || github.event.workflow_run.conclusion == 'timed_out') &&
+      github.event.workflow_run.run_attempt < 3
+    runs-on: ubuntu-latest
+    steps:
+      - name: Rerun the run
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # --failed only reruns jobs with conclusion 'failure', not
+          # 'timed_out'/'cancelled' -- exactly the case this exists for
+          # (Copilot review, PR #118). issue-analysis.yml has a single
+          # job, so rerunning the whole run is equivalent on success and
+          # correct for every failure mode, not just plain failures.
+          gh run rerun "${{ github.event.workflow_run.id }}" --repo "${{ github.repository }}"
