@@ -177,7 +177,12 @@ recommendations, then present them to the user before creating anything.
 
 The pre-commit hook (`tools/check-file-placement.sh`) enforces this
 deterministically — commits adding files to guarded paths without an
-entry in `.agentharness-allowed-additions.txt` are blocked.
+entry in `.agentharness-allowed-additions.txt` are blocked. One
+standing exemption: `docs/operational/harness-feedback.md` — the
+harness-feedback skill already has its own standing authorization to
+create it without asking (see that skill's "no ask-the-user step"
+rule), so this hook doesn't re-block it even under a fresh guarded-docs
+config.
 
 See `patterns/file-placement-policy/POLICY.md` for the full protocol
 and `.claude/skills/file-placement-policy/SKILL.md` for the condensed

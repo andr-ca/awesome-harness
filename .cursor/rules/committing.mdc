@@ -44,15 +44,37 @@ commit template). This skill is the actionable summary.
    `.github/hooks/completion-gate.json` (Copilot) and `.claude/settings.json`
    (Claude Code).
 
+   **This path is specific to the agentharness repo itself.** If this
+   skill file is symlinked/copied into a *consumer* project instead
+   (the normal case — see `harness-link.sh`), `tools/check-completion.sh`
+   does not exist there and will exit 127 (issue #110). Check for it
+   first (`[ -f tools/check-completion.sh ]` or equivalent); if it's
+   missing, the consumer-side equivalent is `harness-link.sh
+   enforce-profile <this-project>` (from wherever this install's
+   harness checkout lives — `.agentharness/` for submodule mode,
+   `.agentharness-pkg/` for npm mode, or the harness's own directory
+   for link mode), plus this project's own lint/type/test commands if
+   it has any not covered by `enforce-profile`. Don't silently skip
+   verification just because the harness's own path doesn't resolve —
+   find the equivalent for *this* repo.
+
 2. **Default (no publish authority): stop at the commit.**
    Stage the commit locally, summarize what was done, and ask the user to
    confirm before pushing or opening a PR. Work is "done" when the user
    has reviewed and approved the staged changes.
 
 3. **With publish authority**: push and open a PR.
-   Publish authority is granted when `.agentharness-publish-mode` exists
-   at the repo root, or when the user explicitly authorizes it in the
-   current session.
+   Publish authority is granted when `.agentharness-publish-mode`
+   **exists** at the repo root — check with `[ -f
+   .agentharness-publish-mode ]` (or `test -e`), never by reading its
+   contents. The file is typically empty by design; an agent that
+   `cat`s it, sees nothing, and concludes "not active" has the check
+   backwards (issue #110) — presence alone grants authority, content is
+   irrelevant. `harness-link.sh audit --json`'s `publish_mode_active`
+   field already implements this correctly if you'd rather not shell
+   out to `test` directly.
+   Publish authority is also granted when the user explicitly
+   authorizes it in the current session.
    - `git push -u origin <branch>` (first push) or `git push` (subsequent).
    - `gh pr create` with a real title, body, and test/verification notes.
    - Work is not "done" until the PR exists, CI is green, and review
