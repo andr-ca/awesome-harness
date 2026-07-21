@@ -187,6 +187,23 @@ See `patterns/file-placement-policy/POLICY.md` for the full protocol
 and `.claude/skills/file-placement-policy/SKILL.md` for the condensed
 on-demand reference.
 
+**This whole policy is scoped to inside the project.** It has no
+concept of "outside the repo entirely" — a real gap: during the #107
+work session, a command intended to set an env var for the current
+shell instead appended it directly to the user's `~/.bashrc`, a file
+outside `$(git rev-parse --show-toplevel)` entirely, shared across
+every terminal the user opens. It was caught and reverted immediately,
+but nothing would have stopped it if it hadn't been noticed
+(issue #122).
+
+**Never write to files outside the current project's working
+directory tree** — shell rc files (`~/.bashrc`, `~/.zshrc`,
+`~/.profile`), global git config, `~/.config/*` — **without explicit
+user confirmation.** Session-scoped environment variables needed for a
+multi-step task should be `export`-ed inline for the current shell
+only, never persisted to a dotfile, unless the user has explicitly
+asked for a durable environment change.
+
 ## 🔍 Agent Recommendation Assessment
 
 **When an agent is asked to address/review/look into recommendations:**
