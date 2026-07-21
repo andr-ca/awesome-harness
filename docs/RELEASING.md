@@ -6,7 +6,7 @@ See [CHANGELOG.md](../CHANGELOG.md) for the history this policy governs.
 
 ## Versioning
 
-Tags are `vMAJOR.MINOR.PATCH`. While the repo is `0.x` (current: `v0.2.0`):
+Tags are `vMAJOR.MINOR.PATCH`. While the repo is `0.x` (current: `v0.3.0`):
 
 - No stability guarantee. Any release may rename or remove a skill,
   change `harness-link.sh`'s CLI shape, or change

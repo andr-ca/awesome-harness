@@ -6,7 +6,18 @@ section into a tagged version.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-21
+
 ### Added
+- Existing-surface integration: `init`/`update` now render a
+  marker-delimited managed block into any pre-existing consumer
+  instructions file (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`,
+  `.github/copilot-instructions.md`) instead of skipping it, with
+  generic whole-file-surface collision handling (interactive prompt,
+  `--force`, `--keep-existing`, `--dry-run`) and a crash-safe journal
+  so an interrupted apply can be resumed. This closes the npm-install
+  gap where GitHub Copilot, Cursor, and Gemini CLI previously received
+  no always-on harness routing.
 - Ideation Backlog (I-01…I-06) in `ROADMAP.md`: six documentation-only
   items distilled from an external intent-first-harness ideation note
   (evidence-classified intent contract, risk-adaptive discovery depth,
@@ -64,6 +75,15 @@ section into a tagged version.
 - Four profile/workflow documentation contradictions (P1-03) and six
   stale `docs/CLIENT_COMPATIBILITY.md` cells that marked built adapters
   (Gemini/Copilot/Cursor/Kilo) as not existing yet.
+- `--mode submodule`/`--mode npm` installed skill symlinks as absolute
+  paths, which broke the moment the whole project (submodule and all)
+  was moved or cloned to a different absolute path; now relative, so
+  they survive a move.
+- `cmd_update`/`cmd_audit`/`cmd_status` for `--mode submodule`/`--mode
+  npm` trusted a stale absolute source path recorded at install time
+  and hard-failed with "recorded source path no longer exists" after a
+  project move, even though the source was still right there under the
+  new location; now recomputed from the current target.
 
 ## [0.2.0] - 2026-07-13
 
