@@ -1630,11 +1630,19 @@ cmd_audit() {
     # can_mechanically_enforce: is there an actual runnable completion-gate
     # path from inside this consumer project? --mode copy never gets a
     # wrapper (no live harness checkout stays reachable, see
-    # generate_check_wrapper's comment) -- always false there. Every other
-    # mode is true exactly when its generated wrapper is present and
-    # executable.
+    # generate_check_wrapper's comment) -- always false there. The wrapper
+    # itself being executable isn't sufficient on its own (Copilot review):
+    # it execs into $source_path/tools/setup/harness-link.sh, so also
+    # verify THAT script still exists and is executable at the source the
+    # wrapper was generated against -- otherwise a wrapper that's present
+    # but delegates to a deleted/broken harness checkout would falsely
+    # report true.
+    local delegate_target_available=false
+    [ -x "$source_path/tools/setup/harness-link.sh" ] && delegate_target_available=true
+
     local can_mechanically_enforce=false
-    [ "$mode" != "copy" ] && [ "$wrapper_available" = true ] && can_mechanically_enforce=true
+    [ "$mode" != "copy" ] && [ "$wrapper_available" = true ] && [ "$delegate_target_available" = true ] \
+        && can_mechanically_enforce=true
 
     # --json (P2-01, expanded for P2-01/B5): machine-readable form of the
     # same drift this subcommand already computes, for CI or scripted
@@ -2249,15 +2257,6 @@ cmd_update() {
         return 0
     fi
 
-    # Regenerate the consumer-local check wrapper unconditionally on every
-    # real (non-dry-run) update, independent of whether the skill set
-    # changed — this is what makes it self-heal after a project move
-    # (issue #124's fix made source_path itself self-heal for
-    # submodule/npm; the wrapper's baked-in link-mode path and its very
-    # existence for pre-#110 installs need the same treatment). Retroactively
-    # creates the wrapper for any install that predates this feature.
-    generate_check_wrapper "$target" "$mode" "$source_path"
-
     if [ "${#to_add[@]}" -eq 0 ] && [ "${#to_remove[@]}" -eq 0 ] && [ "${#to_refresh[@]}" -eq 0 ]; then
         # Preserve the original "(nothing to do)" wording several existing
         # tests assert on. We still fall through to the unconditional
@@ -2266,8 +2265,21 @@ cmd_update() {
         # (atomic_write no-ops on unchanged content) and silent when
         # there's nothing to fix, so it doesn't contradict this message.
         echo "  (nothing to do)"
+        # No confirmation gate applies on this branch (nothing to decline),
+        # so regenerating the wrapper here is always safe — this is what
+        # makes it self-heal after a project move (issue #124's fix made
+        # source_path itself self-heal for submodule/npm; the wrapper's
+        # baked-in link-mode path and its very existence for pre-#110
+        # installs need the same treatment) without waiting for an
+        # unrelated skill change to trigger it.
+        generate_check_wrapper "$target" "$mode" "$source_path"
     else
         confirm "$yes" "Apply this update?" || { echo "Aborted."; return 1; }
+
+        # Copilot review: this must run only after confirm() succeeds —
+        # update must not mutate anything (including the generated
+        # wrapper) once the user has declined to apply the update.
+        generate_check_wrapper "$target" "$mode" "$source_path"
 
         for name in "${to_remove[@]}"; do
             for dest_subdir in "${SKILL_DEST_SUBDIRS[@]}"; do

@@ -422,6 +422,51 @@ print('ok')
     [[ "$output" =~ "ok" ]]
 }
 
+@test "lifecycle: audit --json reports can_mechanically_enforce false when the wrapper's delegate target is missing (Copilot review)" {
+    bash "$SCRIPT" init "$TEST_PROJECT" --skills committing --mode link
+    source_path="$(python3 -c "
+import json
+print(json.load(open('$TEST_PROJECT/.agentharness-state.json'))['source']['path'])
+")"
+    # The wrapper itself stays present and executable -- only the script it
+    # delegates to (at the recorded source) becomes unusable, e.g. a
+    # partially-broken harness checkout.
+    chmod -x "$source_path/tools/setup/harness-link.sh"
+
+    run bash "$SCRIPT" audit "$TEST_PROJECT" --json
+    [ "$status" -eq 0 ]
+
+    run python3 -c "
+import json
+d = json.loads('''$output''')
+assert d['helper_commands']['check']['available'] is True, d
+assert d['can_mechanically_enforce'] is False, d
+print('ok')
+"
+    chmod +x "$source_path/tools/setup/harness-link.sh"
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "ok" ]]
+}
+
+@test "lifecycle: update declining the confirmation prompt does not regenerate the check wrapper (Copilot review)" {
+    bash "$SCRIPT" init "$TEST_PROJECT" --skills committing,branching --mode link
+    rm -f "$TEST_PROJECT/.agentharness-bin/check"
+    # Force real drift (a removal) so update's confirmation prompt actually
+    # fires instead of taking the no-op "(nothing to do)" branch.
+    python3 -c "
+import json
+p = '$TEST_PROJECT/.agentharness-state.json'
+with open(p) as f: d = json.load(f)
+d['skills_filter'] = 'committing'
+json.dump(d, open(p, 'w'))
+"
+
+    run bash -c "echo n | bash '$SCRIPT' update '$TEST_PROJECT'"
+    [ "$status" -eq 1 ]
+    [[ "$output" =~ "Aborted" ]]
+    [ ! -e "$TEST_PROJECT/.agentharness-bin/check" ]
+}
+
 @test "lifecycle: update adds newly-in-scope skills and refreshes the state file" {
     bash "$SCRIPT" init "$TEST_PROJECT" --skills committing
     # Simulate "install was set to track all skills, and a new one has since
