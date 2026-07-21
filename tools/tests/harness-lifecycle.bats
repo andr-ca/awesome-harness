@@ -664,6 +664,46 @@ with open('$TEST_PROJECT/.agentharness-state.json') as f: print(json.load(f)['so
     [[ "$output" =~ "(nothing to do)" ]]
 }
 
+@test "lifecycle: --mode submodule update/status/audit survive the whole project moving to a new path (issue #124)" {
+    # source.path is recorded as an absolute path computed at install
+    # time. If the project (submodule and all) is moved -- or cloned to
+    # a different absolute path -- that recorded value goes stale, but
+    # for submodule/npm modes the actual source is still right there at
+    # <target>/.agentharness, just under the new location. update/audit
+    # used to hard-fail with "recorded source path no longer exists"
+    # instead of recomputing it from the current target.
+    git -C "$TEST_PROJECT" init --quiet
+    git -C "$TEST_PROJECT" -c user.email=test@example.com -c user.name=Test commit --quiet --allow-empty -m "init"
+    setup_local_bare_remote
+
+    run bash "$SCRIPT" init "$TEST_PROJECT" --mode submodule --skills committing
+    [ "$status" -eq 0 ]
+
+    moved_project="$(dirname "$TEST_PROJECT")/moved-$(basename "$TEST_PROJECT")"
+    mv "$TEST_PROJECT" "$moved_project"
+    TEST_PROJECT="$moved_project"
+
+    run bash "$SCRIPT" status "$TEST_PROJECT"
+    [ "$status" -eq 0 ]
+    [[ "$output" != *"source path no longer exists"* ]]
+
+    run bash "$SCRIPT" audit "$TEST_PROJECT"
+    [ "$status" -eq 0 ]
+
+    run bash "$SCRIPT" update "$TEST_PROJECT"
+    [ "$status" -eq 0 ]
+    [[ "$output" != *"recorded source path no longer exists"* ]]
+
+    # The self-healing part: after update, the recorded source.path in
+    # state should reflect the new location, not the stale pre-move one.
+    run python3 -c "
+import json
+with open('$TEST_PROJECT/.agentharness-state.json') as f: print(json.load(f)['source']['path'])
+"
+    [ "$status" -eq 0 ]
+    [ "$output" = "$TEST_PROJECT/.agentharness" ]
+}
+
 @test "lifecycle: --mode submodule uninstall removes the submodule cleanly" {
     git -C "$TEST_PROJECT" init --quiet
     git -C "$TEST_PROJECT" -c user.email=test@example.com -c user.name=Test commit --quiet --allow-empty -m "init"
