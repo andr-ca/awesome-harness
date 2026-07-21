@@ -104,7 +104,7 @@ index of all review documents. Summary below for quick navigation:
 
 Historical documents kept for reference:
 
-- (none yet)
+- **Launch-review disagreement register** — Fable-vs-GPT-5.6 disagreements (D1–D7) from the initial 2026-07-16 public-launch plan review round, with feedback and recommendations per item. Recovered from an abandoned branch and never a live companion to the current plan, which has since evolved directly on `main` — see `planning/public-launch-readiness-2026-07-16-status.md` for current progress. `planning/public-launch-review-disagreements-2026-07-16.md`
 
 ## 📝 Adding to This Index
 

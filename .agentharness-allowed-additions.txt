@@ -22,3 +22,4 @@ examples/existing-surface-project/README.md
 src/agentharness_locks/__init__.py
 tests/unit/test_agentharness_locks.py
 opencode.json
+docs/operational/planning/public-launch-review-disagreements-2026-07-16.md
