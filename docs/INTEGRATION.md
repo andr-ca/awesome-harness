@@ -29,7 +29,7 @@ subcommands can act on it later:
 | `update` | Re-sync to the current harness state; shows a diff and asks for confirmation (`--yes` to skip it) before changing anything. |
 | `uninstall` | Reverse everything `init` recorded — skills, gitignore block, hook (including a generated coverage hook), profile file, state file (and the submodule/durable npm copy, in those modes). |
 
-### Consumer-local completion gate (`.agentharness-bin/check`, issue #110)
+### Consumer-local completion gate (`.agentharness-bin/check`)
 
 `init`/`update` generate a small wrapper script at
 `<project>/.agentharness-bin/check` for `link`/`submodule`/`npm` modes —
