@@ -24,10 +24,23 @@ subcommands can act on it later:
 | `init` | Install (see modes below). `--dry-run` (or the `plan` alias) shows what would happen without changing anything. |
 | `status` | What's installed, from where, and whether the source has moved on since. |
 | `doctor` | Validate the install is healthy (skills present, bundled resources resolve, hook configured); nonzero exit if not — usable as a CI check. |
-| `audit` | Report drift: skills available upstream but not installed, installed skills no longer available, commits since your recorded revision; your selected profile, whether `.agentharness-publish-mode` is active, and whether the recorded harness checkout's own validation commands still exist. `--json` for machine-readable output (CI/scripting). Doesn't run policy-conflict detection itself — points at `tools/verify-content-quality.py` instead. |
-| `enforce-profile` | Read `.agentharness-profile` and gate on it for real: Python (`pytest --cov-fail-under` at the selected tier's floor), or JS/TS if `package.json`'s `"test"` script already runs `node --test`. Other project types/test runners get "not implemented yet". Invoked automatically by `--with-coverage-hook`'s generated pre-push hook; otherwise not wired in anywhere — invoke it explicitly. |
+| `audit` | Report drift: skills available upstream but not installed, installed skills no longer available, commits since your recorded revision; your selected profile, whether `.agentharness-publish-mode` is active, whether the recorded harness checkout's own validation commands still exist, hook state (`with_hook`/`coverage_hook`/`core.hooksPath`), the consumer-local check wrapper's availability, and a `can_mechanically_enforce` summary boolean. `--json` for machine-readable output (CI/scripting). Doesn't run policy-conflict detection itself — points at `tools/verify-content-quality.py` instead. |
+| `enforce-profile` | Read `.agentharness-profile` and gate on it for real: Python (`pytest --cov-fail-under` at the selected tier's floor), or JS/TS if `package.json`'s `"test"` script already runs `node --test`. Other project types/test runners get "not implemented yet". Invoked automatically by `--with-coverage-hook`'s generated pre-push hook, and by the generated `.agentharness-bin/check` wrapper below; also callable directly. |
 | `update` | Re-sync to the current harness state; shows a diff and asks for confirmation (`--yes` to skip it) before changing anything. |
 | `uninstall` | Reverse everything `init` recorded — skills, gitignore block, hook (including a generated coverage hook), profile file, state file (and the submodule/durable npm copy, in those modes). |
+
+### Consumer-local completion gate (`.agentharness-bin/check`, issue #110)
+
+`init`/`update` generate a small wrapper script at
+`<project>/.agentharness-bin/check` for `link`/`submodule`/`npm` modes —
+run `bash .agentharness-bin/check` from inside the project to invoke
+`enforce-profile` against *this* project (not the harness's own code,
+which is what invoking the harness's own tooling directly would test).
+`--mode copy` never keeps a live harness checkout reachable from inside
+the project, so it gets no wrapper; `audit --json`'s
+`can_mechanically_enforce` field reports this up front. `doctor`
+soft-warns (not a hard failure) if a non-`copy` install is missing its
+wrapper — run `update` once to generate or regenerate it.
 
 ### Coverage enforcement (`--with-coverage-hook`, P0-03)
 

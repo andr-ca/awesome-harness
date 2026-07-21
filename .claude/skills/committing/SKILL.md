@@ -51,16 +51,20 @@ commit template). This skill is the actionable summary.
    **This path is specific to the agentharness repo itself.** If this
    skill file is symlinked/copied into a *consumer* project instead
    (the normal case — see `harness-link.sh`), `tools/check-completion.sh`
-   does not exist there and will exit 127. Check for it
-   first (`[ -f tools/check-completion.sh ]` or equivalent); if it's
-   missing, the consumer-side equivalent is `harness-link.sh
-   enforce-profile <this-project>` (from wherever this install's
-   harness checkout lives — `.agentharness/` for submodule mode,
-   `.agentharness-pkg/` for npm mode, or the harness's own directory
-   for link mode), plus this project's own lint/type/test commands if
-   it has any not covered by `enforce-profile`. Don't silently skip
-   verification just because the harness's own path doesn't resolve —
-   find the equivalent for *this* repo.
+   does not exist there and will exit 127. Check for a generated,
+   consumer-local completion gate first: `[ -x .agentharness-bin/check ]`.
+   `harness-link.sh init`/`update` generates this wrapper automatically
+   for `link`/`submodule`/`npm` modes — run `bash .agentharness-bin/check`
+   in its place. It delegates to the resolved harness checkout's own
+   `enforce-profile` command against *this* project, not the harness's.
+   `--mode copy` has no live harness checkout to delegate to, so no
+   wrapper exists there — `harness-link.sh audit --json`'s
+   `can_mechanically_enforce` field tells you up front whether a given
+   install has one at all, rather than finding out mid-task. Either way,
+   also run this project's own lint/type/test commands if it has any not
+   covered by the gate. Don't silently skip verification just because the
+   harness's own path doesn't resolve — find the equivalent for *this*
+   repo.
 
 2. **Default (no publish authority): stop at the commit.**
    Stage the commit locally, summarize what was done, and ask the user to

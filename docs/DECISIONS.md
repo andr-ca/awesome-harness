@@ -8,6 +8,40 @@ go at the top.
 
 Format: **Decision** / **Status** / **Context** / **Consequences**.
 
+## Consumer-local completion gate: a generated wrapper, not a shipped script
+
+**Status:** Settled.
+
+**Context:** [#110](https://github.com/andr-ca/agentharness/issues/110)
+reported that `committing/SKILL.md` unconditionally instructs agents to
+run `tools/check-completion.sh`, but that script only exists in the
+agentharness repo itself — never shipped to a consumer project in any
+install mode — and exits 127 everywhere else. Worse, even where a copy
+physically exists on disk (`--mode submodule` clones the whole harness
+repo, `check-completion.sh` included), invoking it directly still
+validates the *harness's own* code: the script resolves its root via
+`dirname "${BASH_SOURCE[0]}"`, not the caller's working directory, so
+there was no shortcut — a real consumer-side tool was needed, not just a
+documentation fix.
+
+**Consequences:** `init`/`update` now generate a small wrapper at
+`<project>/.agentharness-bin/check` for `link`/`submodule`/`npm` modes,
+which `exec`s the resolved harness checkout's own `enforce-profile`
+subcommand with an explicit consumer-project argument — reusing
+`enforce-profile`'s existing language-aware test+coverage logic rather
+than duplicating `check-completion.sh`'s harness-specific gate set
+(ruff/mypy/content-quality) into a new subsystem. `--mode copy` gets no
+wrapper: no live harness checkout stays reachable from inside a copy
+install, so there is nothing for a wrapper to delegate to; `doctor`
+soft-warns (never hard-fails — a pre-#110 install just needs one `update`
+run) when a non-`copy` install is missing its wrapper, and `audit --json`
+exposes a `can_mechanically_enforce` boolean plus `hooks`/
+`helper_commands` fields so an agent (or CI) can check this *before*
+starting work instead of discovering it mid-task. Explicitly out of
+scope: expanding the gate itself to cover lint/typecheck beyond
+`enforce-profile`'s existing test+coverage scope — a separate, future
+decision, not bundled into closing this gap.
+
 ## Relative symlinks for submodule/npm install modes
 
 **Status:** Settled.

@@ -319,6 +319,109 @@ print('ok')
     [[ "$output" =~ "verify-content-quality.py" ]]
 }
 
+# ---------------------------------------------------------------------------
+# Consumer-local check wrapper (issue #110, recommendations #1/#2/#3)
+# ---------------------------------------------------------------------------
+
+@test "lifecycle: init generates a consumer-local check wrapper for --mode link" {
+    bash "$SCRIPT" init "$TEST_PROJECT" --skills committing --mode link
+    wrapper="$TEST_PROJECT/.agentharness-bin/check"
+    [ -x "$wrapper" ]
+}
+
+@test "lifecycle: --mode copy does not generate a check wrapper" {
+    bash "$SCRIPT" init "$TEST_PROJECT" --skills committing --mode copy
+    [ ! -e "$TEST_PROJECT/.agentharness-bin" ]
+}
+
+@test "lifecycle: the generated check wrapper delegates to enforce-profile against the consumer project, not the harness" {
+    bash "$SCRIPT" init "$TEST_PROJECT" --skills committing --mode link
+
+    run bash "$TEST_PROJECT/.agentharness-bin/check"
+    [ "$status" -eq 0 ]
+    # $TEST_PROJECT has no pyproject.toml/go.mod/package.json -- the gate
+    # should report "not implemented" for THIS project, not run (or claim
+    # results for) the harness's own Python test suite.
+    [[ "$output" =~ "enforce-profile: $TEST_PROJECT" ]]
+    [[ "$output" =~ "implemented yet" ]]
+}
+
+@test "lifecycle: doctor warns (soft, not fail) when the check wrapper is missing for a non-copy mode" {
+    bash "$SCRIPT" init "$TEST_PROJECT" --skills committing --mode link
+    rm -f "$TEST_PROJECT/.agentharness-bin/check"
+
+    run bash "$SCRIPT" doctor "$TEST_PROJECT"
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "consumer-local completion gate" ]]
+    [[ "$output" =~ "missing" ]]
+}
+
+@test "lifecycle: doctor reports the check wrapper present when it exists" {
+    bash "$SCRIPT" init "$TEST_PROJECT" --skills committing --mode link
+
+    run bash "$SCRIPT" doctor "$TEST_PROJECT"
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "✓ consumer-local completion gate present" ]]
+}
+
+@test "lifecycle: update retroactively generates a missing check wrapper (issue #110)" {
+    bash "$SCRIPT" init "$TEST_PROJECT" --skills committing --mode link
+    rm -f "$TEST_PROJECT/.agentharness-bin/check"
+    [ ! -e "$TEST_PROJECT/.agentharness-bin/check" ]
+
+    run bash "$SCRIPT" update "$TEST_PROJECT" --yes
+    [ "$status" -eq 0 ]
+    [ -x "$TEST_PROJECT/.agentharness-bin/check" ]
+}
+
+@test "lifecycle: uninstall removes the check wrapper" {
+    git -C "$TEST_PROJECT" init --quiet
+    bash "$SCRIPT" init "$TEST_PROJECT" --skills committing --mode link
+    [ -x "$TEST_PROJECT/.agentharness-bin/check" ]
+
+    run bash "$SCRIPT" uninstall "$TEST_PROJECT" --yes
+    [ "$status" -eq 0 ]
+    [ ! -e "$TEST_PROJECT/.agentharness-bin" ]
+}
+
+@test "lifecycle: audit --json reports hooks, helper_commands, and can_mechanically_enforce (issue #110)" {
+    git -C "$TEST_PROJECT" init --quiet
+    bash "$SCRIPT" init "$TEST_PROJECT" --skills committing --mode link --with-hook
+
+    run bash "$SCRIPT" audit "$TEST_PROJECT" --json
+    [ "$status" -eq 0 ]
+
+    run python3 -c "
+import json
+d = json.loads('''$output''')
+assert d['hooks']['with_hook'] is True, d
+assert d['hooks']['coverage_hook'] is False, d
+assert d['helper_commands']['check']['available'] is True, d
+assert d['helper_commands']['check']['path'].endswith('.agentharness-bin/check'), d
+assert d['can_mechanically_enforce'] is True, d
+print('ok')
+"
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "ok" ]]
+}
+
+@test "lifecycle: audit --json reports can_mechanically_enforce false for --mode copy" {
+    bash "$SCRIPT" init "$TEST_PROJECT" --skills committing --mode copy
+
+    run bash "$SCRIPT" audit "$TEST_PROJECT" --json
+    [ "$status" -eq 0 ]
+
+    run python3 -c "
+import json
+d = json.loads('''$output''')
+assert d['helper_commands']['check']['available'] is False, d
+assert d['can_mechanically_enforce'] is False, d
+print('ok')
+"
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "ok" ]]
+}
+
 @test "lifecycle: update adds newly-in-scope skills and refreshes the state file" {
     bash "$SCRIPT" init "$TEST_PROJECT" --skills committing
     # Simulate "install was set to track all skills, and a new one has since
