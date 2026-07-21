@@ -18,7 +18,7 @@ not currently installed into consumer projects by `harness-link.sh`.**
 If this skill file is symlinked/copied into a consumer repo (the
 normal case for every install mode) and `tools/agent-lock.sh` doesn't
 exist there, every command below will fail with "No such file or
-directory" (issue #110). Check `[ -f tools/agent-lock.sh ]` before
+directory". Check `[ -f tools/agent-lock.sh ]` before
 relying on this skill's commands; if it's missing, this protocol
 doesn't apply to this repo yet — fall back to plain git branch
 discipline (check `git branch -a` / `git log` for other in-progress

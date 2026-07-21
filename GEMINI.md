@@ -153,12 +153,13 @@ externally fired trigger runs, not just for CI.** The completion gate
 thorough about code-level and merge-level checks, but neither exercises
 a GitHub Actions trigger other than `workflow_dispatch` (an `issues:`,
 `schedule:`, `pull_request_target`, or webhook trigger), a cron job, or
-anything else `pytest`/`bats` structurally cannot simulate. Building the
-automated issue-analysis feature hit this three times in a row across
-PRs #111, #113, and #118: static checks passed every time, and each
-time only an actual live run (filing a throwaway test issue, watching a
-real webhook fire) surfaced a real bug — a duplicate-run race, an
-indefinite hang, a retry gap — that no unit test could have caught.
+anything else `pytest`/`bats` structurally cannot simulate. Building an
+automated GitHub-webhook-triggered feature in this repo hit this gap
+three separate times in a row on the same feature: static checks
+passed every time, and each time only an actual live run (filing a
+throwaway test issue, watching a real webhook fire) surfaced a real
+bug — a duplicate-run race, an indefinite hang, a retry gap — that no
+unit test could have caught.
 
 When a change adds or modifies something that only truly runs via such
 an external trigger: either (a) exercise it for real before presenting
@@ -213,13 +214,12 @@ and `.claude/skills/file-placement-policy/SKILL.md` for the condensed
 on-demand reference.
 
 **This whole policy is scoped to inside the project.** It has no
-concept of "outside the repo entirely" — a real gap: during the #107
-work session, a command intended to set an env var for the current
-shell instead appended it directly to the user's `~/.bashrc`, a file
-outside `$(git rev-parse --show-toplevel)` entirely, shared across
-every terminal the user opens. It was caught and reverted immediately,
-but nothing would have stopped it if it hadn't been noticed
-(issue #122).
+concept of "outside the repo entirely" — a real gap: a command intended
+to set an env var for the current shell once appended it directly to
+the user's `~/.bashrc` instead, a file outside `$(git rev-parse
+--show-toplevel)` entirely, shared across every terminal the user
+opens. It was caught and reverted immediately, but nothing would have
+stopped it if it hadn't been noticed.
 
 **Never write to files outside the current project's working
 directory tree** — shell rc files (`~/.bashrc`, `~/.zshrc`,

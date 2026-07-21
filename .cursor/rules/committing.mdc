@@ -47,7 +47,7 @@ commit template). This skill is the actionable summary.
    **This path is specific to the agentharness repo itself.** If this
    skill file is symlinked/copied into a *consumer* project instead
    (the normal case — see `harness-link.sh`), `tools/check-completion.sh`
-   does not exist there and will exit 127 (issue #110). Check for it
+   does not exist there and will exit 127. Check for it
    first (`[ -f tools/check-completion.sh ]` or equivalent); if it's
    missing, the consumer-side equivalent is `harness-link.sh
    enforce-profile <this-project>` (from wherever this install's
@@ -69,7 +69,7 @@ commit template). This skill is the actionable summary.
    .agentharness-publish-mode ]` (or `test -e`), never by reading its
    contents. The file is typically empty by design; an agent that
    `cat`s it, sees nothing, and concludes "not active" has the check
-   backwards (issue #110) — presence alone grants authority, content is
+   backwards — presence alone grants authority, content is
    irrelevant. `harness-link.sh audit --json`'s `publish_mode_active`
    field already implements this correctly if you'd rather not shell
    out to `test` directly.
@@ -79,8 +79,8 @@ commit template). This skill is the actionable summary.
      **If this fails with an SSH key error** (`Permission denied
      (publickey)`) even though `gh auth status` shows a valid session:
      the remote is an SSH URL (`git@github.com:...`) but no SSH key is
-     configured in this environment — a real, seen-in-practice mismatch
-     (issue #117), not a sign the push itself is wrong. Don't
+     configured in this environment — a real, seen-in-practice mismatch,
+     not a sign the push itself is wrong. Don't
      permanently reconfigure the remote to work around a one-off
      environment gap. Instead, push to an explicit HTTPS URL for this
      one invocation, using `gh`'s own credentials:

@@ -57,7 +57,7 @@ ask-the-user step for logging" rule), which would otherwise directly
 contradict this policy's ask-first default for any consumer with a
 guarded `docs/`. `tools/check-file-placement.sh` exempts this one path
 outright rather than requiring every consumer to remember to pre-seed
-`.agentharness-allowed-additions.txt` (issue #110). Nothing else under
+`.agentharness-allowed-additions.txt`. Nothing else under
 `docs/operational/` gets this exemption.
 
 ## For new projects: recommend structure first
