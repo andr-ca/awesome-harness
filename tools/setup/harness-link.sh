@@ -1230,7 +1230,7 @@ cmd_status() {
             echo "  note: source has moved on ($source_rev -> $current_rev) — run 'audit' or 'update'"
         fi
     else
-        echo "  note: source path no longer exists ($source_path) — 'update'/'doctor' will fail until it's restored"
+        echo "  note: source path no longer exists ($source_path) — 'update'/'audit' will fail until it's restored"
     fi
 }
 
@@ -1455,7 +1455,7 @@ cmd_audit() {
     mode="$(state_field "$target" mode)"
     source_path="$(resolved_source_path "$target" "$mode" "$(state_field "$target" source.path)")"
     if [ ! -d "$source_path" ]; then
-        echo "Error: recorded source path no longer exists: $source_path" >&2
+        echo "Error: source path not found: $source_path" >&2
         exit 1
     fi
 
@@ -2049,7 +2049,7 @@ cmd_update() {
     fi
 
     if [ ! -d "$source_path" ]; then
-        echo "Error: recorded source path no longer exists: $source_path" >&2
+        echo "Error: source path not found: $source_path" >&2
         exit 1
     fi
 
