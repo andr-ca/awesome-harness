@@ -1,6 +1,6 @@
 ---
 name: dependency-audit
-description: Use when adding dependencies, reviewing a project's dependency tree, or checking for known vulnerabilities — covers pip-audit, npm audit, govulncheck, lock file hygiene, and update policy.
+description: Use when adding dependencies, reviewing a project's dependency tree, or checking for known vulnerabilities and ownership risk — covers pip-audit, npm audit, govulncheck, lock file hygiene, update policy, and trust assessment.
 metadata:
   type: skills
   complexity: low
@@ -137,6 +137,51 @@ In CI, use the install command that respects the lock file:
    lock/requirements file, create a tracking issue, and set a review date.
 5. **Never just silence the audit.** Suppressions require documented
    justification.
+
+---
+
+## Dependency ownership — trust beyond CVEs
+
+A clean CVE scan doesn't mean a package is safe to trust. Install/build
+scripts execute code at install time; network access at build or runtime;
+transitive trees spanning hundreds of packages; provenance gaps; abandoned
+maintenance; or high replacement cost are all real risks that CVE scanners
+never surface.
+
+**Risk-tiered ownership record:**
+
+| Tier | Examples | Minimum check |
+|---|---|---|
+| Trivial dev tool | linters, formatters, CLI utilities | Pinned version? Trusted source? |
+| Runtime dependency | production code in your app/service | Full ownership checklist (see below) |
+| Agent-executed | GitHub Actions, plugins, MCP servers, tools | Full checklist + SHA pin + provenance audit |
+
+**Ownership checklist** (required for runtime and agent-executed):
+
+- [ ] Capability justification — could stdlib or existing dep do this instead?
+- [ ] Trust basis — official source? known maintainer? organization with reputation at stake?
+- [ ] Exposure surface — direct/transitive? build/runtime? network access? install-time scripts?
+- [ ] Provenance — pinned by SHA/hash? official registry source? can you verify integrity?
+- [ ] Maintenance health — last release <12 months? active issue response? plan if abandoned?
+- [ ] Replacement path — can you fork, patch locally, or swap it for an alternative?
+- [ ] Verification method — how will you detect tampering, unexpected network access, or malicious version bumps?
+
+**Ecosystem notes:**
+
+- **Python:** `pip-audit --strict` reports CVEs; separate check: examine `setup.py` for install-time scripts. Use `--no-binary` to force source builds and expose permissions (e.g., `PyYAML` with `--no-binary` surfaces its `setup.py` at install time).
+- **Node/TS:** `npm audit` covers CVEs; separately verify GitHub Actions pinned by commit SHA (never tag/branch).
+- **Go:** `govulncheck ./...` reports reachable CVEs; `go.sum` provides provenance baseline.
+- **GitHub Actions:** Third-party Actions run in CI with repo/CI context access. Pin by full commit SHA; verify code before use. Treat as agent-executed tier.
+- **Plugins/MCP/Agents:** Tools running with your credentials (repo write, API keys, tool access) need full checklist + verification method (hash changes, network logs, version-bump alerts).
+
+**Scanner evidence vs. trust judgment:**
+
+- `pip-audit`, `npm audit`, `govulncheck`: *Are there known CVEs?*
+- Ownership checklist: *Should I trust this code in my environment?*
+
+Different questions. Clean scan + weak ownership = risky. Strong ownership + old CVE (unused code path) = documented risk. Use both.
+
+**Real example:** GitHub Actions like `lycheeverse/lychee-action` are SHA-pinned in CI workflows, run with repo access, and don't appear in CVE scanners — ownership checklist is essential.
 
 ---
 
