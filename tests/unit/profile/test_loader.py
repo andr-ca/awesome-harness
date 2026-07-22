@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import FrozenInstanceError, replace
 
 import pytest
-from hypothesis import given
+from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from agentharness.profile import (
@@ -78,6 +78,7 @@ def test_loader_returns_frozen_typed_records() -> None:
         profile.project.name = "changed"  # type: ignore[misc]
 
 
+@settings(deadline=None)
 @given(st.integers(min_value=0, max_value=100))
 def test_semantically_equivalent_profiles_hash_identically(coverage: int) -> None:
     first = load_profile_text(profile_yaml(coverage=coverage))

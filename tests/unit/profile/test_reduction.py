@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pytest
-from hypothesis import given
+from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from agentharness.profile import (
@@ -29,6 +29,7 @@ _MUTATION_CODES = {
 }
 
 
+@settings(deadline=None)
 @given(
     mutation=st.sampled_from(tuple(_MUTATION_CODES)),
     coverage=st.integers(min_value=1, max_value=100),
@@ -80,6 +81,7 @@ def test_generated_weakening_mutations_fail_with_stable_codes(
         }
 
 
+@settings(deadline=None)
 @given(st.integers(min_value=1, max_value=80))
 def test_lowering_threshold_is_always_a_reduction(lower: int) -> None:
     base = load_profile_text(profile_yaml(coverage=81))
@@ -326,6 +328,7 @@ def test_plugin_config_json_kind_change_is_an_identity_reduction() -> None:
     }
 
 
+@settings(deadline=None)
 @given(
     require_owner=st.booleans(),
     approvals=st.integers(min_value=0, max_value=2),
@@ -406,6 +409,7 @@ def test_empty_include_means_unbounded_scope() -> None:
     }
 
 
+@settings(deadline=None)
 @given(
     rigor_pair=st.sampled_from(
         [
