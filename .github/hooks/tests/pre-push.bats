@@ -49,6 +49,39 @@ setup() {
     rm -rf "$consumer_repo"
 }
 
+@test "pre-push: treats a linked worktree as the agentharness repository" {
+    primary_repo="$(mktemp -d)"
+    linked_worktree="$(mktemp -d)"
+    stub_dir="$(mktemp -d)"
+    rmdir "$linked_worktree"
+
+    git -C "$primary_repo" init --quiet
+    git -C "$primary_repo" config user.email "test@example.com"
+    git -C "$primary_repo" config user.name "Test"
+    git -C "$primary_repo" commit --quiet --allow-empty -m "initial"
+    mkdir -p "$primary_repo/.github/hooks"
+    cp "$HOOK" "$primary_repo/.github/hooks/pre-push"
+    git -C "$primary_repo" worktree add --quiet -b feature/worktree "$linked_worktree"
+
+    cat > "$stub_dir/bats" <<'STUB'
+#!/bin/bash
+exit 0
+STUB
+    cat > "$stub_dir/python3" <<'STUB'
+#!/bin/bash
+exit 0
+STUB
+    chmod +x "$stub_dir/bats" "$stub_dir/python3"
+
+    run bash -c "cd '$linked_worktree' && PATH='$stub_dir:$PATH' bash '$primary_repo/.github/hooks/pre-push'"
+
+    git -C "$primary_repo" worktree remove --force "$linked_worktree"
+    rm -rf "$primary_repo" "$stub_dir"
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "All pre-push checks passed" ]]
+    [[ "$output" != *"not to agentharness itself"* ]]
+}
+
 @test "pre-push: strips repository-local Git environment before fixture suites" {
     repo_root="$(cd "$(dirname "$HOOK")/../.." && pwd)"
     git_dir="$(git -C "$repo_root" rev-parse --absolute-git-dir)"

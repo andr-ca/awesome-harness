@@ -216,3 +216,34 @@ separate change.
 five profile property tests and retained the existing assertions and example
 counts. Logged upstream as
 [#144](https://github.com/andr-ca/agentharness/issues/144).
+
+## 2026-07-22 – Pre-push misclassifies agentharness worktrees as consumers
+
+**What happened:** Pushing the verified
+`docs/harness-engineering-roadmap-recommendations` branch from its linked
+worktree caused the shared pre-push hook to report that the push was not to
+agentharness and skip the repository's test suite. The pushed worktree and the
+primary checkout are two worktrees of the same repository.
+
+**Root cause:** The hook compared the hook-owning primary checkout's top-level
+path with `git rev-parse --show-toplevel` from the pushed worktree. Linked
+worktrees necessarily have different top-level paths even though they share
+the same Git common directory. The hook also retained the primary checkout as
+its execution root, which would test the wrong branch if only the path guard
+were relaxed.
+
+**Impact:** Agentharness pushes made through the repository's recommended
+worktree workflow silently skipped both test/coverage enforcement and the
+branch-lock gate. The output incorrectly described the worktree as an external
+consumer. This push remained safe because the complete gate had already been
+run manually.
+
+**What agentharness should change:** Compare canonical Git common-directory
+identity so linked worktrees are recognized as the same repository, retain the
+no-op for unrelated consumers, and run checks from the pushed worktree rather
+than the hook-owning checkout.
+
+**Corrective action taken:** Updated the hook to compare common Git directories
+and select the pushed worktree as its execution root. Added a Bats regression
+using a real linked worktree while retaining the consumer no-op case. Logged
+upstream as [#145](https://github.com/andr-ca/agentharness/issues/145).

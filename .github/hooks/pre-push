@@ -35,7 +35,7 @@
 set -euo pipefail
 
 HOOKS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$HOOKS_DIR/../.." && pwd)"
+HOOK_REPO_ROOT="$(cd "$HOOKS_DIR/../.." && pwd)"
 
 # Is the repo actually being pushed (current working directory) this repo,
 # or some consumer project that merely points core.hooksPath here?
@@ -55,12 +55,36 @@ if [ -z "$PUSHED_REPO_ROOT" ]; then
         fi
     fi
 fi
-if [ "$PUSHED_REPO_ROOT" != "$REPO_ROOT" ]; then
+git_common_dir() {
+    local repo_root="$1"
+    local common_dir
+    common_dir="$(git -C "$repo_root" rev-parse --git-common-dir 2>/dev/null || true)"
+    [ -n "$common_dir" ] || return 0
+    if [[ "$common_dir" != /* ]]; then
+        common_dir="$repo_root/$common_dir"
+    fi
+    (cd "$common_dir" 2>/dev/null && pwd -P) || true
+}
+
+# A linked worktree has a different top-level path from the primary checkout
+# that owns this hook, but both point at the same common Git directory. Compare
+# repository identity rather than only working-tree paths so worktree pushes
+# retain the test and lock gates while unrelated consumers still no-op.
+HOOK_COMMON_DIR="$(git_common_dir "$HOOK_REPO_ROOT")"
+PUSHED_COMMON_DIR="$(git_common_dir "$PUSHED_REPO_ROOT")"
+if [ "$PUSHED_REPO_ROOT" != "$HOOK_REPO_ROOT" ] && {
+    [ -z "$HOOK_COMMON_DIR" ] ||
+        [ -z "$PUSHED_COMMON_DIR" ] ||
+        [ "$PUSHED_COMMON_DIR" != "$HOOK_COMMON_DIR" ]
+}; then
     echo "pre-push: this push is not to agentharness itself (core.hooksPath"
     echo "is just borrowed from it) — skipping agentharness's own test suite."
     exit 0
 fi
 
+# Run checks against the branch being pushed. For the primary checkout this is
+# the hook repository root; for a linked worktree it is that worktree's root.
+REPO_ROOT="$PUSHED_REPO_ROOT"
 cd "$REPO_ROOT"
 
 # Strip repository-local Git environment variables so that tools invoked
