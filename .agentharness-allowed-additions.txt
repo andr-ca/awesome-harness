@@ -24,3 +24,12 @@ tests/unit/test_agentharness_locks.py
 opencode.json
 docs/operational/planning/public-launch-review-disagreements-2026-07-16.md
 docs/operational/harness-engineering-recommendations-status.md
+src/agentharness/authority/__init__.py
+src/agentharness/authority/loader.py
+src/agentharness/authority/operations.py
+src/agentharness/schemas/authority-v1.json
+tests/unit/authority/__init__.py
+tests/unit/authority/test_operations.py
+tests/unit/authority/test_loader.py
+tools/eval/authority_scenarios.py
+tools/eval/tests/test_authority_scenarios.py

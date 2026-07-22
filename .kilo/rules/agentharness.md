@@ -170,12 +170,23 @@ undisclosed CI failure would be, not a satisfied requirement.
 
 #### Publish authority
 
-`touch .agentharness-publish-mode` at this repo's root grants standing
-push/PR/auto-implement authority for every session that reads this file,
-until the flag is removed. It's gitignored (never committed) because
-it's a per-operator/per-machine authorization, not a repo-wide policy —
-see `docs/DECISIONS.md` for why this replaced the old always-on default,
-and `docs/INTEGRATION.md` for how to create/remove it.
+Authority can now be scoped via a declarative `.agentharness-authority.json`
+contract (gitignored, per-operator, like the flag below). Define grants by
+operation, target branch glob, and expiration — operators can restrict
+authority to `fix/*` branches only, grant it for 48 hours while a feature
+ships, or revoke it mid-session. Precedence: explicit in-session instruction
+> `.agentharness-authority.json` > bare flag > default (verify-and-stage).
+A present contract overrides the bare flag. See `docs/INTEGRATION.md`'s
+"Scoped Authority" section for the full contract format, operation vocabulary,
+and optional hard-block enforcement.
+
+For simpler, all-or-nothing authority, `touch .agentharness-publish-mode`
+at this repo's root grants standing push/PR/auto-implement authority for
+every session that reads this file, until the flag is removed. It's
+gitignored (never committed) because it's a per-operator/per-machine
+authorization, not a repo-wide policy — see `docs/DECISIONS.md` for why
+this replaced the old always-on default, and `docs/INTEGRATION.md` for
+how to create/remove it or use scoped contracts instead.
 
 ### 📁 File Placement
 

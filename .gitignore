@@ -52,6 +52,10 @@ htmlcov/
 # see CLAUDE.md's "Publish authority" section
 .agentharness-publish-mode
 
+# agentharness: scoped authority contract — per-operator, per-session,
+# granular operation grants with optional expiry (GitHub issue #140)
+.agentharness-authority.json
+
 # --mode npm's durable local package copy (P0-02) — not applicable to this
 # repo's own root normally, ignored for symmetry with the consumer-facing
 # .github/.gitignore.template entry and local test/debug runs.

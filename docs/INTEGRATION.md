@@ -24,7 +24,7 @@ subcommands can act on it later:
 | `init` | Install (see modes below). `--dry-run` (or the `plan` alias) shows what would happen without changing anything. |
 | `status` | What's installed, from where, and whether the source has moved on since. |
 | `doctor` | Validate the install is healthy (skills present, bundled resources resolve, hook configured); nonzero exit if not — usable as a CI check. |
-| `audit` | Report drift: skills available upstream but not installed, installed skills no longer available, commits since your recorded revision; your selected profile, whether `.agentharness-publish-mode` is active, whether the recorded harness checkout's own validation commands still exist, hook state (`with_hook`/`coverage_hook`/`core.hooksPath`), the consumer-local check wrapper's availability, and a `can_mechanically_enforce` summary boolean. `--json` for machine-readable output (CI/scripting). Doesn't run policy-conflict detection itself — points at `tools/verify-content-quality.py` instead. |
+| `audit` | Report drift: skills available upstream but not installed, installed skills no longer available, commits since your recorded revision; your selected profile, whether `.agentharness-publish-mode` is active, your effective authority (from `.agentharness-authority.json` if present, else the bare flag's default, else the default verify-and-stage), whether the recorded harness checkout's own validation commands still exist, hook state (`with_hook`/`coverage_hook`/`core.hooksPath`), the consumer-local check wrapper's availability, and a `can_mechanically_enforce` summary boolean. `--json` for machine-readable output (CI/scripting). Doesn't run policy-conflict detection itself — points at `tools/verify-content-quality.py` instead. |
 | `enforce-profile` | Read `.agentharness-profile` and gate on it for real: Python (`pytest --cov-fail-under` at the selected tier's floor), or JS/TS if `package.json`'s `"test"` script already runs `node --test`. Other project types/test runners get "not implemented yet". Invoked automatically by `--with-coverage-hook`'s generated pre-push hook, and by the generated `.agentharness-bin/check` wrapper below; also callable directly. |
 | `update` | Re-sync to the current harness state; shows a diff and asks for confirmation (`--yes` to skip it) before changing anything. |
 | `uninstall` | Reverse everything `init` recorded — skills, gitignore block, hook (including a generated coverage hook), profile file, state file (and the submodule/durable npm copy, in those modes). |
@@ -529,7 +529,98 @@ git config core.hooksPath .githooks
 cp ~/agentharness/.github/.gitignore.template .gitignore
 ```
 
-### Publish Authority
+### Scoped Authority (Declarative, Expiring, Revocable Grants)
+
+By default, `CLAUDE.md`'s "Agent Workflow Completion" section directs an
+agent to verify-and-stage-only: commit locally, then stop and ask before
+pushing, opening a PR, or auto-implementing recommendations. For repos you
+control, you can grant an agent standing authority without always-on
+confirmation, but now with fine-grained control: **scoped by operation,
+target branch, and expiration**.
+
+This design adapts the authority model from
+https://github.com/lopopolo/harness-engineering/blob/226c8d35fb6ea3ed55467753dba6dea2b5fd5778/docs/authority/README.md:
+separating capability (how to cause an effect) from authority (which
+effects an identity may cause), using scoped, expiring, revocable grants.
+
+Create a `.agentharness-authority.json` file at your repo's root to define
+declarative grants (gitignored by `.github/.gitignore.template`, same as
+the binary flag):
+
+```json
+{
+  "schema_version": 1,
+  "grants": [
+    {
+      "operations": ["push", "pr-create"],
+      "target": "fix/*",
+      "expires": "2026-07-25T00:00:00Z",
+      "granted_by": "you@example.com"
+    },
+    {
+      "operations": ["commit"],
+      "expires": "2026-07-23T00:00:00Z"
+    }
+  ],
+  "revoked": []
+}
+```
+
+**Grant fields:**
+- `operations` (required): list of operations to grant. Vocabulary: `commit`,
+  `push`, `pr-create`, `pr-merge`, `issue-create`, `fs-write-outside-repo`,
+  `external-message`, `destructive-fs`.
+- `target` (optional): a glob pattern matching branch names (e.g., `fix/*`,
+  `feature/**`, `main`). Omit to apply to all branches.
+- `expires` (optional): ISO 8601 UTC timestamp. Omit for no expiration.
+- `granted_by` (optional): provenance — your email or identifier.
+
+**`revoked` list:** operation names withdrawn even if a grant lists them
+(useful for emergency revocation without rewriting grants).
+
+**Precedence:** explicit in-session instruction (always wins) >
+`.agentharness-authority.json` > bare `.agentharness-publish-mode` flag
+(treated as a full grant of all 8 operations) > default (verify-and-stage).
+A present contract overrides the bare flag.
+
+**Checking authority:** Use the `agentharness` CLI to validate what's
+currently granted:
+
+```bash
+# List all grants in human-readable form
+agentharness authority
+
+# Machine-readable JSON (for CI or scripting)
+agentharness authority --json --target-dir /path/to/repo
+
+# Check if a specific operation is granted (exit 0 / non-0)
+agentharness authority check --operation push [--target branch-name] /path/to/repo
+```
+
+**Optional hard-block enforcement:** By default, the contract is advisory —
+the harness's own pre-push hook does not enforce it. If you want to block
+pushes that violate the contract, add this snippet to your project's
+`.github/hooks/pre-push` (or create it if missing):
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Optional: hard-block enforcement of scoped authority
+if command -v agentharness &>/dev/null; then
+  harness_root="$(git rev-parse --show-toplevel)"
+  if ! agentharness authority check --operation push "$harness_root"; then
+    echo "Push denied by authority contract (see .agentharness-authority.json)"
+    exit 1
+  fi
+fi
+```
+
+Make sure the script is executable (`chmod +x .github/hooks/pre-push`) and
+that `core.hooksPath` is configured to point to `.github/hooks/` (or
+wherever you placed it).
+
+### Publish Authority (Binary Flag)
 
 `CLAUDE.md`'s "Agent Workflow Completion" section defaults an agent to
 verify-and-stage-only: it commits locally but stops before pushing,
@@ -549,6 +640,10 @@ file (`rm .agentharness-publish-mode`) to drop back to the safer default.
 This doesn't override an explicit instruction in a given request either
 way — telling an agent "commit and push this" (or "just stage this,
 don't push") always wins for that one task regardless of the flag.
+
+**Note:** If both `.agentharness-authority.json` and
+`.agentharness-publish-mode` are present, the contract takes precedence.
+The bare flag is treated as a fallback, not an override.
 
 ### PR Merge Checklist (`tools/safe-pr-merge.sh`)
 

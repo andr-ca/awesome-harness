@@ -1679,6 +1679,23 @@ for line in lines(validation_raw):
         "executable": executable == "true",
     })
 
+import subprocess
+
+# Try to load authority (graceful degradation if unavailable)
+authority = None
+try:
+    result = subprocess.run(
+        ["python3", "-m", "agentharness", "authority", "--json", "--target-dir", target],
+        capture_output=True,
+        text=True,
+        timeout=5,
+    )
+    if result.returncode == 0:
+        authority = json.loads(result.stdout)
+except (subprocess.TimeoutExpired, OSError, json.JSONDecodeError, FileNotFoundError):
+    # If authority CLI is unavailable or fails, continue without it
+    pass
+
 print(json.dumps({
     "target": target,
     "source_path": source_path,
@@ -1704,6 +1721,7 @@ print(json.dumps({
         },
     },
     "can_mechanically_enforce": can_mechanically_enforce == "true",
+    "authority": authority,
 }, indent=2))
 PYEOF
         return
@@ -1732,6 +1750,29 @@ PYEOF
     echo ""
     echo "Selected profile: $selected_profile"
     echo "Publish-authority flag active: $publish_mode_active"
+
+    # Try to show authority summary (graceful degradation if unavailable).
+    # The target path is passed via argv, never interpolated into the code
+    # string, so a path with quotes/spaces/backslashes can't break or inject.
+    if command -v python3 >/dev/null 2>&1; then
+        authority_summary=$(python3 -c '
+import subprocess, json, sys
+try:
+    result = subprocess.run(
+        ["python3", "-m", "agentharness", "authority", "--json",
+         "--target-dir", sys.argv[1]],
+        capture_output=True,
+        text=True,
+        timeout=5,
+    )
+    if result.returncode == 0:
+        auth = json.loads(result.stdout)
+        print("Authority source: " + auth["details"]["source"])
+except (subprocess.SubprocessError, json.JSONDecodeError, OSError, KeyError):
+    pass
+' "$target" 2>/dev/null || true)
+        [ -n "$authority_summary" ] && echo "$authority_summary"
+    fi
 
     echo ""
     echo "Validation commands (in the recorded harness checkout):"

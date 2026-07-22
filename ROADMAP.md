@@ -207,6 +207,26 @@ GitHub Copilot, and Gemini CLI via the Agent Skills open standard.
   `docs/operational/reviews/gpt-5.6-completion-reaudit-status.md` for the
   scoping question this resolved.
 
+- **P0-03 evolved: binary flag → scoped authority contracts** —
+  **MVP IMPLEMENTED** (#140). The binary `.agentharness-publish-mode` flag
+  has been evolved into a declarative, machine-readable `.agentharness-authority.json`
+  contract (gitignored, per-operator, like the flag). Operators can now
+  grant granular, expiring, revocable, per-operation authority instead of
+  all-or-nothing publish authority. Operation vocabulary: `commit`, `push`,
+  `pr-create`, `pr-merge`, `issue-create`, `fs-write-outside-repo`,
+  `external-message`, `destructive-fs`. Grants are scoped by operation,
+  target branch glob, and expiration (ISO 8601 UTC). Precedence: explicit
+  in-session instruction > `.agentharness-authority.json` > bare
+  `.agentharness-publish-mode` flag (= full grant of all 8 ops) > default
+  (verify-and-stage). A present contract overrides the bare flag.
+  **Enforcement is advisory** — the MVP ships the portable Python gate + CLI
+  (`agentharness authority check --operation OP [--target T]`) + a consumer
+  hook snippet, but does NOT auto-wire agentharness's own pre-push hook.
+  Deferred: client adapters beyond Python, live-API eval matrix, receipt
+  persistence. See `docs/DECISIONS.md` and `docs/INTEGRATION.md` for the
+  design; the external authority model reference is
+  https://github.com/lopopolo/harness-engineering/blob/226c8d35fb6ea3ed55467753dba6dea2b5fd5778/docs/authority/README.md
+
 ## Third-Pass Review Backlog (P1/P2, 2026-07-13)
 
 Tracked here per the user's explicit choice ("turn the whole set into a

@@ -8,6 +8,52 @@ go at the top.
 
 Format: **Decision** / **Status** / **Context** / **Consequences**.
 
+## Scoped authority contracts: declarative, expiring, revocable grants
+
+**Status:** Implemented (MVP, 2026-07-22). Enforcement is advisory by
+default; consumers can wire hard-block via an optional hook snippet.
+
+**Context:** The binary `.agentharness-publish-mode` flag grants all-or-nothing
+authority: an operator creates it and gets full commit/push/PR/auto-implement
+permission for every session, or deletes it and gets none. That binary model
+conflates orthogonal concerns — an operator might want to grant push authority
+to `fix/*` branches only, or grant it for 48 hours while a feature ships,
+or revoke it mid-session. The harness-engineering project's authority model
+(https://github.com/lopopolo/harness-engineering/blob/226c8d35fb6ea3ed55467753dba6dea2b5fd5778/docs/authority/README.md)
+separates capability (how to cause an effect) from authority (which effects
+an identity may cause), using scoped, expiring, revocable grants as the
+fundamental primitive. This decision adapts that principle into a declarative,
+portable format this harness can enforce without requiring a remote
+authorization server.
+
+**Consequences:** Operators can now place a `.agentharness-authority.json`
+(gitignored, per-operator, like the binary flag) at the repo root. The file
+contains: `schema_version: 1`, a `grants` array of objects with `operations`
+(required), `target` (optional glob pattern, e.g. `fix/*`), `expires` (optional
+ISO 8601 UTC timestamp), and `granted_by` (optional provenance), and a `revoked`
+list of operation names withdrawn even if a grant lists them. Operation
+vocabulary: `commit`, `push`, `pr-create`, `pr-merge`, `issue-create`,
+`fs-write-outside-repo`, `external-message`, `destructive-fs`. Precedence:
+explicit in-session instruction (always wins) > `.agentharness-authority.json`
+> bare `.agentharness-publish-mode` flag (treated as a full grant of all 8
+operations) > default (verify-and-stage-only). A present contract overrides
+the bare flag.
+
+CLI: `agentharness authority` (human preflight listing granted ops for
+context), `agentharness authority --json --target-dir DIR` (machine-readable
+for CI/scripting), `agentharness authority check --operation OP [--target T]`
+(exit 0 granted / non-0 refused — the portable, optional hard-block primitive).
+`audit` and `audit --json` now surface `effective_authority` alongside
+`publish_mode_active`.
+
+**Enforcement model:** Advisory by default — the MVP ships the portable Python
+gate + CLI + an optional `pre-push` hook snippet (a consumer invokes
+`agentharness authority check --operation push` and blocks on non-zero exit).
+The harness's own pre-push hook is NOT auto-wired this pass — enforcement is
+opt-in for consumers. **Permanent non-goals:** no credential/token storage, no
+token brokering, no remote authorization server, no invented cross-client
+enforcement guarantees.
+
 ## Consumer-local completion gate: a generated wrapper, not a shipped script
 
 **Status:** Settled.
