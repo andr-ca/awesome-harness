@@ -101,6 +101,25 @@ def create_parser() -> argparse.ArgumentParser:
     )
     pf_apply.add_argument("--json", action="store_true", dest="as_json")
 
+    # authority sub-commands
+    authority_parser = subparsers.add_parser("authority", add_help=False)
+    authority_parser.add_argument("--json", action="store_true", dest="as_json")
+    authority_parser.add_argument("--target-dir", default=".", type=Path)
+
+    authority_sub = authority_parser.add_subparsers(
+        dest="authority_command", required=False
+    )
+
+    # check subcommand
+    auth_check = authority_sub.add_parser("check", add_help=False)
+    auth_check.add_argument(
+        "--operation", required=True, help="Operation name to check"
+    )
+    auth_check.add_argument(
+        "--target", default=None, help="Optional target (e.g., branch pattern)"
+    )
+    auth_check.add_argument("target_dir", nargs="?", default=".", type=Path)
+
     return parser
 
 
@@ -510,6 +529,129 @@ def execute_profile_apply(file: Path, target: Path | None) -> CommandResult:
     )
 
 
+def execute_authority_check(
+    operation: str, target: str | None, target_dir: Path
+) -> CommandResult:
+    """Check if an operation is authorized."""
+    from agentharness.authority.loader import load_effective_authority
+    from agentharness.authority.operations import decide
+
+    repo_root = target_dir.resolve()
+    try:
+        contract = load_effective_authority(repo_root)
+    except ValueError as e:
+        return CommandResult(
+            code=ResultCode.INVALID_COMMAND,
+            outcome=Outcome.ERROR,
+            summary=f"Failed to load authority contract: {e}",
+            remediation="Check the authority contract file and try again.",
+            details={"repo_root": str(repo_root), "error": str(e)},
+        )
+
+    decision = decide(contract, operation, target)
+    if decision.allowed:
+        return CommandResult(
+            code=ResultCode.STATUS_AVAILABLE,
+            outcome=Outcome.SUCCESS,
+            summary=f"Operation '{operation}' is authorized.",
+            remediation="",
+            details={"operation": operation, "target": target, "allowed": True},
+        )
+    else:
+        return CommandResult(
+            code=ResultCode.STATUS_AVAILABLE,
+            outcome=Outcome.ERROR,
+            summary=f"Operation '{operation}' is not authorized: {decision.reason}",
+            remediation="Request appropriate authority or contact the operator.",
+            details={
+                "operation": operation,
+                "target": target,
+                "allowed": False,
+                "reason": decision.reason,
+            },
+        )
+
+
+def execute_authority_info(as_json: bool, target_dir: Path) -> CommandResult:
+    """Display or report the effective authority."""
+    from datetime import UTC, datetime
+
+    from agentharness.authority.loader import load_effective_authority
+
+    repo_root = target_dir.resolve()
+    try:
+        contract = load_effective_authority(repo_root)
+    except ValueError as e:
+        return CommandResult(
+            code=ResultCode.INVALID_COMMAND,
+            outcome=Outcome.ERROR,
+            summary=f"Failed to load authority contract: {e}",
+            remediation="Check the authority contract file.",
+            details={"repo_root": str(repo_root), "error": str(e)},
+        )
+
+    # Determine the source of authority
+    contract_path = repo_root / ".agentharness-authority.json"
+    flag_path = repo_root / ".agentharness-publish-mode"
+    if contract_path.exists():
+        source = "contract"
+    elif flag_path.exists():
+        source = "flag"
+    else:
+        source = "none"
+
+    # Build operations list with details
+    operations_granted: list[dict[str, object]] = []
+    now = datetime.now(UTC)
+
+    for grant in contract.grants:
+        for op in grant.operations:
+            status = "active"
+            reason = None
+            if op.value in contract.revoked:
+                status = "revoked"
+                reason = "revoked"
+            elif grant.expires:
+                try:
+                    if grant.expires.endswith("Z"):
+                        expires_str = grant.expires.rstrip("Z") + "+00:00"
+                    else:
+                        expires_str = grant.expires
+                    expires_dt = datetime.fromisoformat(expires_str)
+                    if now >= expires_dt:
+                        status = "expired"
+                        reason = f"expired at {grant.expires}"
+                except (ValueError, TypeError):
+                    status = "invalid"
+                    reason = "invalid expiry format"
+
+            operations_granted.append(
+                {
+                    "operation": op.value,
+                    "target": grant.target,
+                    "expires": grant.expires,
+                    "granted_by": grant.granted_by,
+                    "status": status,
+                    "reason": reason,
+                }
+            )
+
+    details = {
+        "source": source,
+        "schema_version": contract.schema_version,
+        "operations_granted": operations_granted,
+        "revoked": list(contract.revoked),
+    }
+
+    return CommandResult(
+        code=ResultCode.STATUS_AVAILABLE,
+        outcome=Outcome.SUCCESS,
+        summary=f"Authority source: {source}",
+        remediation="",
+        details=details,
+    )
+
+
 def execute_runtime_plan_upgrade(
     request_path: Path, trusted_base_lock: Path
 ) -> CommandResult:
@@ -584,6 +726,8 @@ def main(argv: Sequence[str] | None = None, output: TextIO | None = None) -> int
             result = _dispatch_github(arguments)
         elif arguments.command == "profile":
             result = _dispatch_profile(arguments)
+        elif arguments.command == "authority":
+            result = _dispatch_authority(arguments)
         else:
             result = execute_runtime_plan_upgrade(
                 arguments.request,
@@ -637,3 +781,15 @@ def _dispatch_profile(arguments: argparse.Namespace) -> CommandResult:
     if arguments.profile_command == "apply":
         return execute_profile_apply(arguments.file, arguments.target)
     raise CommandUsageError
+
+
+def _dispatch_authority(arguments: argparse.Namespace) -> CommandResult:
+    """Route authority sub-commands."""
+    if arguments.authority_command == "check":
+        return execute_authority_check(
+            arguments.operation, arguments.target, arguments.target_dir
+        )
+    # Default: show authority info
+    target_dir = arguments.target_dir
+    as_json = arguments.as_json
+    return execute_authority_info(as_json, target_dir)
