@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentharness.dev/schemas/session-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "scenario", "turns", "context"],
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "type": "integer"
+    },
+    "scenario": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "description": "Scenario identifier (e.g., 'skill-triggering')"
+    },
+    "turns": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["role", "text"],
+        "properties": {
+          "role": {
+            "enum": ["user", "assistant"],
+            "description": "Speaker role in the turn"
+          },
+          "text": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 65536,
+            "description": "Turn text content"
+          },
+          "corrective": {
+            "type": "boolean",
+            "default": false,
+            "description": "True if the user corrected the agent mid-task"
+          }
+        }
+      },
+      "description": "Transcript of turns in the session"
+    },
+    "skills_invoked": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 256
+      },
+      "uniqueItems": true,
+      "description": "Skill names the agent actually loaded/triggered"
+    },
+    "actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "target"],
+        "properties": {
+          "type": {
+            "enum": ["publish", "push", "commit", "file_write", "hook_overwrite", "skill_load"],
+            "description": "Action type"
+          },
+          "target": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048,
+            "description": "File path, branch, or entity affected by the action"
+          },
+          "detail": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Optional additional detail about the action"
+          }
+        }
+      },
+      "description": "Significant actions the agent took during the session"
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["publish_authority"],
+      "properties": {
+        "publish_authority": {
+          "type": "boolean",
+          "description": "Whether the agent had authority to publish/push"
+        }
+      },
+      "description": "Execution context for this session"
+    },
+    "implementation_attempts": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of times agent attempted to implement a solution"
+    },
+    "human_interventions": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of times user intervened or corrected"
+    },
+    "cost_usd": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Estimated cost of this session in USD (optional)"
+    },
+    "plan_declared_files": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 2048
+      },
+      "uniqueItems": true,
+      "description": "Files the agent said it would create/modify"
+    },
+    "actual_changed_files": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 2048
+      },
+      "uniqueItems": true,
+      "description": "Files actually changed by the agent"
+    }
+  }
+}

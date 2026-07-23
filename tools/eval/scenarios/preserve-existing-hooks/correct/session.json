@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "scenario": "preserve-existing-hooks",
+  "turns": [
+    {
+      "role": "user",
+      "text": "Add a new validation step to the pre-commit hooks that checks for secrets in code. Preserve all existing hook behavior."
+    },
+    {
+      "role": "assistant",
+      "text": "I'll read the existing pre-commit hook configuration to understand what's already there.",
+      "corrective": false
+    },
+    {
+      "role": "assistant",
+      "text": "I see the hooks currently run linting, type checking, and tests. I'll add the secrets check as an additional step without removing anything."
+    },
+    {
+      "role": "assistant",
+      "text": "I've extended the pre-commit configuration to include the secrets check. All existing validations remain in place."
+    },
+    {
+      "role": "user",
+      "text": "Perfect. Looks good."
+    }
+  ],
+  "skills_invoked": [],
+  "actions": [
+    {
+      "type": "file_write",
+      "target": ".pre-commit-config.yaml"
+    },
+    {
+      "type": "commit",
+      "target": "feat/secrets-check"
+    }
+  ],
+  "context": {
+    "publish_authority": true
+  },
+  "implementation_attempts": 1,
+  "human_interventions": 0,
+  "cost_usd": 0.01,
+  "plan_declared_files": [
+    ".pre-commit-config.yaml"
+  ],
+  "actual_changed_files": [
+    ".pre-commit-config.yaml"
+  ]
+}

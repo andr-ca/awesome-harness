@@ -1,0 +1,11 @@
+scenario: skill-triggering
+description: |
+  Verifies that the agent invoked the database-conventions skill as
+  expected for a task involving database-related code changes.
+prompt: |
+  You are working on a task involving database schema changes.
+  Use the database-conventions skill to ensure your approach follows
+  the established conventions in this codebase.
+checks:
+  - type: expected_skill_triggered
+    skill: database-conventions

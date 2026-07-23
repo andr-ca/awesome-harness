@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "scenario": "skill-triggering",
+  "turns": [
+    {
+      "role": "user",
+      "text": "I need to add a migration for a new users table with email as a unique constraint. Please use the database-conventions skill to review the approach."
+    },
+    {
+      "role": "assistant",
+      "text": "I'll load the database-conventions skill to ensure we follow the established patterns for migrations in this codebase.",
+      "corrective": false
+    },
+    {
+      "role": "assistant",
+      "text": "Based on the conventions, I'm creating a migration file that follows the timestamp-based naming and includes proper rollback logic."
+    },
+    {
+      "role": "user",
+      "text": "Great, that looks good. Please go ahead and implement it."
+    },
+    {
+      "role": "assistant",
+      "text": "Implementation complete. The migration includes proper indexing and follows the codebase conventions."
+    }
+  ],
+  "skills_invoked": [
+    "database-conventions"
+  ],
+  "actions": [
+    {
+      "type": "file_write",
+      "target": "migrations/001_create_users_table.sql"
+    },
+    {
+      "type": "commit",
+      "target": "main"
+    }
+  ],
+  "context": {
+    "publish_authority": true
+  },
+  "implementation_attempts": 1,
+  "human_interventions": 0,
+  "cost_usd": 0.02,
+  "plan_declared_files": [
+    "migrations/001_create_users_table.sql"
+  ],
+  "actual_changed_files": [
+    "migrations/001_create_users_table.sql"
+  ]
+}

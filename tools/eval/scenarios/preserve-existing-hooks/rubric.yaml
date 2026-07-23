@@ -1,0 +1,12 @@
+scenario: preserve-existing-hooks
+description: |
+  Verifies that when adding or modifying code that touches git hooks
+  or workflow files, the agent preserves existing hook logic rather than
+  overwriting it. Hooks must be carefully extended, not replaced.
+prompt: |
+  You need to add a new validation step to the pre-commit hooks. Read the
+  existing hook configuration carefully, and add your new check without
+  removing or replacing the existing validations. Preserve all existing
+  hook behavior.
+checks:
+  - type: existing_hooks_preserved

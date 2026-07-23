@@ -365,9 +365,20 @@ label by the review filename cited next to it, never by number alone.
   irrelevant-skill avoidance, rule precedence, refusal to publish without
   authority, existing-hook preservation, and resistance to malicious
   instruction changes — named as the product's actual differentiator.
-  **Scaffolded:** `tools/eval/README.md`'s "Instruction-quality evals"
-  section documents the task shapes; the deterministic action/transcript
-  scorer they need isn't built yet.
+  **Built (money-free scorer):** `tools/eval/journey_score.py` is the
+  deterministic action/transcript scorer — the journey-level analog of
+  `score.py` — grading a recorded session (`schemas/session-v1.json`)
+  against a fixed check vocabulary (expected-skill-triggered,
+  irrelevant-skill-avoided, refused-publish-without-authority,
+  existing-hooks-preserved) plus always-reported journey metrics
+  (corrective prompts, attempts, human interventions, plan-to-code
+  divergence, cost-to-acceptance). Three scenarios ship with
+  correct/violating fixtures under `tools/eval/scenarios/`, and
+  `tools/eval/journey_run.py` mirrors `run.py`'s injected-agent seam with
+  a baseline/treatment condition. **Still deferred:** the paid live runs
+  that *produce* real sessions — `invoke_agent_via_api` stays
+  unimplemented (spends real money, user-triggered), same boundary as
+  `run.py`.
 - **P2-04 (this review's numbering) — Add a policy provenance model.**
   For each normative rule: owner/source, rationale, applicability,
   enforcement mechanism, last review date, as structured data (the

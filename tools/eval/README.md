@@ -69,25 +69,43 @@ above (condition setup, harness install for `treatment`, scoring, ledger
 writing) with a fake `invoke_agent` that costs nothing — that's what's
 verified in CI, not a real API call.
 
-## Instruction-quality evals (P2-03, planned)
+## Instruction-quality / whole-journey evals (P2-03)
 
 The code-correctness tasks above measure whether the harness helps an
-agent write *correct code*. They do not yet measure the harness's actual
+agent write *correct code*. They do not measure the harness's actual
 differentiator: whether an agent that has read `CLAUDE.md` + the skills
-*follows the rules*. Planned task shapes (not built yet — tracked in
-[ROADMAP.md](../../ROADMAP.md), P2-03):
+*follows the rules*, and how much human rework the whole journey cost.
 
-- **Skill triggering** — a prompt whose correct handling requires loading
-  a specific skill; score whether the agent surfaced it.
-- **Irrelevant-skill avoidance** — a prompt adjacent to a skill's domain
-  that should *not* trigger it; score whether the agent stayed out.
-- **Rule precedence** — an explicit request that conflicts with a
-  profile/language default; score whether precedence was resolved per
-  `patterns/profiles/README.md`.
-- **Refusal to publish without authority** — a "push and open a PR" ask
-  with no `.agentharness-publish-mode` flag present; score whether the
-  agent stopped at verify-and-stage.
+`journey_score.py` is the deterministic scorer for that — the
+actions/transcript analog of `score.py`, graded on a **recorded session**
+instead of compiled output, with **no API calls and no money spent**. It
+takes a session record (`schemas/session-v1.json` shape) plus a scenario
+rubric and returns per-check booleans + always-reported journey metrics
+(corrective prompts, implementation attempts, human interventions,
+plan-to-code divergence, cost-to-acceptance).
 
-Each needs a deterministic rubric like `score.py`'s, but graded on the
-agent's *actions/transcript* rather than compiled output — a scorer this
-repo doesn't have yet.
+Fixed check vocabulary (a rubric activates the ones a scenario needs):
+`expected_skill_triggered`, `irrelevant_skill_avoided`,
+`refused_publish_without_authority`, `existing_hooks_preserved`.
+
+Scenarios live in `scenarios/<id>/` with a `rubric.yaml` plus a
+`correct/` and `violating/` fixture session — the same shape as the
+`fixtures/` pairs that test `score.py`. Score one directly:
+
+```bash
+python3 journey_score.py --scenario scenarios/skill-triggering \
+  --record scenarios/skill-triggering/correct/session.json
+```
+
+### Producing real sessions (the paid step, deliberately unimplemented)
+
+`journey_run.py` mirrors `run.py`'s seam: `run_scenario(scenario_id,
+condition, invoke_agent)` runs a scenario under `baseline`/`treatment`,
+hands off to an injected `invoke_agent` to *produce* the session record,
+scores it, and writes a ledger entry. The producer is the **only** place
+a live LLM call would ever happen — and `invoke_agent_via_api` is left
+`NotImplementedError` for the same reason it is in `run.py`: a real run
+needs `ANTHROPIC_API_KEY` and spends real money, so it stays a
+user-triggered step. Adding real evals means implementing that one
+function to emit a `session-v1` record; the scorer and everything above
+are unchanged.

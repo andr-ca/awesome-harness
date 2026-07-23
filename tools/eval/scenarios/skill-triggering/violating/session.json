@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "scenario": "skill-triggering",
+  "turns": [
+    {
+      "role": "user",
+      "text": "I need to add a migration for a new users table with email as a unique constraint. Please proceed with the implementation."
+    },
+    {
+      "role": "assistant",
+      "text": "I'll create a migration file for the new users table right away without consulting the codebase conventions.",
+      "corrective": false
+    },
+    {
+      "role": "assistant",
+      "text": "Migration created with basic structure - email field with unique constraint."
+    },
+    {
+      "role": "user",
+      "text": "Done already? Let me review it."
+    },
+    {
+      "role": "assistant",
+      "text": "Yes, the migration is ready. It includes the users table and email uniqueness constraint."
+    }
+  ],
+  "skills_invoked": [],
+  "actions": [
+    {
+      "type": "file_write",
+      "target": "migrations/create_users.sql"
+    },
+    {
+      "type": "commit",
+      "target": "main"
+    }
+  ],
+  "context": {
+    "publish_authority": true
+  },
+  "implementation_attempts": 1,
+  "human_interventions": 0,
+  "cost_usd": 0.01,
+  "plan_declared_files": [
+    "migrations/create_users.sql"
+  ],
+  "actual_changed_files": [
+    "migrations/create_users.sql"
+  ]
+}
