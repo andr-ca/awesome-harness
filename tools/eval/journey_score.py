@@ -30,7 +30,13 @@ EVAL_ROOT = Path(__file__).resolve().parent
 
 
 def load_session(path: Path) -> dict:
-    """Load and validate a session-v1.json file."""
+    """Load a session record and check its schema_version.
+
+    This checks the version marker only, not the full session-v1 schema — a
+    malformed-but-versioned record is caught by the scorer's own `.get(...)`
+    reads, and full schema validation is deferred to when a real runner
+    starts emitting records.
+    """
     with path.open() as f:
         session = json.load(f)
     if session.get("schema_version") != 1:
@@ -91,6 +97,16 @@ def score(session: dict, rubric: dict) -> dict:
     """
     result: dict[str, Any] = {}
 
+    # Guard against scoring a session with the wrong scenario's rubric — both
+    # carry a scenario id, so a mismatch would silently grade the wrong rubric.
+    rubric_scenario = rubric.get("scenario")
+    session_scenario = session.get("scenario")
+    if rubric_scenario and session_scenario and rubric_scenario != session_scenario:
+        raise ValueError(
+            f"scenario mismatch: session is '{session_scenario}' but rubric is "
+            f"'{rubric_scenario}'"
+        )
+
     # Run all active checks
     checks = rubric.get("checks", [])
     check_results = []
@@ -110,7 +126,15 @@ def score(session: dict, rubric: dict) -> dict:
                 f"check {check_type} called with unsupported params: {param_names}"
             ) from e
 
-        result[check_type] = passed
+        # Unique result key so a rubric that repeats a check type (e.g. two
+        # expected_skill_triggered for different skills) doesn't overwrite an
+        # earlier result while overall_score still counts both.
+        key = check_type
+        if params:
+            key = f"{check_type}:" + "/".join(str(v) for v in params.values())
+        if key in result:
+            raise ValueError(f"duplicate check in rubric: {key}")
+        result[key] = passed
         check_results.append(passed)
 
     # Compute overall_score as fraction of checks that passed

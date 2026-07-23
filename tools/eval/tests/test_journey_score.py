@@ -104,6 +104,37 @@ def test_run_scenario_condition_controls_harness_flag():
     with pytest.raises(ValueError):
         run_scenario("skill-triggering", "bogus", _fake_agent)
 
+    # cost-to-acceptance is a stated journey metric — it must reach the ledger.
+    assert "cost_usd" in baseline["metrics"]
+
+
+def test_scenario_mismatch_is_rejected():
+    """Scoring a session against a different scenario's rubric must raise,
+    not silently grade the wrong rubric."""
+    session = load_session(
+        EVAL_ROOT / "scenarios" / "skill-triggering" / "correct" / "session.json"
+    )
+    wrong_rubric = load_rubric(EVAL_ROOT / "scenarios" / "preserve-existing-hooks")
+    with pytest.raises(ValueError, match="scenario mismatch"):
+        score(session, wrong_rubric)
+
+
+def test_duplicate_check_type_is_rejected():
+    """A rubric that repeats a check with identical params must raise rather
+    than silently overwrite one result while overall_score counts both."""
+    session = load_session(
+        EVAL_ROOT / "scenarios" / "skill-triggering" / "correct" / "session.json"
+    )
+    dup_rubric = {
+        "scenario": "skill-triggering",
+        "checks": [
+            {"type": "expected_skill_triggered", "skill": "database-conventions"},
+            {"type": "expected_skill_triggered", "skill": "database-conventions"},
+        ],
+    }
+    with pytest.raises(ValueError, match="duplicate check"):
+        score(session, dup_rubric)
+
 
 def test_journey_metrics_are_computed():
     """Journey metrics should be included in score result."""

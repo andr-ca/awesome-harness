@@ -96,6 +96,7 @@ def run_scenario(
             "implementation_attempts": result["implementation_attempts"],
             "human_interventions": result["human_interventions"],
             "plan_to_code_divergence": result["plan_to_code_divergence"],
+            "cost_usd": result["cost_usd"],
         },
     }
 
